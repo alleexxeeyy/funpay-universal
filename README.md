@@ -71,6 +71,14 @@
 
     #### 🔧 Пример для `BOT_EVENT_HANDLERS`:
     ```python
+    _module: Module = None
+    def get_module(module: Module):
+        global _module
+        _module = module
+    
+    def handler_on_init():
+        print(f"{PREFIX} Модуль инициализирован")
+    
     BOT_EVENT_HANDLERS = {
         "ON_MODULE_CONNECTED": [handle_on_module_connected],
         "ON_INIT": [handler_on_init],
