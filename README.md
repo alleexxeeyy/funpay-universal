@@ -64,7 +64,7 @@
     Обязательные константы:
     | Константа | Тип | Описание | Пример использования |
     |-----------|-----|----------|----------------------|
-    | `BOT_EVENT_HANDLERS` | dict[str, list[Any]] | В этой константе задаются хендлеры ивентов бота | BOT_EVENT_HANDLERS = {"ON_INIT": [handler_on_init]} |
+    | `BOT_EVENT_HANDLERS` | dict[str, list[Any]] | В этой константе задаются хендлеры ивентов бота | ```BOT_EVENT_HANDLERS = {"ON_INIT": [handler_on_init]}``` |
     | `ON_INIT` | При инициализации бота | `-` |
     | `ON_FUNPAY_BOT_INIT` | При инициализации (запуске) FunPay бота | `FunPayBot` |
     | `ON_TELEGRAM_BOT_INIT` | При инициализации (запуске) Telegram бота | `TelegramBot` |
