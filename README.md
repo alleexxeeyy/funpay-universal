@@ -93,7 +93,7 @@
     DESCRIPTION = "Тестовый модуль. /test_module в Telegram боте для управления"
     AUTHORS = "@alleexxeeyy"
     LINKS = "https://t.me/alleexxeeyy, https://t.me/alexeyproduction"
-    python```
+    ```
 
     #### `__init__.py`:
     ```python
@@ -127,7 +127,7 @@
         EventTypes.NEW_ORDER: [FunPayBotHandlers.handler_new_order]
     }
     TELEGRAM_BOT_ROUTERS = [router]
-    python```
+    ```
     
   </details>
 
