@@ -59,18 +59,22 @@
   Обязательные файлы модуля:
   
   - `__init__.py`
+
     В файле инициализации задаются все основные параметры модуля для его корректной работы.
 
     Обязательные константы:
     | Константа | Тип | Описание |
     |-----------|-----|----------|
-    | `BOT_EVENT_HANDLERS` | <pre> <code>```dict[str, list[Any]]```</code> </pre> | В этой константе задаются хендлеры ивентов бота |
-    | `ON_INIT` | При инициализации бота | `-` |
-    | `ON_FUNPAY_BOT_INIT` | При инициализации (запуске) FunPay бота | `FunPayBot` |
-    | `ON_TELEGRAM_BOT_INIT` | При инициализации (запуске) Telegram бота | `TelegramBot` |
+    | `BOT_EVENT_HANDLERS` | `dict[str, list[Any]]` | В этом словаре задаются хендлеры ивентов бота |
+    | `FUNPAY_EVENT_HANDLERS` | `dict[EventTypes, list[Any]` | В этом словаре задаются хендлеры ивентов FunPay |
+    | `TELEGRAM_BOT_ROUTERS` | list[Router] | В этом массиве задаются роутеры модульного Telegram бота  |
 
-    #### 🔧 Пример для `BOT_EVENT_HANDLERS`:
+    #### 🔧 Пример содержимого __init__.py:
     ```python
+    from .fpbot.funpaybot_handlers import FunPayBotHandlers
+    from .tgbot.telegrambot_handlers import TelegramBotHandlers
+    from .tgbot import router
+    from FunPayAPI.updater.events import EventTypes
     from core.modules_manager import disable_module, Module
     
     _module: Module = None
@@ -88,9 +92,14 @@
     BOT_EVENT_HANDLERS = {
         "ON_MODULE_CONNECTED": [handle_on_module_connected],
         "ON_INIT": [handler_on_init],
-        #"ON_FUNPAY_BOT_INIT": [...],
-        #"ON_TELEGRAM_BOT_INIT": [...]
+        "ON_FUNPAY_BOT_INIT": [FunPayBotHandlers.handler_on_funpay_bot_init],
+        "ON_TELEGRAM_BOT_INIT": [TelegramBotHandlers.handler_on_telegram_bot_init]
     }
+    FUNPAY_EVENT_HANDLERS = {
+        EventTypes.NEW_MESSAGE: [FunPayBotHandlers.handler_new_message],
+        EventTypes.NEW_ORDER: [FunPayBotHandlers.handler_new_order]
+    }
+    TELEGRAM_BOT_ROUTERS = [router]
     
   </details>
 
