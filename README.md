@@ -71,13 +71,19 @@
 
     #### 🔧 Пример для `BOT_EVENT_HANDLERS`:
     ```python
+    from core.modules_manager import disable_module, Module
+    
     _module: Module = None
     def get_module(module: Module):
         global _module
         _module = module
     
     def handler_on_init():
-        print(f"{PREFIX} Модуль инициализирован")
+        try:
+            # ...
+            print(f"{PREFIX} Модуль инициализирован")
+        except:
+            disable_module(_module.uuid)
     
     BOT_EVENT_HANDLERS = {
         "ON_MODULE_CONNECTED": [handle_on_module_connected],
@@ -85,7 +91,7 @@
         #"ON_FUNPAY_BOT_INIT": [...],
         #"ON_TELEGRAM_BOT_INIT": [...]
     }
-  
+    
   </details>
 
   Шаблонный модуль можно найти [здесь](templates/...)
