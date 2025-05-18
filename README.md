@@ -64,7 +64,7 @@
     - BOT_EVENT_HANDLERS
 
   <details>
-    <summary><strong>__init__.py</strong></summary>
+    <summary>__init__.py</summary>
   
     В файле инициализации задаются все основные параметры модуля для его корректной работы.
     
