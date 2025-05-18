@@ -62,18 +62,45 @@
 
     В файле инициализации задаются все основные параметры модуля для его корректной работы.
 
-    Обязательные константы:
+    Обязательные константы хендлеров:
     | Константа | Тип | Описание |
     |-----------|-----|----------|
     | `BOT_EVENT_HANDLERS` | `dict[str, list[Any]]` | В этом словаре задаются хендлеры ивентов бота |
     | `FUNPAY_EVENT_HANDLERS` | `dict[EventTypes, list[Any]` | В этом словаре задаются хендлеры ивентов FunPay |
     | `TELEGRAM_BOT_ROUTERS` | list[Router] | В этом массиве задаются роутеры модульного Telegram бота  |
 
-    #### 🔧 Пример содержимого __init__.py:
+    Обязательные константы метаданных:
+    | Константа | Тип | Описание |
+    |-----------|-----|----------|
+    | `PREFIX` | `str` | Префикс |
+    | `VERSION` | `str` | Версия |
+    | `NAME` | `str` | Название |
+    | `DESCRIPTION` | `str` | Описание |
+    | `AUTHORS` | `str` | Авторы |
+    | `LINKS` | `str` | Ссылки на авторов |
+
+    ### 🔧 Пример содержимого
+    Обратите внимание, что метаданные были вынесены в отдельный файл `meta.py`, но импортируются в `__init__.py`
+    Это сделано для избежания конфликтов импорта в дальнейшей части кода модуля.
+
+    #### `meta.py`:
+    ```python
+    from colorama import Fore, Style
+
+    PREFIX = f"{Fore.LIGHTCYAN_EX}[test module]{Fore.WHITE}"
+    VERSION = "0.1"
+    NAME = "test_module"
+    DESCRIPTION = "Тестовый модуль. /test_module в Telegram боте для управления"
+    AUTHORS = "@alleexxeeyy"
+    LINKS = "https://t.me/alleexxeeyy, https://t.me/alexeyproduction"
+    python```
+
+    #### `__init__.py`:
     ```python
     from .fpbot.funpaybot_handlers import FunPayBotHandlers
     from .tgbot.telegrambot_handlers import TelegramBotHandlers
     from .tgbot import router
+    from .meta import *
     from FunPayAPI.updater.events import EventTypes
     from core.modules_manager import disable_module, Module
     
@@ -100,6 +127,7 @@
         EventTypes.NEW_ORDER: [FunPayBotHandlers.handler_new_order]
     }
     TELEGRAM_BOT_ROUTERS = [router]
+    python```
     
   </details>
 
