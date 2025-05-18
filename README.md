@@ -82,6 +82,8 @@
     BOT_EVENT_HANDLERS = {
         "ON_MODULE_CONNECTED": [handle_on_module_connected],
         "ON_INIT": [handler_on_init],
+        #"ON_FUNPAY_BOT_INIT": [...],
+        #"ON_TELEGRAM_BOT_INIT": [...]
     }
   
   </details>
