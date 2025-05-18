@@ -73,7 +73,7 @@
   |-----------|-----|----------|
   | `BOT_EVENT_HANDLERS` | `dict[str, list[Any]]` | В этом словаре задаются хендлеры ивентов бота |
   | `FUNPAY_EVENT_HANDLERS` | `dict[EventTypes, list[Any]` | В этом словаре задаются хендлеры ивентов FunPay |
-  | `TELEGRAM_BOT_ROUTERS` | list[Router] | В этом массиве задаются роутеры модульного Telegram бота  |
+  | `TELEGRAM_BOT_ROUTERS` | `list[Router]` | В этом массиве задаются роутеры модульного Telegram бота  |
 
   Обязательные константы метаданных:
   | Константа | Тип | Описание |
