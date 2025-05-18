@@ -61,10 +61,12 @@
   - `__init__.py`
     В файле инициализации задаются все основные параметры модуля для его корректной работы.
 
+  <pre> <code>```BOT_EVENT_HANDLERS = {"ON_INIT": [handler_on_init]}```</code> </pre>
+
     Обязательные константы:
     | Константа | Тип | Описание | Пример использования |
     |-----------|-----|----------|----------------------|
-    | `BOT_EVENT_HANDLERS` | `dict[str, list[Any]]` | В этой константе задаются хендлеры ивентов бота | <pre> <code>```BOT_EVENT_HANDLERS = {"ON_INIT": [handler_on_init]}```</code> </pre> |
+    | `BOT_EVENT_HANDLERS` | <pre> <code>```dict[str, list[Any]]```</code> </pre> | В этой константе задаются хендлеры ивентов бота | <pre> <code>```BOT_EVENT_HANDLERS = {"ON_INIT": [handler_on_init]}```</code> </pre> |
     | `ON_INIT` | При инициализации бота | `-` |
     | `ON_FUNPAY_BOT_INIT` | При инициализации (запуске) FunPay бота | `FunPayBot` |
     | `ON_TELEGRAM_BOT_INIT` | При инициализации (запуске) Telegram бота | `TelegramBot` |
