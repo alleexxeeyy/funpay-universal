@@ -27,7 +27,7 @@ async def callback_back(call: CallbackQuery, state: FSMContext):
                                   parse_mode="HTML")
 
 @router.callback_query(CallbackDatas.MenuNavigation.filter())
-async def callback_menu_navigation(callback: CallbackQuery, callback_data: CallbackDatas.MenuNavigation, state: FSMContext):
+async def callback_menu_navigation(callback: CallbackQuery, callback_data: CallbackDatas.MenuNavigation):
     """ Навигация в главном меню """
     to = callback_data.to
     try:
@@ -176,7 +176,7 @@ async def callback_start_funpay_bot(call: CallbackQuery):
     try:
         await call.message.bot.bots_manager.start_funpay_bot()
         callback_data = CallbackDatas.MenuNavigation(to="default")
-        return await callback_botsettings_navigation(call, callback_data)
+        return await callback_menu_navigation(call, callback_data)
     except Exception as e:
         await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
 
@@ -186,7 +186,7 @@ async def callback_stop_funpay_bot(call: CallbackQuery):
     try:
         await call.message.bot.bots_manager.stop_funpay_bot()
         callback_data = CallbackDatas.MenuNavigation(to="default")
-        return await callback_botsettings_navigation(call, callback_data)
+        return await callback_menu_navigation(call, callback_data)
     except Exception as e:
         await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
 

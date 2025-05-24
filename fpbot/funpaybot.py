@@ -246,7 +246,7 @@ class FunPayBot:
                                 timedelta_sec = fpbot.config["lots_saving_interval"]
                                 fpbot.events_next_time["save_lots_next_time"] = (datetime.now() + timedelta(seconds=timedelta_sec)).isoformat()
                             except Exception as e:
-                                self.logger.error(f"{PREFIX} При сохранении лотов произошла ошибка: {e}")
+                                self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При сохранении лотов произошла ошибка: {Fore.WHITE}{e}")
 
                         # --- Поднятие всех лотов ---
                         if fpbot.config["auto_raising_lots_enabled"] == True:
@@ -254,7 +254,7 @@ class FunPayBot:
                                 fpbot.raise_lots()
                         time.sleep(cycle_delay)
                     except Exception:
-                        self.logger.error(f"{PREFIX} В бесконечном цикле произошла ошибка: {traceback.print_exc()}")
+                        self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}В бесконечном цикле произошла ошибка: {Fore.WHITE}{traceback.print_exc()}")
 
             endless_loop_thread = Thread(target=endless_loop, daemon=True)
             endless_loop_thread.start()
@@ -270,32 +270,32 @@ class FunPayBot:
                         try:
                             if event.message.type is MessageTypes.NON_SYSTEM and event.message.author == this_chat.name:
                                 fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("user_not_initialized",
-                                                                                        buyer_username=event.message.author))
+                                                                                          buyer_username=event.message.author))
                             fpbot.initialized_users.append(this_chat.name)
                         except Exception as e:
-                            self.logger.error(f"{PREFIX} При отправке приветственного сообщения для {event.message.author} произошла ошибка: {e}")
+                            self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При отправке приветственного сообщения для {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
 
                 if event.message.author == this_chat.name:
-                    
-                    if event.message.text in self.custom_commands.keys():
-                        try:
-                            message = "\n".join(self.custom_commands[event.message.text])
-                            fpbot.funpay_account.send_message(this_chat.id, message)
-                        except Exception as e:
-                            self.logger.info(f"{PREFIX} При вводе пользовательского сообщения \"{event.message.text}\" у {event.message.author} произошла ошибка: {e}")
-                            fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("command_error"))
+                    if self.config["custom_commands_enabled"]:
+                        if event.message.text in self.custom_commands.keys():
+                            try:
+                                message = "\n".join(self.custom_commands[event.message.text])
+                                fpbot.funpay_account.send_message(this_chat.id, message)
+                            except Exception as e:
+                                self.logger.info(f"{PREFIX} {Fore.LIGHTRED_EX}При вводе пользовательской команды \"{event.message.text}\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
+                                fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("command_error"))
                     elif str(event.message.text).lower() == "!команды" or str(event.message.text).lower() == "!commands":
                         try:
                             fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("buyer_command_commands"))
                         except Exception as e:
-                            self.logger.info(f"{PREFIX} При вводе команды \"!команды\" у {event.message.author} произошла ошибка: {e}")
+                            self.logger.info(f"{PREFIX} {Fore.LIGHTRED_EX}При вводе команды \"!команды\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
                             fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("command_error"))
                     elif str(event.message.text).lower() == "!продавец" or str(event.message.text).lower() == "!seller":
                         try:
                             asyncio.run_coroutine_threadsafe(fpbot.tgbot.call_seller(event.message.author, this_chat.id), self.tgbot_loop)
                             fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("buyer_command_seller"))
                         except Exception as e:
-                            self.logger.log(f"{PREFIX} При вводе команды \"!продавец\" у {event.message.author} произошла ошибка: {e}")
+                            self.logger.log(f"{PREFIX} {Fore.LIGHTRED_EX}При вводе команды \"!продавец\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
                             fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("command_error"))
 
                     if event.message.type is MessageTypes.NEW_FEEDBACK:
@@ -310,10 +310,10 @@ class FunPayBot:
                                                                                             order_amount=order.amount,
                                                                                             order_price=order.sum,))
                             except Exception as e:
-                                self.logger.error(f"{PREFIX} При оставлении ответа на отзыв заказа произошла ошибка: {e}")
+                                self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При оставлении ответа на отзыв заказа произошла ошибка: {Fore.WHITE}{e}")
                     
             except Exception:
-                self.logger.error(f"{PREFIX} При обработке ивента новых сообщений произошла ошибка: {traceback.print_exc()}")
+                self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента новых сообщений произошла ошибка: {Fore.WHITE}{traceback.print_exc()}")
 
         async def handler_new_order(fpbot: FunPayBot, event: NewOrderEvent):
             """ Начальный хендлер нового заказа """
@@ -327,11 +327,11 @@ class FunPayBot:
                         if lot:
                             if str(lot.id) in self.auto_deliveries.keys():
                                 self.funpay_account.send_message(this_chat.id, "\n".join(self.auto_deliveries[str(lot.id)]))
-                        self.logger.info(f"{PREFIX} 🚀 На заказ {Fore.LIGHTYELLOW_EX}{event.order.id}{Fore.WHITE} от покупателя {Fore.LIGHTYELLOW_EX}{event.order.buyer_username}{Fore.WHITE} было автоматически выдано сообщение после покупки")
+                        self.logger.info(f"{PREFIX} 🚀 На заказ {Fore.LIGHTYELLOW_EX}{event.order.id}{Fore.WHITE} от покупателя {Fore.LIGHTYELLOW_EX}{event.order.buyer_username}{Fore.WHITE} было автоматически выдано пользовательское сообщение после покупки")
                 except Exception as e:
-                    self.logger.error(f"{PREFIX} При обработке нового заказа для {event.order.buyer_username} произошла ошибка: {e}")
+                    self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке нового заказа для {event.order.buyer_username} произошла ошибка: {Fore.WHITE}{e}")
             except Exception:
-                self.logger.error(f"{PREFIX} При обработке ивента новых заказов произошла ошибка: {traceback.print_exc()}")
+                self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента новых заказов произошла ошибка: {Fore.WHITE}{traceback.print_exc()}")
             
         async def handler_order_status_changed(fpbot: FunPayBot, event: OrderStatusChangedEvent):
             """ Начальный хендлер изменения статуса заказа """
@@ -343,7 +343,7 @@ class FunPayBot:
                     elif event.order.status is OrderStatuses.REFUNDED:
                         fpbot.stats["orders_refunded"] += 1
                 except Exception as e:
-                    self.logger.info(f"{PREFIX} При подсчёте статистики произошла ошибка: {e}")
+                    self.logger.info(f"{PREFIX} {Fore.LIGHTRED_EX}При подсчёте статистики произошла ошибка: {Fore.WHITE}{e}")
                 finally:
                     set_stats(fpbot.stats)
 
@@ -352,7 +352,7 @@ class FunPayBot:
                         chat = fpbot.funpay_account.get_chat_by_name(event.order.buyer_username, True)
                         fpbot.funpay_account.send_message(chat.id, fpbot.msg("order_confirmed"))
             except Exception:
-                self.logger.error(f"{PREFIX} При обработке ивента смены статуса заказа произошла ошибка: {traceback.print_exc()}")
+                self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента смены статуса заказа произошла ошибка: {Fore.WHITE}{traceback.print_exc()}")
             
         _funpay_event_handlers[EventTypes.NEW_MESSAGE].insert(0, handler_new_message)
         _funpay_event_handlers[EventTypes.NEW_ORDER].insert(0, handler_new_order)
