@@ -137,8 +137,8 @@ def disable_module(module_uuid: UUID) -> bool:
         return False
 
 
-def load_all_modules() -> list[Module]:
-    """ Загружает все модули """
+def load_modules() -> list[Module]:
+    """ Загружает все модули из папки modules. """
     modules = []
     modules_path = "modules"
     if modules_path not in sys.path:
@@ -180,3 +180,19 @@ def load_all_modules() -> list[Module]:
             except Exception as e:
                 print(f"{Fore.LIGHTRED_EX}Ошибка при загрузке модуля {name}: {Fore.WHITE}{e}")
     return modules
+
+def connect_modules(modules: list[Module]):
+    """ Подключает (включает) переданные в массиве модули. """
+    names = []
+    for module in modules:
+        try:
+            register_bot_event_handlers(module.bot_event_handlers)
+            register_funpay_event_handlers(module.funpay_event_handlers)
+            i = _loaded_modules.index(module)
+            module.enabled = True
+            _loaded_modules[i] = module
+            names.append(f"{Fore.LIGHTYELLOW_EX}{module.meta.name} {Fore.LIGHTWHITE_EX}{module.meta.version}")
+        except Exception as e:
+            print(f"{Fore.LIGHTRED_EX}Ошибка при подключении модуля {module.meta.name}: {Fore.WHITE}{e}")
+            continue
+    print(f"{Fore.WHITE}🔌 Подключено {Fore.LIGHTWHITE_EX}{len(modules)} модуля(-ей): {f"{Fore.WHITE}, ".join(names)}")
