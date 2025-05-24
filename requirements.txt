@@ -9,3 +9,4 @@ deep-translator==1.11.4
 certifi==2025.1.31
 urllib3==1.26.16
 colorlog==6.9.0
+colorama==0.4.6
