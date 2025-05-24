@@ -1,4 +1,4 @@
-from core.modules_manager import load_all_modules, set_modules, enable_module, Module
+from core.modules_manager import load_modules, connect_modules, set_modules, enable_module, Module
 from core.handlers_manager import register_bot_event_handlers, register_funpay_event_handlers
 
 from core.console import set_title
@@ -88,19 +88,14 @@ if __name__ == "__main__":
                   f"Возможно вы запускаете его впервые, поэтому давайте проведём быструю настройку конфига, чтобы вы смогли приступить к работе.")
             Config().configure_config()
         
-        print(f"{Fore.WHITE}⏳ Загружаю модули...")
-        modules = load_all_modules()
+        print(f"{Fore.WHITE}⏳ Загружаю и подключаю модули...")
+        modules = load_modules()
         if len(modules) == 0:
             print(f"{Fore.WHITE}Модулей не обнаружено")
         set_modules(modules)
-
+        
         if len(modules) > 0:
-            print(f"{Fore.WHITE}⏳ Подключаю модули...")
-            names = []
-            for module in modules:
-                if enable_module(module.uuid):
-                    names.append(f"{Fore.LIGHTYELLOW_EX}{module.meta.name} {Fore.LIGHTWHITE_EX}{module.meta.version}")
-            print(f"{Fore.WHITE}🔌 Подключено {Fore.LIGHTWHITE_EX}{len(modules)} модуля(-ей): {f"{Fore.WHITE}, ".join(names)}")
+            connect_modules(modules)
         
         for module in modules:
             if "ON_MODULE_CONNECTED" in module.bot_event_handlers and module.enabled:
