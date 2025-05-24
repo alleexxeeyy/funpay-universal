@@ -11,11 +11,10 @@ class Updater:
             response = requests.get(f"https://api.github.com/repos/alleexxeeyy/funpay-universal/releases/latest")
             if response.status_code == 200:
                 latest_release = response.json()
-                print(latest_release)
                 latest_version = latest_release["tag_name"]
                 if latest_version != CURRENT_VERSION:
                     print(f"\n{Fore.LIGHTYELLOW_EX}Доступна новая версия: {Fore.LIGHTWHITE_EX}{latest_version}"
-                          f"{Fore.WHITE}Скачать: {Fore.LIGHTWHITE_EX}{latest_release['html_url']}\n")
+                          f"\n{Fore.WHITE}Скачать: {Fore.LIGHTWHITE_EX}{latest_release['html_url']}\n")
                     return True
                 else:
                     return False
