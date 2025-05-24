@@ -1,0 +1,14 @@
+{
+    "golden_key": "7afk5sy629f2406jrury1c020dpqizra",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+    "tg_admin_id": 1592201702,
+    "tg_bot_token": "7257913369:AAG2KjLL3-zvvfSQFSVhaTb4w7tR2iXsJXM",
+    "funpayapi_timeout": 30,
+    "runner_requests_delay": 4,
+    "first_message_enabled": true,
+    "custom_commands_enabled": true,
+    "auto_delivery_enabled": true,
+    "auto_raising_lots_enabled": true,
+    "lots_saving_interval": 3600,
+    "auto_reviews_replies_enabled": true
+}
