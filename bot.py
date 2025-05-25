@@ -93,6 +93,6 @@ if __name__ == "__main__":
         handle_on_init()
         
         print(f"{Fore.WHITE}🤖 Запускаю бота...\n")
-        asyncio.run(BotsManager.start_telegram_bot())
+        asyncio.run(BotsManager().start_telegram_bot())
     except Exception as e:
         print(traceback.print_exc())
