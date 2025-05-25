@@ -105,15 +105,15 @@ class Config:
         for param in params.keys():
             if param in config:
                 i+=1
-                required = f"обязательный" if params[param]["required"] == True else f"необязательный"
-                default_value = config[param] if config[param] else "Не задано"
+                not_stated_placeholder = "Не задано"
+                default_value = config[param]
                 desc = "· " + "\n· ".join(params[param]["desc"])
                 print(f"\n{Fore.LIGHTWHITE_EX}⚙️ {i}. Введите значение параметра {Fore.LIGHTYELLOW_EX}{param}."
-                      f"\n{Fore.WHITE}Значение по умолчанию: {Fore.LIGHTYELLOW_EX}{default_value}"
+                      f"\n{Fore.WHITE}Значение по умолчанию: {Fore.LIGHTYELLOW_EX}{default_value if default_value else not_stated_placeholder}"
                       f"\n{Fore.WHITE}Описание параметра: \n{Fore.LIGHTYELLOW_EX}{desc}"
-                      f"\n{Fore.WHITE}Ввод {required}")
+                      f'\n{Fore.WHITE}Ввод {"обязательный" if params[param]["required"] else "необязательный"}')
                 if not params[param]["required"]:
-                    print(f"{Fore.LIGHTWHITE_EX}Нажмите Enter, чтобы пропустить и использовать значение по умолчанию: {Fore.LIGHTYELLOW_EX}{default_value}")
+                    print(f"{Fore.LIGHTWHITE_EX}Нажмите Enter, чтобы пропустить и использовать значение по умолчанию: {Fore.LIGHTYELLOW_EX}{default_value if default_value else not_stated_placeholder}")
                 a = input(f"{Fore.WHITE}→ {Fore.LIGHTWHITE_EX}")
                 
                 if params[param]["type"] is int:
@@ -128,7 +128,7 @@ class Config:
                     except:
                         if not a and not params[param]["required"]:
                             answers[param] = default_value
-                            print(f"Будет использоваться значение по умолчанию: {Fore.LIGHTYELLOW_EX}{default_value}")
+                            print(f"Будет использоваться значение по умолчанию: {Fore.LIGHTYELLOW_EX}{default_value if default_value else not_stated_placeholder}")
                         elif not a and params[param]["required"]:
                             print(f"{Fore.LIGHTRED_EX}✗ Ошибка ввода: это значение обязательное")
                             break
@@ -146,7 +146,7 @@ class Config:
                             break
                         elif not a and not params[param]["required"]:
                             answers[param] = default_value
-                            print(f"{Fore.WHITE}Будет использоваться значение по умолчанию: {Fore.LIGHTYELLOW_EX}{default_value}")
+                            print(f"{Fore.WHITE}Будет использоваться значение по умолчанию: {Fore.LIGHTYELLOW_EX}{default_value if default_value else not_stated_placeholder}")
                     except:
                         print(f"{Fore.LIGHTRED_EX}✗ Ошибка ввода: значение должно быть строчным")
                         break
@@ -156,8 +156,8 @@ class Config:
             print(f"{Fore.WHITE}Параметр: {Fore.LIGHTYELLOW_EX}*ваш ответ*{Fore.WHITE} | {Fore.LIGHTYELLOW_EX}*значение по умолчанию*")
             print(f"{Fore.LIGHTWHITE_EX}——————")
             for answer_param in answers.keys():
-                default_value = config[answer_param] if config[answer_param] else "Не задано"
-                print(f"{Fore.WHITE}{answer_param}: {Fore.LIGHTYELLOW_EX}{answers[answer_param]}{Fore.WHITE} | {Fore.LIGHTYELLOW_EX}{default_value}")
+                default_value = config[answer_param]
+                print(f"{Fore.WHITE}{answer_param}: {Fore.LIGHTYELLOW_EX}{answers[answer_param]}{Fore.WHITE} | {Fore.LIGHTYELLOW_EX}{default_value if default_value else not_stated_placeholder}")
             print(f"\n{Fore.WHITE}💾 Применяем и сохраняем конфиг с текущими, указанными вами значениями? +/-")
             a = input(f"{Fore.WHITE}> ")
 
