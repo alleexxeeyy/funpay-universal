@@ -203,7 +203,7 @@ class Navigation:
                     stats = get_stats()
                     msg = "📊 <b>Статистика FunPay бота</b>" \
                         f"\n" \
-                        f"\n→ Дата запуска: <code>{stats['bot_launch_time'].strftime("%d.%m.%Y %H:%M:%S")}</code>" \
+                        f"\n→ Дата запуска: <code>{stats['bot_launch_time'].strftime('%d.%m.%Y %H:%M:%S')}</code>" \
                         f"\n" \
                         f"\n→ Продаж: <code>{stats['orders_completed']}</code>" \
                         f"\n→ Активных: <code>{stats['active_orders']}</code>" \
