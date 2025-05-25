@@ -1,5 +1,4 @@
-from core.modules_manager import load_modules, connect_modules, set_modules, enable_module, Module
-from core.handlers_manager import register_bot_event_handlers, register_funpay_event_handlers
+from core.modules_manager import load_modules, connect_modules, set_modules
 
 from core.console import set_title
 import asyncio
@@ -80,7 +79,8 @@ if __name__ == "__main__":
               f"\n   {Fore.WHITE}→ tg: {Fore.LIGHTWHITE_EX}@alleexxeeyy"
               f"\n   {Fore.WHITE}→ tg channel: {Fore.LIGHTWHITE_EX}@alexeyproduction\n")
         
-        Updater.check_for_updates()
+        if Updater.check_for_updates():
+            exit()
         
         config = Config().get()
         if not config["golden_key"]:
