@@ -56,26 +56,33 @@ class Updater:
     def install_update(zip_response_content: bytes):
         """ Устанавливает обновление из архива """
         try:
+            current_dir = "."
+            temp_dir = ".temp_update"
+
             with zipfile.ZipFile(io.BytesIO(zip_response_content), 'r') as zip_ref:
-                current_dir = "."
-                temp_dir = ".temp_update"
+                if os.path.exists(temp_dir):
+                    shutil.rmtree(temp_dir)
                 os.makedirs(temp_dir, exist_ok=True)
-
                 zip_ref.extractall(temp_dir)
-                update_files = []
-                for root, _, files in os.walk(temp_dir):
-                    for file in files:
-                        rel_path = os.path.relpath(os.path.join(root, file), temp_dir)
-                        update_files.append(rel_path)
-                
-                for file in update_files:
-                    src = os.path.join(temp_dir, file)
-                    dst = os.path.join(current_dir, file)
-                    os.makedirs(os.path.dirname(dst), exist_ok=True)
-                    shutil.copy2(src, dst)
 
-                shutil.rmtree(temp_dir)
+            inner_dirs = [d for d in os.listdir(temp_dir) if os.path.isdir(os.path.join(temp_dir, d))]
+            if not inner_dirs:
+                raise Exception("В архиве не найдена вложенная папка.")
+
+            extracted_dir = os.path.join(temp_dir, inner_dirs[0])
+            for root, _, files in os.walk(extracted_dir):
+                for file in files:
+                    src_path = os.path.join(root, file)
+                    rel_path = os.path.relpath(src_path, extracted_dir)
+                    dst_path = os.path.join(current_dir, rel_path)
+                    os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+                    shutil.copy2(src_path, dst_path)
+
+            shutil.rmtree(temp_dir)
             return True
+
         except Exception as e:
             print(f"{Fore.LIGHTRED_EX}При установке обновления произошла ошибка: {Fore.WHITE}{e}")
             return False
+
+
