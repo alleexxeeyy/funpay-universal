@@ -139,7 +139,6 @@ def disable_module(module_uuid: UUID) -> bool:
         print(f"{Fore.LIGHTRED_EX}Ошибка при отключении модуля {module_uuid}: {Fore.WHITE}{e}")
         return False
 
-
 def load_modules() -> list[Module]:
     """ Загружает все модули из папки modules. """
     modules = []
