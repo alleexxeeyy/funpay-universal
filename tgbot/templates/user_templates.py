@@ -38,8 +38,6 @@ class Navigation:
                         f"\n<b>FunPay UNIVERSAL</b> v{CURRENT_VERSION} " \
                         f"\nБот-помощник для FunPay" \
                         f"\n" \
-                        f"\n→ Состояние FunPay бота: <i>не удалось загрузить</i>" \
-                        f"\n" \
                         f"\n<b>Ссылки:</b>" \
                         f"\n→ <b>@alleexxeeyy</b> — главный и единственный разработчик" \
                         f"\n→ <b>@alexeyproduction</b> — канал, где публикуются новости" \
@@ -55,8 +53,6 @@ class Navigation:
                         f"\n<b>FunPay UNIVERSAL</b> v{CURRENT_VERSION} " \
                         f"\nБот-помощник для FunPay" \
                         f"\n" \
-                        f"\n→ Состояние FunPay бота: <i>загрузка</i>" \
-                        f"\n" \
                         f"\n<b>Ссылки:</b>" \
                         f"\n→ <b>@alleexxeeyy</b> — главный и единственный разработчик" \
                         f"\n→ <b>@alexeyproduction</b> — канал, где публикуются новости" \
@@ -66,14 +62,11 @@ class Navigation:
                     return msg
 
             class Default:
-                def text(bots_manager) -> str:
-                    started = "🟢 Запущен" if bots_manager.fpbot else "🔴 Остановлен"
+                def text() -> str:
                     msg = f"🏠 <b>Главное меню</b>" \
                         f"\n" \
                         f"\n<b>FunPay UNIVERSAL</b> v{CURRENT_VERSION} " \
                         f"\nБот-помощник для FunPay" \
-                        f"\n" \
-                        f"\n→ Состояние FunPay бота: <code>{started}</code>" \
                         f"\n" \
                         f"\n<b>Ссылки:</b>" \
                         f"\n→ <b>@alleexxeeyy</b> — главный и единственный разработчик" \
@@ -84,20 +77,6 @@ class Navigation:
                     return msg
                     
                 def kb(bots_manager) -> InlineKeyboardMarkup:
-                    rows = []
-
-                    if bots_manager.fpbot is not None:
-                        btn_stop = InlineKeyboardButton(
-                            text="🔴 Остановить FunPay бота",
-                            callback_data="stop_funpay_bot"
-                        )
-                        rows.append([btn_stop])
-                    else:
-                        btn_start = InlineKeyboardButton(
-                            text="🟢 Запустить FunPay бота",
-                            callback_data="start_funpay_bot"
-                        )
-                        rows.append([btn_start])
                     btn1 = InlineKeyboardButton(
                         text="⚙️ Настройки",
                         callback_data=CallbackDatas.SettingsNavigation(
@@ -116,22 +95,18 @@ class Navigation:
                             page=0
                         ).pack()
                     )
-                    rows.append([btn1, btn2, btn3])
-                    btn3 = InlineKeyboardButton(
+                    btn4 = InlineKeyboardButton(
                         text="📖 Инструкция",
                         callback_data=CallbackDatas.InstructionNavigation(
                             to="default"
                         ).pack()
                     )
-                    rows.append([btn3])
                     btn_refresh = InlineKeyboardButton(
                         text="🔄️ Обновить",
                         callback_data=CallbackDatas.MenuNavigation(
                             to="default"
                         ).pack()
                     )
-                    rows.append([btn_refresh])
-
                     btn4 = InlineKeyboardButton(
                         text="👨‍💻 Разработчик",
                         url="https://t.me/alleexxeeyy",
@@ -144,30 +119,10 @@ class Navigation:
                         text="🤖 Наш бот",
                         url="https://t.me/alexey_production_bot",
                     )
-                    rows.append([btn4, btn5, btn6])
 
+                    rows = [[btn1, btn2, btn3], [btn4], [btn_refresh], [btn4, btn5, btn6]]
                     markup = InlineKeyboardMarkup(inline_keyboard=rows)
                     return markup
-            
-            class FunpayBotStarting:
-                def text() -> str:
-                    msg = "🕓 Запускаем FunPay бота, ожидайте..."
-                    return msg
-            
-            class FunpayBotStarted:
-                def text() -> str:
-                    msg = "✅ <b>FunPay бот</b> был успешно запущен"
-                    return msg
-            
-            class FunpayBotStopping:
-                def text() -> str:
-                    msg = "🕓 Останавливаем FunPay бота, ожидайте..."
-                    return msg
-            
-            class FunpayBotStopped:
-                def text() -> str:
-                    msg = "✅ <b>FunPay бот</b> был успешно остановлен"
-                    return msg
                 
         class Stats:
             class Error:

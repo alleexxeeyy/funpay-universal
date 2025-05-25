@@ -34,10 +34,10 @@ async def callback_menu_navigation(callback: CallbackQuery, callback_data: Callb
         if to == "default":
             try:
                 await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Default.Loading.text(),
-                                                 reply_markup=Templates.Navigation.MenuNavigation.Default.Default.kb(callback.message.bot.bots_manager),
+                                                 reply_markup=Templates.Navigation.MenuNavigation.Default.Default.kb(),
                                                  parse_mode="HTML")
-                await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Default.Default.text(callback.message.bot.bots_manager),
-                                                 reply_markup=Templates.Navigation.MenuNavigation.Default.Default.kb(callback.message.bot.bots_manager),
+                await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Default.Default.text(),
+                                                 reply_markup=Templates.Navigation.MenuNavigation.Default.Default.kb(),
                                                  parse_mode="HTML")
             except Exception as e:
                 await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Default.Error.text(),
@@ -169,26 +169,6 @@ async def callback_botsettings_navigation(callback: CallbackQuery, callback_data
                 raise e
     except Exception as e:
         await callback.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
-
-@router.callback_query(F.data == "start_funpay_bot")
-async def callback_start_funpay_bot(call: CallbackQuery):
-    """ Запускает FunPay бота """
-    try:
-        await call.message.bot.bots_manager.start_funpay_bot()
-        callback_data = CallbackDatas.MenuNavigation(to="default")
-        return await callback_menu_navigation(call, callback_data)
-    except Exception as e:
-        await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
-
-@router.callback_query(F.data == "stop_funpay_bot")
-async def callback_stop_funpay_bot(call: CallbackQuery):
-    """ Останавливает FunPay бота """
-    try:
-        await call.message.bot.bots_manager.stop_funpay_bot()
-        callback_data = CallbackDatas.MenuNavigation(to="default")
-        return await callback_menu_navigation(call, callback_data)
-    except Exception as e:
-        await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
 
 @router.callback_query(F.data == "enter_golden_key")
 async def callback_enter_golden_key(call: CallbackQuery, state: FSMContext):

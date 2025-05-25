@@ -19,44 +19,18 @@ class BotsManager:
 
     def __init__(self):
         self.tgbot = None
-        self.fpbot = None
-        self.fpbot_thread = None
-        self.fpbot_loop = None
 
     async def start_funpay_bot(self):
         """ Запускает FunPay бота в отдельном потоке """
-        if self.fpbot_thread is None or not self.fpbot_thread.is_alive():
-            this_loop = asyncio.get_running_loop()
-            self.fpbot_loop = asyncio.new_event_loop()
-            self.fpbot = FunPayBot(self.tgbot, this_loop)
+        this_loop = asyncio.get_running_loop()
+        self.fpbot_loop = asyncio.new_event_loop()
+        self.fpbot = FunPayBot(self.tgbot, this_loop)
 
-            def run():
-                self.fpbot_loop.run_until_complete(self.fpbot.run_bot())
-            
-            self.fpbot_thread = Thread(target=run, daemon=True)
-            self.fpbot_thread.start()
-        else:
-            raise Exception("FunPay бот уже запущен")
-
-    async def stop_funpay_bot(self):
-        """ Останавливает поток FunPay бота """
-        if self.fpbot_thread.is_alive():
-            tid = self.fpbot_thread.ident
-            res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
-                ctypes.c_long(tid),
-                ctypes.py_object(SystemExit)  # или KeyboardInterrupt
-            )
-            if res == 0:
-                raise Exception("Неверный ID потока")
-            elif res > 1:
-                ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, None)
-                raise Exception("PyThreadState_SetAsyncExc вызван более одного раза")
-
-            self.fpbot_loop.call_soon_threadsafe(self.fpbot_loop.stop)
-            self.fpbot_thread.join() # ждем завершения работы потока
-            self.fpbot = None
-        else:
-            raise Exception("FunPay бот не запущен")
+        def run():
+            self.fpbot_loop.run_until_complete(self.fpbot.run_bot())
+        
+        self.fpbot_thread = Thread(target=run, daemon=True)
+        self.fpbot_thread.start()
 
     async def start_telegram_bot(self) -> None:
         """ Запускает Telegram бота """
@@ -65,8 +39,6 @@ class BotsManager:
         self.tgbot = TelegramBot(config["tg_bot_token"])
         
         await self.start_funpay_bot()
-
-        self.tgbot.bot.bots_manager = self
         await self.tgbot.run_bot()
 
 
@@ -121,7 +93,6 @@ if __name__ == "__main__":
         handle_on_init()
         
         print(f"{Fore.WHITE}🤖 Запускаю бота...\n")
-        botsm = BotsManager()
-        asyncio.run(botsm.start_telegram_bot())
+        asyncio.run(BotsManager.start_telegram_bot())
     except Exception as e:
         print(traceback.print_exc())
