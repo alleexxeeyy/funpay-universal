@@ -1,8 +1,11 @@
 import os
 import sys
 import importlib
+import pkg_resources
 import uuid
 from uuid import UUID
+from pathlib import Path
+import subprocess
 from colorama import Fore, Style
 
 from core.handlers_manager import remove_handlers, register_bot_event_handlers, register_funpay_event_handlers
@@ -144,14 +147,57 @@ def load_modules() -> list[Module]:
     if modules_path not in sys.path:
         sys.path.insert(0, modules_path)
 
+    def install_requirements(requirements_path: str):
+        """
+        Устанавливает зависимости модуля.
+        
+        :param requirements_path: Путь к файлу requirements.txt
+        :type requirements_path: str
+        """
+        if not os.path.exists(requirements_path):
+            return
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", requirements_path])
+        except subprocess.CalledProcessError:
+            print(f"{Fore.LIGHTRED_EX}Не удалось установить зависимости из {requirements_path}")
+
+    def is_package_installed(requirement_string):
+        try:
+            pkg_resources.require(requirement_string)
+            return True
+        except (pkg_resources.DistributionNotFound, pkg_resources.VersionConflict):
+            return False
+
+    def install_missing_requirements(requirements_path):
+        if not os.path.exists(requirements_path):
+            return
+
+        with open(requirements_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        missing_packages = []
+        for line in lines:
+            pkg = line.strip()
+            if not pkg or pkg.startswith("#"):
+                continue
+            if not is_package_installed(pkg):
+                missing_packages.append(pkg)
+
+        if missing_packages:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", *missing_packages])
+
+
     for name in os.listdir(modules_path):
         bot_event_handlers = {}
         funpay_event_handlers = {}
         telegram_bot_routers = []
         
-        full_path = os.path.join(modules_path, name)
-        if os.path.isdir(full_path) and "__init__.py" in os.listdir(full_path):
+        module_path = os.path.join(modules_path, name)
+        if os.path.isdir(module_path) and "__init__.py" in os.listdir(module_path):
             try:
+                requirements_file = os.path.join(module_path, "requirements.txt")
+                install_missing_requirements(requirements_file)
+
                 module = importlib.import_module(f"modules.{name}")
                 if hasattr(module, "BOT_EVENT_HANDLERS"):
                     for key, funcs in module.BOT_EVENT_HANDLERS.items():
