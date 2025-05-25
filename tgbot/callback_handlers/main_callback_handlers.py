@@ -502,7 +502,7 @@ async def callback_custom_command_page(callback: CallbackQuery, callback_data: C
     lot_id = callback_data.lot_id
     data = await state.get_data()
     await state.update_data(auto_delivery_lot_id=lot_id)
-    last_page = data.gat("last_page") if data.gat("last_page") else 0
+    last_page = data.get("last_page") if data.get("last_page") else 0
     try:
         await callback.message.edit_text(text=Templates.Navigation.SettingsNavigation.BotSettings.AutoDeliveries.Page.Loading.text(),
                                          reply_markup=Templates.Navigation.SettingsNavigation.BotSettings.AutoDeliveries.Page.Default.kb(lot_id, last_page),
