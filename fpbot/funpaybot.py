@@ -304,6 +304,7 @@ class FunPayBot:
                         if fpbot.config["auto_reviews_replies_enabled"]:
                             try:
                                 order = fpbot.funpay_account.get_order(review_order_id)
+                                time.sleep(1)
                                 fpbot.funpay_account.send_review(review_order_id, fpbot.msg("order_review_reply_text",
                                                                                             review_date=datetime.now().strftime("%d.%m.%Y"),
                                                                                             order_title=order.title,
