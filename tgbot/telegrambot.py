@@ -20,7 +20,7 @@ class TelegramBot:
     """ Класс, запускающий и инициализирующий Telegram бота """
 
     def __init__(self, bot_token: str) -> None:
-        self.config = Config().get()
+        self.config = Config.get()
         self.admin_id = self.config["tg_admin_id"]
         self.bot_token = bot_token
         try:
@@ -30,7 +30,7 @@ class TelegramBot:
             print(f"{Fore.LIGHTWHITE_EX}Начать снова настройку конфига? +/-")
             a = input(f"{Fore.WHITE}> {Fore.LIGHTWHITE_EX}")
             if a == "+":
-                Config().configure_config()
+                Config.configure_config()
                 print(f"{Fore.LIGHTWHITE_EX}Перезапустите бота, чтобы продолжить работу.")
                 raise SystemExit(1)
             else:
@@ -91,5 +91,5 @@ class TelegramBot:
                                     parse_mode="HTML")
 
 if __name__ == "__main__":
-    config = Config().get()
+    config = Config.get()
     asyncio.run(TelegramBot(config["tg_bot_token"]).run_bot())

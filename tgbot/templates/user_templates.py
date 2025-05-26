@@ -463,7 +463,7 @@ class Navigation:
                     
                 class Default:
                     def text() -> str:
-                        config = Config().get()
+                        config = Config.get()
                         golden_key = config["golden_key"][:3] + "*" * (len(config["golden_key"]) - 3) if config["golden_key"] else "❌ Не задано"
                         user_agent = config["user_agent"] if config["user_agent"] else "❌ Не задано"
                         msg = f"🤖 <b>Настройки бота</b>" \
@@ -557,7 +557,7 @@ class Navigation:
                         
                 class Default:
                     def text() -> str:
-                        config = Config().get()
+                        config = Config.get()
                         user_agent = config["user_agent"] if config["user_agent"] else "❌ Не задано"
                         golden_key = config["golden_key"][:3] + "*" * (len(config['golden_key']) - 3) if config["golden_key"] else "❌ Не задано"
                         msg = f"🤖 <b>Настройки бота → 🔑 Авторизация</b>"\
@@ -595,7 +595,7 @@ class Navigation:
                     
                 class EnterGoldenKey:
                     def text() -> str:
-                        config = Config().get()
+                        config = Config.get()
                         msg = f"🔑 <b>Введите новый golden_key вашего FunPay аккаунта ↓</b>" \
                               f"\nТекущее значение: <code>{config['golden_key']}</code>"
                         return msg
@@ -607,7 +607,7 @@ class Navigation:
                     
                 class EnterUserAgent:
                     def text() -> str:
-                        config = Config().get()
+                        config = Config.get()
                         user_agent = config["user_agent"] if config["user_agent"] != "" else "❌ Не задано"
                         msg = f"🎩 <b>Введитe новый user_agent вашего браузера ↓</b>" \
                               f"\nТекущее значение: <code>{user_agent}</code>"
@@ -661,7 +661,7 @@ class Navigation:
 
                 class Default:
                     def text() -> str:
-                        config = Config().get()
+                        config = Config.get()
 
                         msg = f"🤖 <b>Настройки бота → 📶 Соединение</b>"\
                               f"\n" \
@@ -708,7 +708,7 @@ class Navigation:
                 
                 class EnterFunpayApiTimeout:
                     def text() -> str:
-                        config = Config().get()
+                        config = Config.get()
                         msg = f"🛜 <b>Введите новый таймаут подключения к funpay.com ↓</b>" \
                               f"\nТекущее значение: <code>{config['funpayapi_timeout']}</code> сек."
                         return msg
@@ -720,7 +720,7 @@ class Navigation:
                 
                 class EnterRunnerRequestsDelay:
                     def text() -> str:
-                        config = Config().get()
+                        config = Config.get()
                         msg = f"⏱️ <b>Введите новую периодичность запросов к funpay.com ↓</b>" \
                               f"\nТекущее значение: <code>{config['runner_requests_delay']}</code> сек."
                         return msg
@@ -753,7 +753,7 @@ class Navigation:
 
                 class Default:
                     def text() -> str:
-                        config = Config().get()
+                        config = Config.get()
                         auto_raising_lots_enabled = "🟢 Включено" if config["auto_raising_lots_enabled"] == True else "🔴 Выключено"
                         
                         msg = f"🤖 <b>Настройки бота → 🎫 Лоты</b>"\
@@ -765,7 +765,7 @@ class Navigation:
                         return msg
 
                     def kb() -> InlineKeyboardMarkup:
-                        config = Config().get()
+                        config = Config.get()
                         rows = []
                         
                         if config["auto_raising_lots_enabled"]:
@@ -803,7 +803,7 @@ class Navigation:
                     
                 class EnterLotsSavingInterval:
                     def text() -> str:
-                        config = Config().get()
+                        config = Config.get()
                         msg = f"⏲️ <b>Введите новый интервал сохранения лотов ↓</b>" \
                               f"\nТекущее значение: <code>{config['lots_saving_interval']}</code> сек."
                         return msg
@@ -816,14 +816,14 @@ class Navigation:
             class CustomCommands:
                 class Pagination:
                     def text() -> str:
-                        custom_commands = CustomCommands().get()
+                        custom_commands = CustomCommands.get()
                         msg = f"🤖 <b>Настройки бота</b> → ⌨️ <b>Пользовательские команды</b>" \
                               f"\nВсего <b>{len(custom_commands.keys())}</b> пользовательских команд в конфиге" \
                               f"\n\nПеремещайтесь по разделам ниже. Нажмите на команду, чтобы перейти в её редактирование ↓"
                         return msg
                     
                     def kb(page: int = 0) -> InlineKeyboardMarkup:
-                        custom_commands = CustomCommands().get()
+                        custom_commands = CustomCommands.get()
 
                         rows = []
                         items_per_page = 7
@@ -921,7 +921,7 @@ class Navigation:
 
                     class Default:
                         def text(command: str) -> str:
-                            custom_commands = CustomCommands().get()
+                            custom_commands = CustomCommands.get()
                             command_text = "\n".join(custom_commands[command])
                             msg = f"✏️ <b>Редактирование пользовательской команды</b>" \
                                 f"\n" \
@@ -1000,7 +1000,7 @@ class Navigation:
                     
                 class EnterNewCustomCommandAnswer:
                     def text(command) -> str:
-                        custom_commands = CustomCommands().get()
+                        custom_commands = CustomCommands.get()
                         command_answer = "\n".join(custom_commands[command])
                         msg = f"✍️ <b>Введите новый текст ответа ↓</b>" \
                               f"\nКоманда: <code>{command}</code>" \
@@ -1039,14 +1039,14 @@ class Navigation:
             class AutoDeliveries:
                 class Pagination:
                     def text() -> str:
-                        auto_deliveries = AutoDeliveries().get()
+                        auto_deliveries = AutoDeliveries.get()
                         msg = f"🤖 <b>Настройки бота</b> → 🚀 <b>Автоматическая выдача</b>" \
                               f"\nВсего <b>{len(auto_deliveries.keys())}</b> настроенных лотов для авто-выдачи в конфиге" \
                               f"\n\nПеремещайтесь по разделам ниже. Нажмите на ID лота, чтобы перейти в редактирование его авто-выдачи ↓"
                         return msg
                     
                     def kb(page: int = 0) -> InlineKeyboardMarkup:
-                        auto_deliveries = AutoDeliveries().get()
+                        auto_deliveries = AutoDeliveries.get()
 
                         rows = []
                         items_per_page = 7
@@ -1145,7 +1145,7 @@ class Navigation:
 
                     class Default:
                         def text(lot_id: str) -> str:
-                            auto_deliveries = AutoDeliveries().get()
+                            auto_deliveries = AutoDeliveries.get()
                             auto_delivery_message = "\n".join(auto_deliveries[str(lot_id)])
                             msg = f"✏️ <b>Редактирование авто-выдачи</b>" \
                                 f"\n" \
@@ -1224,7 +1224,7 @@ class Navigation:
                     
                 class EnterNewAutoDeliveryMessage:
                     def text(lot_id) -> str:
-                        auto_deliveries = AutoDeliveries().get()
+                        auto_deliveries = AutoDeliveries.get()
                         auto_delivery_message = "\n".join(auto_deliveries[str(lot_id)])
                         msg = f"✍️ <b>Введите новое сообщение после покупки ↓</b>" \
                               f"\nID лота: <code>{lot_id}</code>" \
@@ -1263,7 +1263,7 @@ class Navigation:
             class Messages:
                 class Pagination:
                     def text() -> str:
-                        messages = Messages().get()
+                        messages = Messages.get()
                         if not messages:
                             raise Exception("В конфиге нет ни одного сообщения")
                         msg = f"🤖 <b>Настройки бота</b> → ✉️ <b>Сообщения</b>" \
@@ -1272,7 +1272,7 @@ class Navigation:
                         return msg
                     
                     def kb(page: int = 0) -> InlineKeyboardMarkup:
-                        messages = Messages().get()
+                        messages = Messages.get()
                         if not messages:
                             raise Exception("В конфиге нет ни одного сообщения")
 
@@ -1368,7 +1368,7 @@ class Navigation:
 
                     class Default:
                         def text(message_id) -> str:
-                            messages = Messages().get()
+                            messages = Messages.get()
                             message_text = "\n".join(messages[message_id])
                             msg = f"✒️ <b>Редактирование сообщения</b>" \
                                 f"\n" \
@@ -1406,7 +1406,7 @@ class Navigation:
                     
                 class EnterMessageText:
                     def text(message_id) -> str:
-                        messages = Messages().get()
+                        messages = Messages.get()
                         message_text = "\n".join(messages[message_id])
                         msg = f"✍️ <b>Введите новый текст сообщения ↓</b>" \
                               f"\nID сообщения: \n<code>{message_id}</code>" \
@@ -1453,7 +1453,7 @@ class Navigation:
 
                 class Default:
                     def text() -> str:
-                        config = Config().get()
+                        config = Config.get()
                         auto_reviews_replies_enabled = "🟢 Включено" if config["auto_reviews_replies_enabled"] else "🔴 Выключено"
                         first_message_enabled = "🟢 Включено" if config["first_message_enabled"] else "🔴 Выключено"
                         custom_commands_enabled = "🟢 Включено" if config["custom_commands_enabled"] else "🔴 Выключено"
@@ -1473,7 +1473,7 @@ class Navigation:
                         return msg
                     
                     def kb() -> InlineKeyboardMarkup:
-                        config = Config().get()
+                        config = Config.get()
                         rows = []
 
                         if config["auto_reviews_replies_enabled"]:

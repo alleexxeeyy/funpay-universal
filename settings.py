@@ -3,33 +3,31 @@ from colorama import Fore, Style
 
 
 class Config:
-    def __init__(self):
-        self.config_path = 'bot_settings/config.json'
+    PATH = "bot_settings/config.json"
     
-    def get(self) -> dict:
-        """ Возвращает конфиг в JSON формате """
+    @staticmethod
+    def get() -> dict:
+        """ Возвращает содержимое config.json в JSON формате. """
         try:
-            with open(self.config_path, 'r', encoding='utf-8') as f:
+            with open(Config.PATH, 'r', encoding='utf-8') as f:
                 config = json.load(f)
         except:
-            with open(self.config_path, 'w', encoding='utf-8') as f:
+            with open(Config.PATH, 'w', encoding='utf-8') as f:
                 json.dump(Config.default_config(), f, indent=4, ensure_ascii=False)
-            with open(self.config_path, 'r', encoding='utf-8') as f:
+            with open(Config.PATH, 'r', encoding='utf-8') as f:
                 config = json.load(f)
         finally:
             return config
     
-    def update(self, new_data) -> None:
-        """
-        Перезаписывает данные в конфиг
-
-        :param new_data: Новый экземпляр конфига
-        """
-        with open(self.config_path, 'w', encoding='utf-8') as f:
+    @staticmethod
+    def set(new_data):
+        """ Перезаписывает данные в config.json. """
+        with open(Config.PATH, 'w', encoding='utf-8') as f:
             json.dump(new_data, f, indent=4, ensure_ascii=False)
 
+    @staticmethod
     def default_config() -> dict:
-        """ Возвращает стандартную структуру конфига """
+        """ Возвращает стандартную структуру config.json. """
         return {
             "golden_key": "",
             "user_agent": "",
@@ -45,10 +43,9 @@ class Config:
             "auto_reviews_replies_enabled": True,
         }
     
-    def configure_config(self):
-        """ Начинает настройку конфига """
-
-        # Словарь, содержащий описание каждого параметра в конфиге
+    @staticmethod
+    def configure_config():
+        """ Начинает настройку конфига. """
         params = {
             "golden_key": {
                 "required": True,
@@ -98,7 +95,7 @@ class Config:
             }
         }
 
-        config = self.get()
+        config = Config.get()
         answers = {}
         print(f"\n{Fore.LIGHTWHITE_EX}↓ Всего {Fore.LIGHTYELLOW_EX}{len(params.keys())} {Fore.LIGHTWHITE_EX}параметра(-ов), ничего сложного ( ͡° ͜ʖ ͡°)")
         i=0
@@ -164,21 +161,41 @@ class Config:
             if a == "+":
                 for answer_param in answers.keys():
                     config[answer_param] = answers[answer_param]
-                    Config().update(config)
+                    Config.set(config)
                 print(f"{Fore.LIGHTWHITE_EX}✅ Настройки были применены и сохранены в конфиг\n")
                 return True
             else:
                 print(f"\n{Fore.WHITE}Вы отказались от сохранения введённых вами значений в конфиг. Давайте настроим их с начала...")
-                return self.configure_config()
+                return Config.configure_config()
         print(f"{Fore.WHITE}К сожалению, вы ввели неверное значение для одного из параметров, и поэтому настройка начнётся с самого начала")
-        return self.configure_config()
+        return Config.configure_config()
     
 class Messages:
-    def __init__(self):
-        self.messages_path = 'bot_settings/messages.json'
+    PATH = "bot_settings/messages.json"
 
-    def default_messages(self) -> dict:
-        """ Возвращает стандартную структуру сообщений """
+    @staticmethod
+    def get() -> dict:
+        """ Возвращает содержимое messages.json в JSON формате. """
+        try:
+            with open(Messages.PATH, 'r', encoding='utf-8') as f:
+                messages = json.load(f)
+        except:
+            with open(Messages.PATH, 'w', encoding='utf-8') as f:
+                json.dump(Messages.default_messages(), f, indent=4, ensure_ascii=False)
+            with open(Messages.PATH, 'r', encoding='utf-8') as f:
+                messages = json.load(f)
+        finally:
+            return messages
+        
+    @staticmethod
+    def set(new_data):
+        """ Перезаписывает данные в messages.json. """
+        with open(Messages.PATH, 'w', encoding='utf-8') as f:
+            json.dump(new_data, f, indent=4, ensure_ascii=False)
+
+    @staticmethod
+    def default_messages() -> dict:
+        """ Возвращает стандартную структуру messages.json. """
         return {
             "new_order": [
                 "👋 Привет, я бот-помощник.",
@@ -220,70 +237,66 @@ class Messages:
                 "🔢 Количество: {order_amount} шт."
             ]
         }
-    
-    def get(self) -> dict:
-        """ Возвращает сообщения в JSON формате """
-        try:
-            with open(self.messages_path, 'r', encoding='utf-8') as f:
-                messages = json.load(f)
-        except:
-            with open(self.messages_path, 'w', encoding='utf-8') as f:
-                json.dump(self.default_messages(), f, indent=4, ensure_ascii=False)
-            with open(self.messages_path, 'r', encoding='utf-8') as f:
-                messages = json.load(f)
-        finally:
-            return messages
-        
-    def update(self, new_data) -> None:
-        """
-        Перезаписывает данные в сообщения
-
-        :param new_data: Новый экземпляр сообщений
-        """
-        with open(self.messages_path, 'w', encoding='utf-8') as f:
-            json.dump(new_data, f, indent=4, ensure_ascii=False)
 
 class CustomCommands:
-    def __init__(self):
-        self.custom_commands_path = 'bot_settings/custom_commands.json'
+    PATH = "bot_settings/custom_commands.json"
+    
+    @staticmethod
+    def get() -> dict:
+        """ Возвращает содержимое custom_commands.json в JSON формате. """
+        try:
+            with open(CustomCommands.PATH, 'r', encoding='utf-8') as f:
+                custom_commands = json.load(f)
+        except:
+            with open(CustomCommands.PATH, 'w', encoding='utf-8') as f:
+                json.dump(CustomCommands.default_custom_commands(), f, indent=4, ensure_ascii=False)
+            with open(CustomCommands.PATH, 'r', encoding='utf-8') as f:
+                custom_commands = json.load(f)
+        finally:
+            return custom_commands
+        
+    @staticmethod
+    def update(new_data):
+        """ Перезаписывает данные в custom_commands.json. """
+        with open(CustomCommands.PATH, 'w', encoding='utf-8') as f:
+            json.dump(new_data, f, indent=4, ensure_ascii=False)
 
-    def default_custom_commands(self) -> dict:
-        """ Возвращает стандартную структуру пользовательских команд """
+    @staticmethod
+    def default_custom_commands() -> dict:
+        """ Возвращает стандартную структуру custom_commands.json. """
         return {
             "!тест": [
                 "Привет, друг 👋. Это тестовое сообщение, которое можно изменить в настройках пользовательских команд.",
                 "©️ 𝐅𝐮𝐧𝐏𝐚𝐲 𝐔𝐧𝐢𝐯𝐞𝐫𝐬𝐚𝐥",
             ]
         }
-    
-    def get(self) -> dict:
-        """ Возвращает пользовательские команды в JSON формате """
-        try:
-            with open(self.custom_commands_path, 'r', encoding='utf-8') as f:
-                custom_commands = json.load(f)
-        except:
-            with open(self.custom_commands_path, 'w', encoding='utf-8') as f:
-                json.dump(self.default_custom_commands(), f, indent=4, ensure_ascii=False)
-            with open(self.custom_commands_path, 'r', encoding='utf-8') as f:
-                custom_commands = json.load(f)
-        finally:
-            return custom_commands
-        
-    def update(self, new_data) -> None:
-        """
-        Перезаписывает данные в пользовательские команды
-
-        :param new_data: Новый экземпляр пользовательских команд
-        """
-        with open(self.custom_commands_path, 'w', encoding='utf-8') as f:
-            json.dump(new_data, f, indent=4, ensure_ascii=False)
 
 class AutoDeliveries:
-    def __init__(self):
-        self.auto_deliveries_path = 'bot_settings/auto_deliveries.json'
-
-    def default_auto_deliveries(self) -> dict:
-        """ Возвращает стандартную структуру авто-выдач """
+    PATH = "bot_settings/auto_deliveries.json"
+    
+    @staticmethod
+    def get() -> dict:
+        """ Возвращает содержимое auto_deliveries.json в JSON формате. """
+        try:
+            with open(AutoDeliveries.PATH, 'r', encoding='utf-8') as f:
+                auto_deliveries = json.load(f)
+        except:
+            with open(AutoDeliveries.PATH, 'w', encoding='utf-8') as f:
+                json.dump(AutoDeliveries.default_auto_deliveries(), f, indent=4, ensure_ascii=False)
+            with open(AutoDeliveries.PATH, 'r', encoding='utf-8') as f:
+                auto_deliveries = json.load(f)
+        finally:
+            return auto_deliveries
+        
+    @staticmethod
+    def update(new_data):
+        """ Перезаписывает данные в auto_deliveries.json """
+        with open(AutoDeliveries.PATH, 'w', encoding='utf-8') as f:
+            json.dump(new_data, f, indent=4, ensure_ascii=False)
+        
+    @staticmethod
+    def default_auto_deliveries() -> dict:
+        """ Возвращает стандартную структуру auto_deliveries.json. """
         return {
             "1234567890": [
                 "Вот ваш аккаунт:",
@@ -292,25 +305,3 @@ class AutoDeliveries:
                 "©️ 𝐅𝐮𝐧𝐏𝐚𝐲 𝐔𝐧𝐢𝐯𝐞𝐫𝐬𝐚𝐥"
             ]
         }
-    
-    def get(self) -> dict:
-        """ Возвращает авто-выдачи в JSON формате """
-        try:
-            with open(self.auto_deliveries_path, 'r', encoding='utf-8') as f:
-                auto_deliveries = json.load(f)
-        except:
-            with open(self.auto_deliveries_path, 'w', encoding='utf-8') as f:
-                json.dump(self.default_auto_deliveries(), f, indent=4, ensure_ascii=False)
-            with open(self.auto_deliveries_path, 'r', encoding='utf-8') as f:
-                auto_deliveries = json.load(f)
-        finally:
-            return auto_deliveries
-        
-    def update(self, new_data) -> None:
-        """
-        Перезаписывает данные в авто-выдачи
-
-        :param new_data: Новый экземпляр авто-выдач
-        """
-        with open(self.auto_deliveries_path, 'w', encoding='utf-8') as f:
-            json.dump(new_data, f, indent=4, ensure_ascii=False)

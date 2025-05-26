@@ -214,9 +214,9 @@ async def callback_enter_runner_requests_delay(call: CallbackQuery, state: FSMCo
 async def callback_enable_auto_raising_lots(call: CallbackQuery):
     """ Включает автоматическое поднятие лотов """
     try:
-        config = Config().get()
+        config = Config.get()
         config["auto_raising_lots_enabled"] = True
-        Config().update(config)
+        Config.set(config)
         callback_data = CallbackDatas.BotSettingsNavigation(to="lots")
         return await callback_botsettings_navigation(call, callback_data)
     except Exception as e:
@@ -226,9 +226,9 @@ async def callback_enable_auto_raising_lots(call: CallbackQuery):
 async def callback_disable_auto_raising_lots(call: CallbackQuery):
     """ Выключает автоматическое поднятие лотов """
     try:
-        config = Config().get()
+        config = Config.get()
         config["auto_raising_lots_enabled"] = False
-        Config().update(config)
+        Config.set(config)
         callback_data = CallbackDatas.BotSettingsNavigation(to="lots")
         return await callback_botsettings_navigation(call, callback_data)
     except Exception as e:
@@ -248,9 +248,9 @@ async def callback_enter_lots_saving_interval(call: CallbackQuery, state: FSMCon
 async def callback_enable_auto_reviews_replies(call: CallbackQuery):
     """ Включает авто-ответы на отзывы """
     try:
-        config = Config().get()
+        config = Config.get()
         config["auto_reviews_replies_enabled"] = True
-        Config().update(config)
+        Config.set(config)
         callback_data = CallbackDatas.BotSettingsNavigation(to="other")
         return await callback_botsettings_navigation(call, callback_data)
     except Exception as e:
@@ -260,9 +260,9 @@ async def callback_enable_auto_reviews_replies(call: CallbackQuery):
 async def callback_disable_auto_reviews_replies(call: CallbackQuery):
     """ Выключает авто-ответы на отзывы """
     try:
-        config = Config().get()
+        config = Config.get()
         config["auto_reviews_replies_enabled"] = False
-        Config().update(config)
+        Config.set(config)
         callback_data = CallbackDatas.BotSettingsNavigation(to="other")
         return await callback_botsettings_navigation(call, callback_data)
     except Exception as e:
@@ -272,9 +272,9 @@ async def callback_disable_auto_reviews_replies(call: CallbackQuery):
 async def callback_disable_first_message(call: CallbackQuery):
     """ Выключает приветственное сообщение """
     try:
-        config = Config().get()
+        config = Config.get()
         config["first_message_enabled"] = False
-        Config().update(config)
+        Config.set(config)
         callback_data = CallbackDatas.BotSettingsNavigation(to="other")
         return await callback_botsettings_navigation(call, callback_data)
     except Exception as e:
@@ -284,9 +284,9 @@ async def callback_disable_first_message(call: CallbackQuery):
 async def callback_enable_first_message(call: CallbackQuery):
     """ Включает приветственное сообщение """
     try:
-        config = Config().get()
+        config = Config.get()
         config["first_message_enabled"] = True
-        Config().update(config)
+        Config.set(config)
         callback_data = CallbackDatas.BotSettingsNavigation(to="other")
         return await callback_botsettings_navigation(call, callback_data)
     except Exception as e:
@@ -296,9 +296,9 @@ async def callback_enable_first_message(call: CallbackQuery):
 async def callback_disable_custom_commands(call: CallbackQuery):
     """ Выключает пользовательские ответы """
     try:
-        config = Config().get()
+        config = Config.get()
         config["custom_commands_enabled"] = False
-        Config().update(config)
+        Config.set(config)
         callback_data = CallbackDatas.BotSettingsNavigation(to="other")
         return await callback_botsettings_navigation(call, callback_data)
     except Exception as e:
@@ -308,9 +308,9 @@ async def callback_disable_custom_commands(call: CallbackQuery):
 async def callback_enable_custom_commands(call: CallbackQuery):
     """ Включает пользовательские ответы """
     try:
-        config = Config().get()
+        config = Config.get()
         config["custom_commands_enabled"] = True
-        Config().update(config)
+        Config.set(config)
         callback_data = CallbackDatas.BotSettingsNavigation(to="other")
         return await callback_botsettings_navigation(call, callback_data)
     except Exception as e:
@@ -320,9 +320,9 @@ async def callback_enable_custom_commands(call: CallbackQuery):
 async def callback_disable_auto_delivery(call: CallbackQuery):
     """ Выключает авто-выдачу """
     try:
-        config = Config().get()
+        config = Config.get()
         config["auto_delivery_enabled"] = False
-        Config().update(config)
+        Config.set(config)
         callback_data = CallbackDatas.BotSettingsNavigation(to="other")
         return await callback_botsettings_navigation(call, callback_data)
     except Exception as e:
@@ -332,9 +332,9 @@ async def callback_disable_auto_delivery(call: CallbackQuery):
 async def callback_enable_auto_delivery(call: CallbackQuery):
     """ Включает авто-выдачу """
     try:
-        config = Config().get()
+        config = Config.get()
         config["auto_delivery_enabled"] = True
-        Config().update(config)
+        Config.set(config)
         callback_data = CallbackDatas.BotSettingsNavigation(to="other")
         return await callback_botsettings_navigation(call, callback_data)
     except Exception as e:
@@ -398,7 +398,7 @@ async def callback_add_custom_command(call: CallbackQuery, state: FSMContext):
     """ Добавляет пользовательскую команду """
     try:
         data = await state.get_data()
-        custom_commands = CustomCommands().get()
+        custom_commands = CustomCommands.get()
         new_custom_command = data.get("new_custom_command")
         new_custom_command_answer = data.get("new_custom_command_answer")
         if not new_custom_command:
@@ -409,7 +409,7 @@ async def callback_add_custom_command(call: CallbackQuery, state: FSMContext):
         custom_commands[new_custom_command] = []
         for line in new_custom_command_answer.splitlines():
             custom_commands[new_custom_command].append(line)
-        CustomCommands().update(custom_commands)
+        CustomCommands.set(custom_commands)
         await call.message.answer(text=Templates.Navigation.SettingsNavigation.BotSettings.CustomCommands.CustomCommandAdded.text(new_custom_command),
                                   parse_mode="HTML") 
         await state.clear()
@@ -451,13 +451,13 @@ async def callback_delete_custom_command(call: CallbackQuery, state: FSMContext)
     """ Удаляет пользовательскую команду """
     try:
         data = await state.get_data()
-        custom_commands = CustomCommands().get()
+        custom_commands = CustomCommands.get()
         custom_command = data.get("custom_command")
         if not custom_command:
             raise Exception("Пользовательская команда не была найдена, повторите процесс с самого начала")
         
         del custom_commands[custom_command]
-        CustomCommands().update(custom_commands)
+        CustomCommands.set(custom_commands)
         await call.message.edit_text(text=Templates.Navigation.SettingsNavigation.BotSettings.CustomCommands.CustomComandDeleted.text(custom_command),
                                      parse_mode="HTML") 
     except Exception as e:
@@ -521,7 +521,7 @@ async def callback_add_auto_delivery(call: CallbackQuery, state: FSMContext):
     """ Добавляет авто-выдачу """
     try:
         data = await state.get_data()
-        auto_deliveries = AutoDeliveries().get()
+        auto_deliveries = AutoDeliveries.get()
         auto_devliery_lot_id = data.get("auto_delivery_lot_id")
         auto_delivery_message = data.get("auto_delivery_message")
         if not auto_devliery_lot_id:
@@ -532,7 +532,7 @@ async def callback_add_auto_delivery(call: CallbackQuery, state: FSMContext):
         auto_deliveries[str(auto_devliery_lot_id)] = []
         for line in auto_delivery_message.splitlines():
             auto_deliveries[str(auto_devliery_lot_id)].append(line)
-        AutoDeliveries().update(auto_deliveries)
+        AutoDeliveries.set(auto_deliveries)
         await call.message.answer(text=Templates.Navigation.SettingsNavigation.BotSettings.AutoDeliveries.AutoDeliveryAdded.text(auto_devliery_lot_id),
                                   parse_mode="HTML") 
         await state.clear()
@@ -574,13 +574,13 @@ async def callback_delete_auto_delivery(call: CallbackQuery, state: FSMContext):
     """ Удаляет пользовательскую команду """
     try:
         data = await state.get_data()
-        auto_deliveries = AutoDeliveries().get()
+        auto_deliveries = AutoDeliveries.get()
         auto_devliery_lot_id = data.get("auto_delivery_lot_id")
         if not auto_devliery_lot_id:
             raise Exception("ID лота доставки не была найден, повторите процесс с самого начала")
         
         del auto_deliveries[str(auto_devliery_lot_id)]
-        AutoDeliveries().update(auto_deliveries)
+        AutoDeliveries.set(auto_deliveries)
         await call.message.edit_text(text=Templates.Navigation.SettingsNavigation.BotSettings.AutoDeliveries.AutoDeliveryDeleted.text(auto_devliery_lot_id),
                                      parse_mode="HTML") 
     except Exception as e:

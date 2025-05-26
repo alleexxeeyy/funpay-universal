@@ -17,7 +17,7 @@ async def handler_start(message: types.Message, state: FSMContext):
     """ Отрабатывает команду /start """
     try:
         await state.clear()
-        config = Config().get()
+        config = Config.get()
         if message.from_user.id != config["tg_admin_id"]:
             return
         await message.answer(text=Templates.Navigation.MenuNavigation.Default.Default.text(message.bot.bots_manager), 
@@ -31,7 +31,7 @@ async def handler_stats(message: types.Message, state: FSMContext):
     """ Отрабатывает команду /stats """
     try:
         await state.clear()
-        config = Config().get()
+        config = Config.get()
         if message.from_user.id != config["tg_admin_id"]:
             return
         await message.answer(text=Templates.Navigation.MenuNavigation.Stats.Default.text(),
@@ -45,7 +45,7 @@ async def handler_stats(message: types.Message, state: FSMContext):
     """ Отрабатывает команду /settings """
     try:
         await state.clear()
-        config = Config().get()
+        config = Config.get()
         if message.from_user.id != config["tg_admin_id"]:
             return
         await message.answer(text=Templates.Navigation.SettingsNavigation.Default.text(), 
@@ -89,12 +89,12 @@ async def handler_entering_message_text(message: types.Message, state: FSMContex
             return await message.answer(text=Templates.System.Error.text("Слишком короткий текст"), parse_mode="HTML")
 
         data = await state.get_data()
-        messages = Messages().get()
+        messages = Messages.get()
         messages[data["message_id"]] = []
         message_split_lines = message.text.strip().split('\n')
         for line in message_split_lines:
             messages[data["message_id"]].append(line)
-        Messages().update(messages)
+        Messages.set(messages)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.Messages.MessageTextChanged.text(message.text.strip(), data["message_id"]),
             parse_mode="HTML"
@@ -110,9 +110,9 @@ async def handler_entering_golden_key(message: types.Message, state: FSMContext)
         if len(message.text.strip()) <= 3 or len(message.text.strip()) >= 50:
             return await message.answer(text=Templates.System.Error.text("Слишком короткий или длинный golden_key"), parse_mode="HTML")
 
-        config = Config().get()
+        config = Config.get()
         config["golden_key"] = message.text.strip()
-        Config().update(config)
+        Config.update(config)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.Authorization.GoldenKeyChanged.text(message.text.strip()),
             parse_mode="HTML"
@@ -128,9 +128,9 @@ async def handler_entering_user_agent(message: types.Message, state: FSMContext)
         if len(message.text.strip()) <= 3:
             return await message.answer(text=Templates.System.Error.text("Слишком короткий user_agent"), parse_mode="HTML")
 
-        config = Config().get()
+        config = Config.get()
         config["user_agent"] = message.text.strip()
-        Config().update(config)
+        Config.update(config)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.Authorization.UserAgentChanged.text(message.text.strip()),
             parse_mode="HTML"
@@ -156,9 +156,9 @@ async def handler_entering_funpayapi_timeout(message: types.Message, state: FSMC
         if int(message.text.strip()) < 0:
             return await message.answer(text=Templates.System.Error.text("Слишком низкое значение"), parse_mode="HTML")
 
-        config = Config().get()
+        config = Config.get()
         config["funpayapi_timeout"] = int(message.text.strip())
-        Config().update(config)
+        Config.update(config)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.Connection.FunpayApiTimeoutChanged.text(message.text.strip()),
             parse_mode="HTML"
@@ -184,9 +184,9 @@ async def handler_entering_runner_requests_delay(message: types.Message, state: 
         if int(message.text.strip()) < 0:
             return await message.answer(text=Templates.System.Error.text("Слишком низкое значение"), parse_mode="HTML")
 
-        config = Config().get()
+        config = Config.get()
         config["runner_requests_delay"] = int(message.text.strip())
-        Config().update(config)
+        Config.update(config)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.Connection.RunnerRequestsDelayChanged.text(message.text.strip()),
             parse_mode="HTML"
@@ -212,9 +212,9 @@ async def handler_entering_lots_saving_interval(message: types.Message, state: F
         if int(message.text.strip()) <= 0:
             return await message.answer(text=Templates.System.Error.text("Слишком низкий интервал"), parse_mode="HTML")
 
-        config = Config().get()
+        config = Config.get()
         config["lots_saving_interval"] = int(message.text.strip())
-        Config().update(config)
+        Config.update(config)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.Lots.LotsSavingIntervalChanged.text(message.text),
             parse_mode="HTML"
@@ -289,12 +289,12 @@ async def handler_entering_new_custom_command_answer(message: types.Message, sta
         if len(message.text.strip()) <= 0:
             return await message.answer(text=Templates.System.Error.text("Слишком короткий текст"), parse_mode="HTML")
 
-        custom_commands = CustomCommands().get()
+        custom_commands = CustomCommands.get()
         custom_commands[data["custom_command"]] = []
         answer_split_lines = message.text.strip().split('\n')
         for line in answer_split_lines:
             custom_commands[data["custom_command"]].append(line)
-        CustomCommands().update(custom_commands)
+        CustomCommands.set(custom_commands)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.CustomCommands.CustomCommandAnswerChanged.text(message.text.strip(), data["custom_command"]),
             parse_mode="HTML"
@@ -369,12 +369,12 @@ async def handler_entering_new_auto_delivery_message(message: types.Message, sta
         if len(message.text.strip()) <= 0:
             return await message.answer(text=Templates.System.Error.text("Слишком короткий текст"), parse_mode="HTML")
 
-        auto_deliveries = AutoDeliveries().get()
+        auto_deliveries = AutoDeliveries.get()
         auto_deliveries[data["auto_delivery_lot_id"]] = []
         answer_split_lines = message.text.strip().split('\n')
         for line in answer_split_lines:
             auto_deliveries[data["auto_delivery_lot_id"]].append(line)
-        AutoDeliveries().update(auto_deliveries)
+        AutoDeliveries.set(auto_deliveries)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.AutoDeliveries.AutoDeliveryMessageChanged.text(message.text.strip(), data["auto_delivery_lot_id"]),
             parse_mode="HTML"

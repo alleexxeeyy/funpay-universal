@@ -35,10 +35,10 @@ class FunPayBot:
 
     def __init__(self, tgbot: 'TelegramBot' = None, 
                  tgbot_loop: asyncio.AbstractEventLoop = None):
-        self.config = Config().get()
-        self.messages = Messages().get()
-        self.custom_commands = CustomCommands().get()
-        self.auto_deliveries = AutoDeliveries().get()
+        self.config = Config.get()
+        self.messages = Messages.get()
+        self.custom_commands = CustomCommands.get()
+        self.auto_deliveries = AutoDeliveries.get()
         self.data = Data()
         self.logger = get_logger(f"UNIVERSAL.TelegramBot")
 
@@ -57,7 +57,7 @@ class FunPayBot:
             print(f"{Fore.LIGHTWHITE_EX}Начать снова настройку конфига? +/-")
             a = input(f"{Fore.WHITE}> {Fore.LIGHTWHITE_EX}")
             if a == "+":
-                Config().configure_config()
+                Config.configure_config()
                 print(f"{Fore.LIGHTWHITE_EX}Перезапустите бота, чтобы продолжить работу.")
                 raise SystemExit(1)
             else:
@@ -158,7 +158,7 @@ class FunPayBot:
             except Exception as e:
                 self.logger.error(f"{PREFIX} При сохранении лота {lot.id} произошла ошибка: {e}")
         else:
-            self.data.update_saved_lots(saved_lots)
+            self.data.set_saved_lots(saved_lots)
             self.logger.info(f"{PREFIX} Лоты были сохранены")
             return True
 
@@ -178,7 +178,7 @@ class FunPayBot:
             except Exception as e:
                 saved_lots["inactive"].remove(lot_id)
         else:
-            self.data.update_saved_lots(saved_lots)
+            self.data.set_saved_lots(saved_lots)
             self.logger.info(f"{PREFIX} Все лоты профиля были активированы")
             return True
 
@@ -199,7 +199,7 @@ class FunPayBot:
             except Exception as e:
                 saved_lots["active"].remove(lot_id)
         else:
-            self.data.update_saved_lots(saved_lots)
+            self.data.set_saved_lots(saved_lots)
             self.logger.info(f"{PREFIX} Все лоты профиля были деактивированы")
             return True
 
@@ -225,19 +225,19 @@ class FunPayBot:
                     try:
                         set_title(f"FunPay Universal v{CURRENT_VERSION} | {self.funpay_profile.username}: {self.funpay_account.total_balance} {self.funpay_account.currency.name}. Активных заказов: {self.funpay_account.active_sales}")
                         if fpbot.data.get_initialized_users() != fpbot.initialized_users:
-                            fpbot.data.update_initialized_users(fpbot.initialized_users)
+                            fpbot.data.set_initialized_users(fpbot.initialized_users)
                         if fpbot.data.get_categories_raise_time() != fpbot.categories_raise_time:
-                            fpbot.data.update_categories_raise_time(fpbot.categories_raise_time)
+                            fpbot.data.set_categories_raise_time(fpbot.categories_raise_time)
                         if fpbot.data.get_events_next_time() != fpbot.events_next_time:
-                            fpbot.data.update_events_next_time(fpbot.events_next_time)
-                        if Config().get() != fpbot.config:
-                            fpbot.config = Config().get()
-                        if Messages().get() != fpbot.messages:
-                            fpbot.messages = Messages().get()
-                        if CustomCommands().get() != fpbot.custom_commands:
-                            fpbot.custom_commands = CustomCommands().get()
-                        if AutoDeliveries().get() != fpbot.auto_deliveries:
-                            fpbot.auto_deliveries = AutoDeliveries().get()
+                            fpbot.data.set_events_next_time(fpbot.events_next_time)
+                        if Config.get() != fpbot.config:
+                            fpbot.config = Config.get()
+                        if Messages.get() != fpbot.messages:
+                            fpbot.messages = Messages.get()
+                        if CustomCommands.get() != fpbot.custom_commands:
+                            fpbot.custom_commands = CustomCommands.get()
+                        if AutoDeliveries.get() != fpbot.auto_deliveries:
+                            fpbot.auto_deliveries = AutoDeliveries.get()
 
                         # --- Сохранение текущих лотов аккаунта ---
                         if datetime.now() > datetime.fromisoformat(fpbot.events_next_time["save_lots_next_time"]):

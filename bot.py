@@ -35,7 +35,7 @@ class BotsManager:
     async def start_telegram_bot(self) -> None:
         """ Запускает Telegram бота """
         from tgbot.telegrambot import TelegramBot
-        config = Config().get()
+        config = Config.get()
         self.tgbot = TelegramBot(config["tg_bot_token"])
         
         await self.start_funpay_bot()
@@ -54,11 +54,11 @@ if __name__ == "__main__":
         if Updater.check_for_updates():
             exit()
         
-        config = Config().get()
+        config = Config.get()
         if not config["golden_key"]:
             print(f"{Fore.WHITE}🫸  Постойте... Не обнаружил в конфиге необходимых для работы бота данных. "
                   f"Возможно вы запускаете его впервые, поэтому давайте проведём быструю настройку конфига, чтобы вы смогли приступить к работе.")
-            Config().configure_config()
+            Config.configure_config()
         
         print(f"{Fore.WHITE}⏳ Загружаю и подключаю модули...")
         modules = load_modules()
