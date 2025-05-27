@@ -19,12 +19,11 @@ PREFIX = f"{Fore.LIGHTCYAN_EX}[telegram bot]{Fore.WHITE}"
 class TelegramBot:
     """ Класс, запускающий и инициализирующий Telegram бота """
 
-    def __init__(self, bot_token: str) -> None:
+    def __init__(self, bot_token: str):
         self.config = Config.get()
         self.admin_id = self.config["tg_admin_id"]
         self.bot_token = bot_token
 
-        self.bot_event_handlers = HandlersManager.get_bot_event_handlers()
         try:
             self.bot = Bot(token=self.bot_token)
         except:
@@ -33,7 +32,7 @@ class TelegramBot:
             a = input(f"{Fore.WHITE}> {Fore.LIGHTWHITE_EX}")
             if a == "+":
                 Config.configure_config()
-                print(f"{Fore.LIGHTWHITE_EX}Перезапустите бота, чтобы продолжить работу.")
+                print(f"\n{Fore.LIGHTWHITE_EX}Перезапустите бота, чтобы продолжить работу.")
                 raise SystemExit(1)
             else:
                 logger.info(f"{PREFIX} Вы отказались от настройки конфига. Пробуем снова подключиться к вашему Telegram боту...")
@@ -45,9 +44,8 @@ class TelegramBot:
                 main_router.include_router(router)
         self.dp.include_router(main_router)
 
-    async def set_main_menu(self) -> None:
+    async def set_main_menu(self):
         """ Задаёт меню из команд боту """
-
         main_menu_commands = [
             BotCommand(command="/start",
                     description="Главное меню"),
@@ -58,18 +56,17 @@ class TelegramBot:
         ]
         await self.bot.set_my_commands(main_menu_commands)
 
-    async def run_bot(self) -> None:
-        """ Запускает бота """
-        
+    async def run_bot(self):
+        """ Функция-запускатор бота. """
         await self.set_main_menu()
-
+        bot_event_handlers = HandlersManager.get_bot_event_handlers()
         async def handle_on_telegram_bot_init():
             """ 
             Запускается преред инициализацией Telegram бота. 
             Запускает за собой все хендлеры ON_TELEGRAM_BOT_INIT
             """
-            if "ON_TELEGRAM_BOT_INIT" in self.bot_event_handlers:
-                for handler in self.bot_event_handlers["ON_TELEGRAM_BOT_INIT"]:
+            if "ON_TELEGRAM_BOT_INIT" in bot_event_handlers:
+                for handler in bot_event_handlers["ON_TELEGRAM_BOT_INIT"]:
                     try:
                         await handler(self)
                     except Exception as e:
@@ -80,14 +77,16 @@ class TelegramBot:
         logger.info(f"{PREFIX} Telegram бот {Fore.LIGHTWHITE_EX}@{me.username} {Fore.WHITE}запущен и активен")
         await self.dp.start_polling(self.bot, skip_updates=True, handle_signals=False)
         
-    async def call_seller(self, calling_name, chat_id) -> None:
+    async def call_seller(self, calling_name: str, chat_id: int | str):
         """
-        Пишет админу в Telegram с просьбой о помощи от заказчика
+        Пишет админу в Telegram с просьбой о помощи от заказчика.
                 
         :param calling_name: Никнейм покупателя
+        :type calling_name: `str`
+
         :param chat_id: ID чата с заказчиком
+        :type chat_id: `int` or `str`
         """
-        
         await self.bot.send_message(chat_id=self.admin_id, 
                                     text=Templates.Callbacks.CallSeller.text(calling_name, f"https://funpay.com/chat/?node={chat_id}"),
                                     parse_mode="HTML")

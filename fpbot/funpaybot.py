@@ -41,9 +41,6 @@ class FunPayBot:
         self.auto_deliveries = AutoDeliveries.get()
         self.data = Data()
         self.logger = get_logger(f"UNIVERSAL.TelegramBot")
-        
-        self.bot_event_handlers = HandlersManager.get_bot_event_handlers()
-        self.funpay_event_handlers = HandlersManager.get_funpay_event_handlers()
 
         self.tgbot = tgbot
         """ Класс, содержащий данные и методы Telegram бота """
@@ -61,7 +58,7 @@ class FunPayBot:
             a = input(f"{Fore.WHITE}> {Fore.LIGHTWHITE_EX}")
             if a == "+":
                 Config.configure_config()
-                print(f"{Fore.LIGHTWHITE_EX}Перезапустите бота, чтобы продолжить работу.")
+                print(f"\n{Fore.LIGHTWHITE_EX}Перезапустите бота, чтобы продолжить работу.")
                 raise SystemExit(1)
             else:
                 self.logger.info(f"{PREFIX} Вы отказались от настройки конфига. Пробуем снова подключиться к вашему FunPay аккаунту...")
@@ -235,7 +232,7 @@ class FunPayBot:
 
 
     async def run_bot(self) -> None:
-        """ Основная функция-запускатор бота """
+        """ Основная функция-запускатор бота. """
         
         # --- задаём начальные хендлеры бота ---
         def handler_on_funpay_bot_init(fpbot: FunPayBot):
@@ -270,7 +267,7 @@ class FunPayBot:
                                 self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При сохранении лотов произошла ошибка: {Fore.WHITE}{e}")
 
                         # --- Поднятие всех лотов ---
-                        if fpbot.config["auto_raising_lots_enabled"] == True:
+                        if fpbot.config["auto_raising_lots_enabled"]:
                             if datetime.now() > fpbot.lots_raise_next_time:
                                 fpbot.raise_lots()
                     except Exception:
@@ -280,8 +277,9 @@ class FunPayBot:
             endless_loop_thread = Thread(target=endless_loop, daemon=True)
             endless_loop_thread.start()
         
-        self.bot_event_handlers["ON_FUNPAY_BOT_INIT"].insert(0, handler_on_funpay_bot_init)
-        HandlersManager.set_bot_event_handlers(self.bot_event_handlers)
+        bot_event_handlers = HandlersManager.get_bot_event_handlers()
+        bot_event_handlers["ON_FUNPAY_BOT_INIT"].insert(0, handler_on_funpay_bot_init)
+        HandlersManager.set_bot_event_handlers(bot_event_handlers)
 
         async def handler_new_message(fpbot: FunPayBot, event: NewMessageEvent):
             """ Начальный хендлер новых сообщений """
@@ -377,18 +375,20 @@ class FunPayBot:
             except Exception:
                 self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента смены статуса заказа произошла ошибка: {Fore.WHITE}{traceback.print_exc()}")
             
-        self.funpay_event_handlers[EventTypes.NEW_MESSAGE].insert(0, handler_new_message)
-        self.funpay_event_handlers[EventTypes.NEW_ORDER].insert(0, handler_new_order)
-        self.funpay_event_handlers[EventTypes.ORDER_STATUS_CHANGED].insert(0, handler_order_status_changed)
-        HandlersManager.set_funpay_event_handlers(self.funpay_event_handlers)
+        funpay_event_handlers = HandlersManager.get_funpay_event_handlers()
+        funpay_event_handlers[EventTypes.NEW_MESSAGE].insert(0, handler_new_message)
+        funpay_event_handlers[EventTypes.NEW_ORDER].insert(0, handler_new_order)
+        funpay_event_handlers[EventTypes.ORDER_STATUS_CHANGED].insert(0, handler_order_status_changed)
+        HandlersManager.set_funpay_event_handlers(funpay_event_handlers)
 
+        bot_event_handlers = HandlersManager.get_bot_event_handlers()
         def handle_on_funpay_bot_init():
             """ 
             Запускается при инициализации FunPay бота.
             Запускает за собой все хендлеры ON_FUNPAY_BOT_INIT 
             """
-            if "ON_FUNPAY_BOT_INIT" in self.funpay_event_handlers:
-                for handler in self.funpay_event_handlers["ON_FUNPAY_BOT_INIT"]:
+            if "ON_FUNPAY_BOT_INIT" in bot_event_handlers:
+                for handler in bot_event_handlers["ON_FUNPAY_BOT_INIT"]:
                     try:
                         handler(self)
                     except Exception as e:
@@ -398,9 +398,9 @@ class FunPayBot:
         self.logger.info(f"{PREFIX} FunPay бот запущен и активен")
         runner = Runner(self.funpay_account)
         for event in runner.listen(requests_delay=self.config["runner_requests_delay"]):
-            self.funpay_event_handlers = HandlersManager.get_funpay_event_handlers() # чтобы каждый раз брать свежие хендлеры, ибо модули могут отключаться/включаться
-            if event.type in self.funpay_event_handlers:
-                for handler in self.funpay_event_handlers[event.type]:
+            funpay_event_handlers = HandlersManager.get_funpay_event_handlers() # чтобы каждый раз брать свежие хендлеры, ибо модули могут отключаться/включаться
+            if event.type in funpay_event_handlers:
+                for handler in funpay_event_handlers[event.type]:
                     try:
                         await handler(self, event)
                     except Exception as e:
