@@ -117,7 +117,7 @@ class FunPayBot:
 
         lots = self.funpay_profile.get_lots()
         for lot in lots:
-            if title in lot.description:
+            if title in lot.description or title == lot.description:
                 return lot
         return None
     
