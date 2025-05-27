@@ -8,7 +8,6 @@ class Data:
     EVENTS_NEXT_TIME_PATH = 'fpbot/bot_data/events_next_time.json'
     SAVED_LOTS_PATH = 'fpbot/bot_data/saved_lots.json'
 
-
     def get_initialized_users(self) -> list[str]:
         """ Получает содержимое initialized_users.json """
         folder_path = os.path.dirname(Data.INITIALIZED_USERS_PATH)

@@ -1,6 +1,2 @@
-<<<<<<< HEAD
 CURRENT_VERSION = "1.1.1"
-=======
-CURRENT_VERSION = "1.1.1"
->>>>>>> ae4e51743536b787f83ac25a6d889814e4fda47b
 SKIP_UPDATES = False
