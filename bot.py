@@ -51,7 +51,7 @@ if __name__ == "__main__":
         print(f"\n   {Fore.CYAN}FunPay Universal {Fore.WHITE}v{Fore.LIGHTWHITE_EX}{CURRENT_VERSION}"
               f"\n   {Fore.WHITE}→ tg: {Fore.LIGHTWHITE_EX}@alleexxeeyy"
               f"\n   {Fore.WHITE}→ tg channel: {Fore.LIGHTWHITE_EX}@alexeyproduction\n")
-
+        
         if Updater.check_for_updates():
             exit()
         

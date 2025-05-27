@@ -1,13 +1,10 @@
 import sys
 import ctypes
 
-def set_title(title: str):
+def set_title(title):
     """
     Устанавливает заголовок консоли (кросс-платформенно).
     Работает на Windows, Linux и macOS.
-
-    :param title: Заголовок.
-    :type title: str
     """
     if sys.platform == "win32":
         ctypes.windll.kernel32.SetConsoleTitleW(title)

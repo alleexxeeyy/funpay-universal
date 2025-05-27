@@ -5,9 +5,7 @@ import io
 import shutil
 import sys
 from colorama import Fore
-from bot_settings.app import CURRENT_VERSION
-from bot_settings.app import SKIP_UPDATES
-
+from bot_settings.app import CURRENT_VERSION, SKIP_UPDATES
 
 
 class Updater:
@@ -31,9 +29,11 @@ class Updater:
                 return False
             print(f"\n{Fore.LIGHTYELLOW_EX}Доступна новая версия: {Fore.LIGHTWHITE_EX}{latest_version}")
             if SKIP_UPDATES:
-                print(f"\n{Fore.WHITE}Пропускаю автоматическую установку обновления... Вы можете задать параметр SKIP_UPDATES = False в bot_settings/app.py, чтобы автоматически скачивать обновления")
+                print(f"{Fore.WHITE}Пропускаем установку обновления. Если вы хотите автоматически скачивать обновления, измените значение "
+                      f"{Fore.LIGHTWHITE_EX}SKIP_UPDATES{Fore.WHITE} на {Fore.LIGHTWHITE_EX}True {Fore.LIGHTYELLOW_EX}в файле настроек {Fore.WHITE}(bot_settings/app.py)\n")
                 return
-            print(f"\n{Fore.WHITE}Скачиваем: {Fore.LIGHTWHITE_EX}{latest_release['html_url']}\n")
+            
+            print(f"{Fore.WHITE}Скачиваем: {Fore.LIGHTWHITE_EX}{latest_release['html_url']}\n")
             print(f"{Fore.WHITE}Загружаю обновление...")
             bytes = Updater.download_update(latest_release)
             if bytes:

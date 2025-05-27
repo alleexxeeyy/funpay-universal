@@ -1,3 +1,4 @@
+import importlib.resources
 import os
 import sys
 import importlib
@@ -68,21 +69,26 @@ class Module:
 
     :param telegram_bot_routers: Роутеры Telegram бота.
     :type telegram_bot_routers: list[`Router`]
+
+    :param _dir_name: Имя директории бота в папке модулей.
+    :type _dir_name: str
     """
     def __init__(self, enabled: bool, meta: ModuleMeta, bot_event_handlers: dict, 
-                 funpay_event_handlers: dict, telegram_bot_routers: list):
+                 funpay_event_handlers: dict, telegram_bot_routers: list, _dir_name: str):
         self.uuid: UUID = uuid.uuid4()
         """ UUID модуля (генерируется при инициализации). """
         self.enabled: bool = enabled
         """ Включен ли модуль. """
-        self.meta = meta
+        self.meta: ModuleMeta = meta
         """ Метаданные модуля. """
-        self.bot_event_handlers = bot_event_handlers
+        self.bot_event_handlers: dict = bot_event_handlers
         """ Хендлеры ивентов бота. """
-        self.funpay_event_handlers = funpay_event_handlers
+        self.funpay_event_handlers: dict = funpay_event_handlers
         """ Хендлеры ивентов FunPay. """
-        self.telegram_bot_routers = telegram_bot_routers
+        self.telegram_bot_routers: list = telegram_bot_routers
         """ Роутеры Telegram бота. """
+        self._dir_name: str = _dir_name
+        """ Имя директории бота в папке модулей. """
 
 
 _loaded_modules: list[Module] = []
@@ -106,13 +112,13 @@ class ModulesManager:
     @staticmethod
     def get_module_by_uuid(module_uuid: UUID) -> Module:
         """ 
-        Получает модуль по названию.
+        Получает модуль по UUID.
         
         :param module_uuid: UUID модуля.
         :type module_uuid: UUID
 
         :return: Объект модуля.
-        :rtype: Module
+        :rtype: `Module`
         """
         global _loaded_modules
         for module in _loaded_modules:
@@ -170,12 +176,26 @@ class ModulesManager:
             return False
 
     @staticmethod
-    def reload_module(module_name: str):
-        """ Перезагружает модуль (отгружает и импортирует снова). """
-        if module_name in sys.modules:
-            del sys.modules[f"modules.{module_name}"]
-        print(f"{Fore.WHITE}🔄  Модуль {Fore.LIGHTWHITE_EX}{module_name} {Fore.WHITE}был перезагружен")
-        return importlib.import_module(module_name)
+    def reload_module(module_uuid: str):
+        """
+        Перезагружает модуль (отгружает и импортирует снова).
+        
+        :param module_uuid: UUID модуля.
+        :type module_uuid: UUID
+        """
+        try:
+            module = ModulesManager.get_module_by_uuid(module_uuid)
+            if not module:
+                raise Exception("Модуль не найден в загруженных")
+            
+            if module._dir_name in sys.modules:
+                del sys.modules[f"modules.{module._dir_name}"]
+            mod = importlib.import_module(f"modules.{module._dir_name}")
+            print(f"{Fore.WHITE}🔄  Модуль {Fore.LIGHTWHITE_EX}{module.meta.name} {Fore.WHITE}был перезагружен")
+            return mod
+        except Exception as e:
+            print(f"{Fore.LIGHTRED_EX}Ошибка при перезагрузке модуля {module_uuid}: {Fore.WHITE}{e}")
+            return False
 
     @staticmethod
     def load_modules() -> list[Module]:
@@ -249,7 +269,8 @@ class ModulesManager:
                         ),
                         bot_event_handlers=bot_event_handlers,
                         funpay_event_handlers=funpay_event_handlers,
-                        telegram_bot_routers=telegram_bot_routers
+                        telegram_bot_routers=telegram_bot_routers,
+                        _dir_name=name
                     )
                     modules.append(module_data)
                 except Exception as e:

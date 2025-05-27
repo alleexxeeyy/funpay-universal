@@ -35,6 +35,11 @@ class HandlersManager:
         return _bot_event_handlers
 
     @staticmethod
+    def add_bot_event_handler(event: str, handler):
+        global _bot_event_handlers
+        _bot_event_handlers[event].append(handler)
+
+    @staticmethod
     def set_funpay_event_handlers(data: dict[EventTypes, list]):
         global _funpay_event_handlers
         _funpay_event_handlers = data
@@ -43,6 +48,11 @@ class HandlersManager:
     def get_funpay_event_handlers() -> dict[EventTypes, list]:
         global _funpay_event_handlers
         return _funpay_event_handlers
+    
+    @staticmethod
+    def add_funpay_event_handler(event: EventTypes, handler):
+        global _funpay_event_handlers
+        _funpay_event_handlers[event].append(handler)
 
     @staticmethod
     def register_bot_event_handlers(handlers):
