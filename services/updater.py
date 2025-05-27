@@ -36,7 +36,7 @@ class Updater:
                     print(f"{Fore.WHITE}Перезапуск бота...")
                     os.execv(sys.executable, [sys.executable] + sys.argv)
         except Exception as e:
-            print(f"{Fore.LIGHTRED_EX} При проверке на наличие обновлений произошла ошибка: {Fore.WHITE}{e}")
+            print(f"{Fore.LIGHTRED_EX}При проверке на наличие обновлений произошла ошибка: {Fore.WHITE}{e}")
         return False
 
     @staticmethod

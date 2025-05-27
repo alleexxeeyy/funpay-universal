@@ -14,7 +14,7 @@ from settings import Config, Messages, CustomCommands, AutoDeliveries
 from bot_settings.app import CURRENT_VERSION
 from fpbot.utils.stats import get_stats
 
-from core.modules_manager import Module, get_modules, get_module_by_uuid
+from core.modules_manager import ModulesManager, Module
 from uuid import UUID
 
 funpaybot = FunPayBot()
@@ -76,7 +76,7 @@ class Navigation:
                         f"\nПеремещайтесь по разделам ниже ↓"
                     return msg
                     
-                def kb(bots_manager) -> InlineKeyboardMarkup:
+                def kb() -> InlineKeyboardMarkup:
                     btn1 = InlineKeyboardButton(
                         text="⚙️ Настройки",
                         callback_data=CallbackDatas.SettingsNavigation(
@@ -188,14 +188,14 @@ class Navigation:
         class Modules:
             class Pagination:
                 def text() -> str:
-                    modules = get_modules()
+                    modules = ModulesManager.get_modules()
                     msg = f"🔌 <b>Модули</b>" \
                             f"\nВсего <b>{len(modules)}</b> загруженных модулей" \
                             f"\n\nПеремещайтесь по разделам ниже. Нажмите на название модуля, чтобы перейти в его управление ↓"
                     return msg
                 
                 def kb(page: int = 0) -> InlineKeyboardMarkup:
-                    modules = get_modules()
+                    modules = ModulesManager.get_modules()
 
                     rows = []
                     items_per_page = 7
@@ -302,7 +302,7 @@ class Navigation:
 
                 class Default:
                     def text(module_uuid: UUID) -> str:
-                        module: Module = get_module_by_uuid(module_uuid)
+                        module: Module = ModulesManager.get_module_by_uuid(module_uuid)
                         if not module:
                             raise Exception("Не удалось найти модуль")
                         
@@ -323,7 +323,7 @@ class Navigation:
                         return msg
                     
                     def kb(module_uuid: UUID, page: int) -> InlineKeyboardMarkup:
-                        module: Module = get_module_by_uuid(module_uuid)
+                        module: Module = ModulesManager.get_module_by_uuid(module_uuid)
                         if not module:
                             raise Exception("Не удалось найти модуль")
                         

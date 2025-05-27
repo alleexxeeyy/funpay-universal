@@ -20,8 +20,8 @@ async def handler_start(message: types.Message, state: FSMContext):
         config = Config.get()
         if message.from_user.id != config["tg_admin_id"]:
             return
-        await message.answer(text=Templates.Navigation.MenuNavigation.Default.Default.text(message.bot.bots_manager), 
-                                reply_markup=Templates.Navigation.MenuNavigation.Default.Default.kb(message.bot.bots_manager),
+        await message.answer(text=Templates.Navigation.MenuNavigation.Default.Default.text(), 
+                                reply_markup=Templates.Navigation.MenuNavigation.Default.Default.kb(),
                                 parse_mode="HTML")
     except Exception as e:
         await message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
@@ -112,7 +112,7 @@ async def handler_entering_golden_key(message: types.Message, state: FSMContext)
 
         config = Config.get()
         config["golden_key"] = message.text.strip()
-        Config.update(config)
+        Config.set(config)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.Authorization.GoldenKeyChanged.text(message.text.strip()),
             parse_mode="HTML"
@@ -130,7 +130,7 @@ async def handler_entering_user_agent(message: types.Message, state: FSMContext)
 
         config = Config.get()
         config["user_agent"] = message.text.strip()
-        Config.update(config)
+        Config.set(config)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.Authorization.UserAgentChanged.text(message.text.strip()),
             parse_mode="HTML"
@@ -158,7 +158,7 @@ async def handler_entering_funpayapi_timeout(message: types.Message, state: FSMC
 
         config = Config.get()
         config["funpayapi_timeout"] = int(message.text.strip())
-        Config.update(config)
+        Config.set(config)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.Connection.FunpayApiTimeoutChanged.text(message.text.strip()),
             parse_mode="HTML"
@@ -186,7 +186,7 @@ async def handler_entering_runner_requests_delay(message: types.Message, state: 
 
         config = Config.get()
         config["runner_requests_delay"] = int(message.text.strip())
-        Config.update(config)
+        Config.set(config)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.Connection.RunnerRequestsDelayChanged.text(message.text.strip()),
             parse_mode="HTML"
@@ -214,7 +214,7 @@ async def handler_entering_lots_saving_interval(message: types.Message, state: F
 
         config = Config.get()
         config["lots_saving_interval"] = int(message.text.strip())
-        Config.update(config)
+        Config.set(config)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.Lots.LotsSavingIntervalChanged.text(message.text),
             parse_mode="HTML"

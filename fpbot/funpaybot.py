@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 from bot_settings.app import CURRENT_VERSION
 from core.console import set_title
-from core.handlers_manager import _funpay_event_handlers, _bot_event_handlers
+from core.handlers_manager import HandlersManager
 
 PREFIX = F"{Fore.LIGHTWHITE_EX}[funpay bot]{Fore.WHITE}"
 
@@ -41,6 +41,9 @@ class FunPayBot:
         self.auto_deliveries = AutoDeliveries.get()
         self.data = Data()
         self.logger = get_logger(f"UNIVERSAL.TelegramBot")
+        
+        self.bot_event_handlers = HandlersManager.get_bot_event_handlers()
+        self.funpay_event_handlers = HandlersManager.get_funpay_event_handlers()
 
         self.tgbot = tgbot
         """ Класс, содержащий данные и методы Telegram бота """
@@ -87,12 +90,13 @@ class FunPayBot:
         """ 
         Получает отформатированное сообщение из словаря сообщений
 
-        :param message_name: Наименование сообщения в словаре сообщений
+        :param message_name: Наименование сообщения в словаре сообщений (ID).
+        :type message_name: str
         """
 
         class SafeDict(dict):
             def __missing__(self, key):
-                return "{" + key + "}"  # Если ключ не найден, оставляем как есть
+                return "{" + key + "}"
         
         message_lines = self.messages[message_name]
         if message_lines:
@@ -102,6 +106,23 @@ class FunPayBot:
             except:
                 pass
         return "Не удалось получить сообщение"
+    
+    def get_lot_by_order_title(self, title: str) -> types.LotShortcut:
+        """
+        Получает лот по названию заказа.
+
+        :param title: Краткое описание заказа.
+        :type title: str
+
+        :return: Лот.
+        :rtype: `FunPayApi.types.LotShortcut`
+        """
+
+        lots = self.funpay_profile.get_lots()
+        for lot in lots:
+            if title in lot.description:
+                return lot
+        return None
     
     def raise_lots(self):
         """
@@ -215,7 +236,7 @@ class FunPayBot:
 
     async def run_bot(self) -> None:
         """ Основная функция-запускатор бота """
-
+        
         # --- задаём начальные хендлеры бота ---
         def handler_on_funpay_bot_init(fpbot: FunPayBot):
             """ Начальный хендлер ON_INIT """
@@ -252,14 +273,15 @@ class FunPayBot:
                         if fpbot.config["auto_raising_lots_enabled"] == True:
                             if datetime.now() > fpbot.lots_raise_next_time:
                                 fpbot.raise_lots()
-                        time.sleep(cycle_delay)
                     except Exception:
                         self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}В бесконечном цикле произошла ошибка: {Fore.WHITE}{traceback.print_exc()}")
+                    time.sleep(cycle_delay)
 
             endless_loop_thread = Thread(target=endless_loop, daemon=True)
             endless_loop_thread.start()
         
-        _bot_event_handlers["ON_FUNPAY_BOT_INIT"].insert(0, handler_on_funpay_bot_init)
+        self.bot_event_handlers["ON_FUNPAY_BOT_INIT"].insert(0, handler_on_funpay_bot_init)
+        HandlersManager.set_bot_event_handlers(self.bot_event_handlers)
 
         async def handler_new_message(fpbot: FunPayBot, event: NewMessageEvent):
             """ Начальный хендлер новых сообщений """
@@ -355,17 +377,18 @@ class FunPayBot:
             except Exception:
                 self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента смены статуса заказа произошла ошибка: {Fore.WHITE}{traceback.print_exc()}")
             
-        _funpay_event_handlers[EventTypes.NEW_MESSAGE].insert(0, handler_new_message)
-        _funpay_event_handlers[EventTypes.NEW_ORDER].insert(0, handler_new_order)
-        _funpay_event_handlers[EventTypes.ORDER_STATUS_CHANGED].insert(0, handler_order_status_changed)
+        self.funpay_event_handlers[EventTypes.NEW_MESSAGE].insert(0, handler_new_message)
+        self.funpay_event_handlers[EventTypes.NEW_ORDER].insert(0, handler_new_order)
+        self.funpay_event_handlers[EventTypes.ORDER_STATUS_CHANGED].insert(0, handler_order_status_changed)
+        HandlersManager.set_funpay_event_handlers(self.funpay_event_handlers)
 
         def handle_on_funpay_bot_init():
             """ 
             Запускается при инициализации FunPay бота.
             Запускает за собой все хендлеры ON_FUNPAY_BOT_INIT 
             """
-            if "ON_FUNPAY_BOT_INIT" in _bot_event_handlers:
-                for handler in _bot_event_handlers["ON_FUNPAY_BOT_INIT"]:
+            if "ON_FUNPAY_BOT_INIT" in self.funpay_event_handlers:
+                for handler in self.funpay_event_handlers["ON_FUNPAY_BOT_INIT"]:
                     try:
                         handler(self)
                     except Exception as e:
@@ -375,8 +398,9 @@ class FunPayBot:
         self.logger.info(f"{PREFIX} FunPay бот запущен и активен")
         runner = Runner(self.funpay_account)
         for event in runner.listen(requests_delay=self.config["runner_requests_delay"]):
-            if event.type in _funpay_event_handlers:
-                for handler in _funpay_event_handlers[event.type]:
+            self.funpay_event_handlers = HandlersManager.get_funpay_event_handlers() # чтобы каждый раз брать свежие хендлеры, ибо модули могут отключаться/включаться
+            if event.type in self.funpay_event_handlers:
+                for handler in self.funpay_event_handlers[event.type]:
                     try:
                         await handler(self, event)
                     except Exception as e:

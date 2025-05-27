@@ -10,7 +10,7 @@ from tgbot.states.states import *
 
 from fpbot.funpaybot import FunPayBot
 from settings import Config, CustomCommands, AutoDeliveries
-from core.modules_manager import enable_module, disable_module
+from core.modules_manager import ModulesManager
 
 router = Router()
 funpaybot = FunPayBot()
@@ -768,7 +768,7 @@ async def callback_disable_module(call: CallbackQuery, state: FSMContext):
         module_uuid = data.get("module_uuid")
         if not module_uuid:
             raise Exception("UUID модуля не был найден, повторите процесс с самого начала")
-        if not disable_module(module_uuid):
+        if not ModulesManager.disable_module(module_uuid):
             raise Exception("Не удалось отключить модуль, попробуйте позже (см. консоль на наличие ошибки)")
         
         callback_data = CallbackDatas.ModulePage(uuid=module_uuid)
@@ -784,7 +784,7 @@ async def callback_enable_module(call: CallbackQuery, state: FSMContext):
         module_uuid = data.get("module_uuid")
         if not module_uuid:
             raise Exception("UUID модуля не был найден, повторите процесс с самого начала")
-        if not enable_module(module_uuid):
+        if not ModulesManager.enable_module(module_uuid):
             raise Exception("Не удалось включить модуль, попробуйте позже (см. консоль на наличие ошибки)")
         
         callback_data = CallbackDatas.ModulePage(uuid=module_uuid)

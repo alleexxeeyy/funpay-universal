@@ -11,8 +11,8 @@ from settings import Config
 from utils.logger import get_logger
 logger = get_logger("UNIVERSAL.TelegramBot")
 
-from core.modules_manager import get_modules
-from core.handlers_manager import _bot_event_handlers
+from core.modules_manager import ModulesManager
+from core.handlers_manager import HandlersManager
 
 PREFIX = f"{Fore.LIGHTCYAN_EX}[telegram bot]{Fore.WHITE}"
 
@@ -23,6 +23,8 @@ class TelegramBot:
         self.config = Config.get()
         self.admin_id = self.config["tg_admin_id"]
         self.bot_token = bot_token
+
+        self.bot_event_handlers = HandlersManager.get_bot_event_handlers()
         try:
             self.bot = Bot(token=self.bot_token)
         except:
@@ -38,7 +40,7 @@ class TelegramBot:
                 return TelegramBot().run_bot()
         self.dp = Dispatcher()
         
-        for module in get_modules():
+        for module in ModulesManager.get_modules():
             for router in module.telegram_bot_routers:
                 main_router.include_router(router)
         self.dp.include_router(main_router)
@@ -66,8 +68,8 @@ class TelegramBot:
             Запускается преред инициализацией Telegram бота. 
             Запускает за собой все хендлеры ON_TELEGRAM_BOT_INIT
             """
-            if "ON_TELEGRAM_BOT_INIT" in _bot_event_handlers:
-                for handler in _bot_event_handlers["ON_TELEGRAM_BOT_INIT"]:
+            if "ON_TELEGRAM_BOT_INIT" in self.bot_event_handlers:
+                for handler in self.bot_event_handlers["ON_TELEGRAM_BOT_INIT"]:
                     try:
                         await handler(self)
                     except Exception as e:

@@ -75,9 +75,8 @@ class Data:
                 json.dump(default_saved_lots, f, indent=4, ensure_ascii=False)
             get_saved_lots = default_saved_lots
         finally:
-            return get_saved_lots
-
-    
+            return get_saved_lots    
+        
     def set_initialized_users(self, new_data):
         """ Перезаписывает данные в initialized_users.json """
         with open(Data.INITIALIZED_USERS_PATH, 'w', encoding='utf-8') as f:

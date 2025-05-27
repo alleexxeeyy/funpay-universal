@@ -1,4 +1,5 @@
-from core.modules_manager import load_modules, connect_modules, set_modules
+from core.modules_manager import ModulesManager
+from core.handlers_manager import HandlersManager
 
 from core.console import set_title
 import asyncio
@@ -21,7 +22,7 @@ class BotsManager:
         self.tgbot = None
 
     async def start_funpay_bot(self):
-        """ Запускает FunPay бота в отдельном потоке """
+        """ Запускает FunPay бота в отдельном потоке. """
         this_loop = asyncio.get_running_loop()
         self.fpbot_loop = asyncio.new_event_loop()
         self.fpbot = FunPayBot(self.tgbot, this_loop)
@@ -32,8 +33,8 @@ class BotsManager:
         self.fpbot_thread = Thread(target=run, daemon=True)
         self.fpbot_thread.start()
 
-    async def start_telegram_bot(self) -> None:
-        """ Запускает Telegram бота """
+    async def start_telegram_bot(self):
+        """ Запускает Telegram бота. """
         from tgbot.telegrambot import TelegramBot
         config = Config.get()
         self.tgbot = TelegramBot(config["tg_bot_token"])
@@ -61,13 +62,13 @@ if __name__ == "__main__":
             Config.configure_config()
         
         print(f"{Fore.WHITE}⏳ Загружаю и подключаю модули...")
-        modules = load_modules()
+        modules = ModulesManager.load_modules()
         if len(modules) == 0:
             print(f"{Fore.WHITE}Модулей не обнаружено")
-        set_modules(modules)
+        ModulesManager.set_modules(modules)
         
         if len(modules) > 0:
-            connect_modules(modules)
+            ModulesManager.connect_modules(modules)
         
         for module in modules:
             if "ON_MODULE_CONNECTED" in module.bot_event_handlers and module.enabled:
@@ -77,15 +78,14 @@ if __name__ == "__main__":
                     except Exception as e:
                         logger.error(f"{Fore.LIGHTRED_EX}Ошибка при обработке хендлера ивента ON_MODULE_CONNECTED: {Fore.WHITE}{e}")
 
-        from core.handlers_manager import _bot_event_handlers
-
+        bot_event_handlers = HandlersManager.get_bot_event_handlers()
         def handle_on_init():
             """ 
             Запускается при инициализации софта.
             Запускает за собой все хендлеры ON_INIT
             """
-            if "ON_INIT" in _bot_event_handlers:
-                for handler in _bot_event_handlers["ON_INIT"]:
+            if "ON_INIT" in bot_event_handlers:
+                for handler in bot_event_handlers["ON_INIT"]:
                     try:
                         handler()
                     except Exception as e:
