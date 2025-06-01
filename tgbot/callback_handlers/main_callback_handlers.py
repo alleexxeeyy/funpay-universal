@@ -901,7 +901,7 @@ async def callback_create_tickets_to_orders(call: CallbackQuery, state: FSMConte
                 if not resp.get("action"):
                     raise Exception(f"Не удалось создать тикет. Ответ запроса: {resp}")
                 if resp["action"]["message"] != "Ваша заявка отправлена.":
-                    raise Exception(f"Не удалось создать тикет в тех. поддержку. Ответ: {resp["action"]["message"]}")
+                    raise Exception(f'Не удалось создать тикет в тех. поддержку. Ответ: {resp["action"]["message"]}')
                 created_count += len(this_orders_ids)
                 await call.message.edit_text(text=Templates.Navigation.ActiveOrders.CreatingTicketsToOrders.text(len(orders), tickets_count),
                                              parse_mode="HTML")

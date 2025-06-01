@@ -639,7 +639,7 @@ class Navigation:
 
                         for command in list(custom_commands.keys())[start_offset:end_offset]:
                             btn = InlineKeyboardButton(
-                                text=f"{command} → {" ".join(custom_commands[command])[:64]}",
+                                text=f'{command} → {" ".join(custom_commands[command])[:64]}',
                                 callback_data=CallbackDatas.CustomCommandPage(
                                     command=command
                                 ).pack()
