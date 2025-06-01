@@ -1,6 +1,8 @@
 from core.modules_manager import ModulesManager
 from core.handlers_manager import HandlersManager
 
+from services.fp_support import FunPaySupportAPI
+
 from core.console import set_title
 import asyncio
 from threading import Thread

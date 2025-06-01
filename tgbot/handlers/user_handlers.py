@@ -7,6 +7,7 @@ from tgbot.states.states import *
 
 from settings import Config, Messages, CustomCommands, AutoDeliveries
 
+
 router = Router()
 
 
@@ -16,13 +17,13 @@ router = Router()
 async def handler_start(message: types.Message, state: FSMContext):
     """ Отрабатывает команду /start """
     try:
-        await state.clear()
+        await state.set_state(None)
         config = Config.get()
         if message.from_user.id != config["tg_admin_id"]:
             return
-        await message.answer(text=Templates.Navigation.MenuNavigation.Default.Default.text(), 
-                                reply_markup=Templates.Navigation.MenuNavigation.Default.Default.kb(),
-                                parse_mode="HTML")
+        await message.answer(text=Templates.Navigation.MenuNavigation.Default.text(),
+                             reply_markup=Templates.Navigation.MenuNavigation.Default.kb(),
+                             parse_mode="HTML")
     except Exception as e:
         await message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
 
@@ -30,7 +31,7 @@ async def handler_start(message: types.Message, state: FSMContext):
 async def handler_stats(message: types.Message, state: FSMContext):
     """ Отрабатывает команду /stats """
     try:
-        await state.clear()
+        await state.set_state(None)
         config = Config.get()
         if message.from_user.id != config["tg_admin_id"]:
             return
@@ -44,7 +45,7 @@ async def handler_stats(message: types.Message, state: FSMContext):
 async def handler_stats(message: types.Message, state: FSMContext):
     """ Отрабатывает команду /settings """
     try:
-        await state.clear()
+        await state.set_state(None)
         config = Config.get()
         if message.from_user.id != config["tg_admin_id"]:
             return
@@ -60,7 +61,7 @@ async def handler_stats(message: types.Message, state: FSMContext):
 async def handler_entering_messages_page(message: types.Message, state: FSMContext):
     """ Считывает введёный пользователем номер страницы сообщений и переходит на неё """
     try: 
-        await state.clear()
+        await state.set_state(None)
         def is_int(txt) -> bool:
             try:
                 int(txt)
@@ -83,8 +84,8 @@ async def handler_entering_messages_page(message: types.Message, state: FSMConte
 async def handler_entering_message_text(message: types.Message, state: FSMContext):
     """ Считывает введённый пользователем новый текст сообщения и изменяет его в сообщениях """ 
     try:
-        await state.clear()
-        await state.clear()
+        await state.set_state(None)
+        await state.set_state(None)
         if len(message.text.strip()) <= 0:
             return await message.answer(text=Templates.System.Error.text("Слишком короткий текст"), parse_mode="HTML")
 
@@ -106,7 +107,7 @@ async def handler_entering_message_text(message: types.Message, state: FSMContex
 async def handler_entering_golden_key(message: types.Message, state: FSMContext):
     """ Считывает введённый пользователем golden_key и изменяет его в конфиге """ 
     try:
-        await state.clear()
+        await state.set_state(None)
         if len(message.text.strip()) <= 3 or len(message.text.strip()) >= 50:
             return await message.answer(text=Templates.System.Error.text("Слишком короткий или длинный golden_key"), parse_mode="HTML")
 
@@ -124,7 +125,7 @@ async def handler_entering_golden_key(message: types.Message, state: FSMContext)
 async def handler_entering_user_agent(message: types.Message, state: FSMContext):
     """ Считывает введённый пользователем user_agent и изменяет его в конфиге """ 
     try:
-        await state.clear()
+        await state.set_state(None)
         if len(message.text.strip()) <= 3:
             return await message.answer(text=Templates.System.Error.text("Слишком короткий user_agent"), parse_mode="HTML")
 
@@ -142,7 +143,7 @@ async def handler_entering_user_agent(message: types.Message, state: FSMContext)
 async def handler_entering_funpayapi_timeout(message: types.Message, state: FSMContext):
     """ Считывает введённый пользователем funpayapi_timeout и изменяет его в конфиге """ 
     try:
-        await state.clear()
+        await state.set_state(None)
         def is_int(txt) -> bool:
             try:
                 int(txt)
@@ -170,7 +171,7 @@ async def handler_entering_funpayapi_timeout(message: types.Message, state: FSMC
 async def handler_entering_runner_requests_delay(message: types.Message, state: FSMContext):
     """ Считывает введённый пользователем runner_requests_delay и изменяет его в конфиге """ 
     try:
-        await state.clear()
+        await state.set_state(None)
         def is_int(txt) -> bool:
             try:
                 int(txt)
@@ -198,7 +199,7 @@ async def handler_entering_runner_requests_delay(message: types.Message, state: 
 async def handler_entering_lots_saving_interval(message: types.Message, state: FSMContext):
     """ Считывает введёный интервал сохранения лотов и изменяет его в конфиге """ 
     try:
-        await state.clear()
+        await state.set_state(None)
         def is_int(txt) -> bool:
             try:
                 int(txt)
@@ -227,7 +228,7 @@ async def handler_entering_lots_saving_interval(message: types.Message, state: F
 async def handler_entering_custom_commands_page(message: types.Message, state: FSMContext):
     """ Считывает введёный пользователем номер страницы пользовательских комманд и переходит на неё """
     try: 
-        await state.clear()
+        await state.set_state(None)
         def is_int(txt) -> bool:
             try:
                 int(txt)
@@ -250,7 +251,7 @@ async def handler_entering_custom_commands_page(message: types.Message, state: F
 async def handler_entering_custom_command(message: types.Message, state: FSMContext):
     """ Считывает введённую пользователем пользовательскую команду и запоминает """ 
     try:
-        await state.clear()
+        await state.set_state(None)
         if len(message.text.strip()) <= 0 or len(message.text.strip()) >= 32:
             return await message.answer(text=Templates.System.Error.text("Слишком короткая или длинная команда"), parse_mode="HTML")
 
@@ -284,7 +285,7 @@ async def handler_entering_custom_command_answer(message: types.Message, state: 
 async def handler_entering_new_custom_command_answer(message: types.Message, state: FSMContext):
     """ Считывает введённый пользователем новый текст ответа на пользовательскую команду и изменяет его в конфиге """ 
     try:
-        await state.clear()
+        await state.set_state(None)
         data = await state.get_data()
         if len(message.text.strip()) <= 0:
             return await message.answer(text=Templates.System.Error.text("Слишком короткий текст"), parse_mode="HTML")
@@ -307,7 +308,7 @@ async def handler_entering_new_custom_command_answer(message: types.Message, sta
 async def handler_entering_custom_commands_page(message: types.Message, state: FSMContext):
     """ Считывает введёный пользователем номер страницы авто-выдач и переходит на неё """
     try: 
-        await state.clear()
+        await state.set_state(None)
         def is_int(txt) -> bool:
             try:
                 int(txt)
@@ -330,7 +331,7 @@ async def handler_entering_custom_commands_page(message: types.Message, state: F
 async def handler_entering_auto_delivery_lot_id(message: types.Message, state: FSMContext):
     """ Считывает введённый пользователем ID лота выто-выдачи и запоминает """ 
     try:
-        await state.clear()
+        await state.set_state(None)
         if len(message.text.strip()) <= 0 or len(message.text.strip()) >= 100:
             return await message.answer(text=Templates.System.Error.text("Слишком короткий или длинный ID лота"), parse_mode="HTML")
 
@@ -364,8 +365,8 @@ async def handler_entering_auto_delivery_message(message: types.Message, state: 
 async def handler_entering_new_auto_delivery_message(message: types.Message, state: FSMContext):
     """ Считывает введённое пользователем новое сообщение после покупки на авто-выдачу и изменяет его в конфиге """ 
     try:
+        await state.set_state(None)
         data = await state.get_data()
-        await state.clear()
         if len(message.text.strip()) <= 0:
             return await message.answer(text=Templates.System.Error.text("Слишком короткий текст"), parse_mode="HTML")
 
@@ -377,6 +378,31 @@ async def handler_entering_new_auto_delivery_message(message: types.Message, sta
         AutoDeliveries.set(auto_deliveries)
         await message.answer(
             text=Templates.Navigation.SettingsNavigation.BotSettings.AutoDeliveries.AutoDeliveryMessageChanged.text(message.text.strip(), data["auto_delivery_lot_id"]),
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        await message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
+
+
+@router.message(ActiveOrdersNavigationStates.entering_active_orders_page)
+async def handler_entering_active_orders_page(message: types.Message, state: FSMContext):
+    """ Считывает введёный пользователем номер страницы активных заказов и переходит на неё """
+    try: 
+        await state.set_state(None)
+        def is_int(txt) -> bool:
+            try:
+                int(txt)
+                return True
+            except ValueError:
+                return False
+
+        if not is_int(message.text):
+            return await message.answer(text=Templates.System.Error.text("Вы должны ввести числовое значение"), parse_mode="HTML")
+
+        data = await state.get_data()
+        await message.answer(
+            text=Templates.Navigation.ActiveOrders.Pagination.Default.text(data.get("active_orders")),
+            reply_markup=Templates.Navigation.ActiveOrders.Pagination.Default.kb(int(message.text)-1, data.get("active_orders")),
             parse_mode="HTML"
         )
     except Exception as e:

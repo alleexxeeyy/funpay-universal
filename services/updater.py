@@ -30,7 +30,7 @@ class Updater:
             print(f"\n{Fore.LIGHTYELLOW_EX}Доступна новая версия: {Fore.LIGHTWHITE_EX}{latest_version}")
             if SKIP_UPDATES:
                 print(f"{Fore.WHITE}Пропускаем установку обновления. Если вы хотите автоматически скачивать обновления, измените значение "
-                      f"{Fore.LIGHTWHITE_EX}SKIP_UPDATES{Fore.WHITE} на {Fore.LIGHTWHITE_EX}True {Fore.LIGHTYELLOW_EX}в файле настроек {Fore.WHITE}(bot_settings/app.py)\n")
+                      f"{Fore.LIGHTWHITE_EX}SKIP_UPDATES{Fore.WHITE} на {Fore.LIGHTYELLOW_EX}False {Fore.WHITE}в файле настроек {Fore.LIGHTWHITE_EX}(bot_settings/app.py)\n")
                 return
             
             print(f"{Fore.WHITE}Скачиваем: {Fore.LIGHTWHITE_EX}{latest_release['html_url']}\n")

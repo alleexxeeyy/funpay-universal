@@ -3,6 +3,10 @@ from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.filters.callback_data import CallbackData
 import traceback
+import math
+
+from services.fp_support import FunPaySupportAPI
+import FunPayAPI.types as fpapi_types
 
 import tgbot.templates.user_templates as Templates
 import tgbot.callback_datas.user_callback_datas as CallbackDatas
@@ -11,6 +15,7 @@ from tgbot.states.states import *
 from fpbot.funpaybot import FunPayBot
 from settings import Config, CustomCommands, AutoDeliveries
 from core.modules_manager import ModulesManager
+import time
 
 router = Router()
 funpaybot = FunPayBot()
@@ -32,18 +37,9 @@ async def callback_menu_navigation(callback: CallbackQuery, callback_data: Callb
     to = callback_data.to
     try:
         if to == "default":
-            try:
-                await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Default.Loading.text(),
-                                                 reply_markup=Templates.Navigation.MenuNavigation.Default.Default.kb(),
-                                                 parse_mode="HTML")
-                await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Default.Default.text(),
-                                                 reply_markup=Templates.Navigation.MenuNavigation.Default.Default.kb(),
-                                                 parse_mode="HTML")
-            except Exception as e:
-                await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Default.Error.text(),
-                                                 reply_markup=Templates.Navigation.MenuNavigation.Default.Default.kb(),
-                                                 parse_mode="HTML")
-                raise e
+            await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Default.text(),
+                                             reply_markup=Templates.Navigation.MenuNavigation.Default.kb(),
+                                             parse_mode="HTML")
         elif to == "settings":
             await callback.message.edit_text(text=Templates.Navigation.SettingsNavigation.Default.text(),
                                              reply_markup=Templates.Navigation.SettingsNavigation.Default.kb(),
@@ -321,7 +317,7 @@ async def callback_disable_auto_delivery(call: CallbackQuery):
     """ Выключает авто-выдачу """
     try:
         config = Config.get()
-        config["auto_delivery_enabled"] = False
+        config["auto_deliveries_enabled"] = False
         Config.set(config)
         callback_data = CallbackDatas.BotSettingsNavigation(to="other")
         return await callback_botsettings_navigation(call, callback_data)
@@ -333,7 +329,7 @@ async def callback_enable_auto_delivery(call: CallbackQuery):
     """ Включает авто-выдачу """
     try:
         config = Config.get()
-        config["auto_delivery_enabled"] = True
+        config["auto_deliveries_enabled"] = True
         Config.set(config)
         callback_data = CallbackDatas.BotSettingsNavigation(to="other")
         return await callback_botsettings_navigation(call, callback_data)
@@ -412,7 +408,7 @@ async def callback_add_custom_command(call: CallbackQuery, state: FSMContext):
         CustomCommands.set(custom_commands)
         await call.message.answer(text=Templates.Navigation.SettingsNavigation.BotSettings.CustomCommands.CustomCommandAdded.text(new_custom_command),
                                   parse_mode="HTML") 
-        await state.clear()
+        await state.set_state(None)
     except Exception as e:
         await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
 
@@ -535,7 +531,7 @@ async def callback_add_auto_delivery(call: CallbackQuery, state: FSMContext):
         AutoDeliveries.set(auto_deliveries)
         await call.message.answer(text=Templates.Navigation.SettingsNavigation.BotSettings.AutoDeliveries.AutoDeliveryAdded.text(auto_devliery_lot_id),
                                   parse_mode="HTML") 
-        await state.clear()
+        await state.set_state(None)
     except Exception as e:
         await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
 
@@ -734,8 +730,8 @@ async def callback_modules_pagination(callback: CallbackQuery, callback_data: Ca
     page = callback_data.page
     await state.update_data(last_page=page)
     try:
-        await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Modules.Pagination.text(),
-                                         reply_markup=Templates.Navigation.MenuNavigation.Modules.Pagination.kb(page),
+        await callback.message.edit_text(text=Templates.Navigation.Modules.Pagination.text(),
+                                         reply_markup=Templates.Navigation.Modules.Pagination.kb(page),
                                          parse_mode="HTML")
     except Exception as e:
         await callback.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
@@ -748,15 +744,15 @@ async def callback_module_page(callback: CallbackQuery, callback_data: CallbackD
     await state.update_data(module_uuid=module_uuid)
     last_page = data.get("last_page") if data.get("last_page") else 0
     try:
-        await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Modules.Page.Loading.text(),
-                                         reply_markup=Templates.Navigation.MenuNavigation.Modules.Page.Default.kb(module_uuid, last_page),
+        await callback.message.edit_text(text=Templates.Navigation.Modules.Page.Loading.text(),
+                                         reply_markup=Templates.Navigation.Modules.Page.Default.kb(module_uuid, last_page),
                                          parse_mode="HTML")
-        await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Modules.Page.Default.text(module_uuid),
-                                         reply_markup=Templates.Navigation.MenuNavigation.Modules.Page.Default.kb(module_uuid, last_page),
+        await callback.message.edit_text(text=Templates.Navigation.Modules.Page.Default.text(module_uuid),
+                                         reply_markup=Templates.Navigation.Modules.Page.Default.kb(module_uuid, last_page),
                                          parse_mode="HTML")
     except Exception as e:
-        await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Modules.Page.Error.text(),
-                                         reply_markup=Templates.Navigation.MenuNavigation.Modules.Page.Default.kb(module_uuid, last_page),
+        await callback.message.edit_text(text=Templates.Navigation.Modules.Page.Error.text(),
+                                         reply_markup=Templates.Navigation.Modules.Page.Default.kb(module_uuid, last_page),
                                          parse_mode="HTML")
         await callback.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
 
@@ -791,3 +787,194 @@ async def callback_enable_module(call: CallbackQuery, state: FSMContext):
         return await callback_module_page(call, callback_data, state)
     except Exception as e:
         await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
+
+
+@router.callback_query(CallbackDatas.ActiveOrdersPagination.filter())
+async def callback_active_orders_pagination(callback: CallbackQuery, callback_data: CallbackDatas.ActiveOrdersPagination, state: FSMContext, refresh: bool = False):
+    """ Срабатывает при пагинации в активных заказах """
+    page = callback_data.page
+    data = await state.get_data()
+    try:
+        active_orders = data.get("active_orders")
+        if not active_orders or refresh:
+            try:
+                active_orders = []
+                next_start_from = None
+                while len(active_orders) < funpaybot.funpay_account.active_sales:
+                    try:
+                        await callback.message.edit_text(text=Templates.Navigation.ActiveOrders.Pagination.Loading.text(len(active_orders), funpaybot.funpay_account.active_sales),
+                                                         reply_markup=Templates.Navigation.ActiveOrders.Pagination.Loading.kb(page),
+                                                         parse_mode="HTML")
+                    except:
+                        pass
+                    this_active_orders = funpaybot.funpay_account.get_sales(start_from=next_start_from, include_paid=True, include_closed=False, include_refunded=False)
+                    for order in this_active_orders[1]:
+                        active_orders.append(order)
+                    next_start_from = this_active_orders[0]
+                
+                await state.update_data(active_orders=active_orders)
+                await callback.message.edit_text(text=Templates.Navigation.ActiveOrders.Pagination.Default.text(active_orders),
+                                                 reply_markup=Templates.Navigation.ActiveOrders.Pagination.Default.kb(page, active_orders),
+                                                 parse_mode="HTML")
+            except Exception as e:
+                await callback.message.edit_text(text=Templates.Navigation.ActiveOrders.Pagination.Error.text(),
+                                                 reply_markup=Templates.Navigation.ActiveOrders.Pagination.Error.kb(page),
+                                                 parse_mode="HTML")
+                raise e
+        else:
+            await callback.message.edit_text(text=Templates.Navigation.ActiveOrders.Pagination.Default.text(active_orders),
+                                             reply_markup=Templates.Navigation.ActiveOrders.Pagination.Default.kb(page, active_orders),
+                                             parse_mode="HTML")
+        await state.update_data(last_page=page)
+    except Exception as e:
+        await callback.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
+
+@router.callback_query(F.data == "refresh_active_orders_pagination")
+async def callback_refresh_active_orders_pagination(call: CallbackQuery, state: FSMContext):
+    """ Обновляет заказы в пагинации активных заказов """
+    try:
+        data = await state.get_data()
+        last_page = data.get("last_page") if data.get("last_page") else 0
+        callback_data = CallbackDatas.ActiveOrdersPagination(page=last_page)
+        return await callback_active_orders_pagination(call, callback_data, state, True)
+    except Exception as e:
+        await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
+
+@router.callback_query(F.data == "enter_active_orders_page")
+async def callback_enter_active_orders_page(call: CallbackQuery, state: FSMContext):
+    """ Отрабатывает ввод страницы активных заказов """
+    try:
+        await state.set_state(ActiveOrdersNavigationStates.entering_active_orders_page)
+        await call.message.answer(text=Templates.Navigation.ActiveOrders.EnterActiveOrderPage.text(),
+                                  parse_mode="HTML")
+    except Exception as e:
+        await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
+
+@router.callback_query(F.data == "confirm_creating_tickets_to_orders")
+async def callback_confirm_creating_tickets_to_orders(call: CallbackQuery, state: FSMContext):
+    """ Подтверждение создания тикетов на закрытие заказов """
+    try:
+        await state.set_state(ActiveOrdersNavigationStates.confirming_creating_tickets_to_orders)
+        data = await state.get_data()
+        orders = data.get("active_orders")
+        if not orders:
+            raise Exception("Не найдено активных заказов. Обновите страницу активных заказов и попробуйте снова")
+        await call.message.answer(text=Templates.Navigation.ActiveOrders.ConfirmCreatingTicketToOrders.text(len(orders)),
+                                  reply_markup=Templates.Navigation.ActiveOrders.ConfirmCreatingTicketToOrders.kb(),
+                                  parse_mode="HTML")
+    except Exception as e:
+        await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
+
+@router.callback_query(F.data == "create_tickets_to_orders")
+async def callback_create_tickets_to_orders(call: CallbackQuery, state: FSMContext):
+    """ Подтверждение создания тикетов на закрытие заказов """
+    try:
+        await state.set_state(None)
+        data = await state.get_data()
+        orders: list[fpapi_types.Order] = data.get("active_orders")
+        if not orders:
+            raise Exception("Не найдено активных заказов. Обновите страницу активных заказов и попробуйте снова")
+        
+        support_api = FunPaySupportAPI(funpaybot.funpay_account.golden_key, 
+                                       funpaybot.funpay_account.user_agent, 
+                                       funpaybot.funpay_account.requests_timeout).get()
+        
+        orders_per_ticket = 5
+        created_count = 0
+        orders_ids = []
+        tickets_count = math.ceil(len(orders)/orders_per_ticket)
+        for order in orders:
+            orders_ids.append(order.id)
+        await call.message.edit_text(text=Templates.Navigation.ActiveOrders.CreatingTicketsToOrders.text(tickets_count, created_count),
+                                     parse_mode="HTML")
+        for i in range(tickets_count):
+            try:
+                this_orders_ids = orders_ids[i*orders_per_ticket:i*orders_per_ticket+orders_per_ticket]
+                this_orders_ids_formatted = ", ".join(orders_ids[i*orders_per_ticket:i*orders_per_ticket+orders_per_ticket])
+
+                resp: dict = support_api.create_ticket(funpaybot.funpay_account.username, this_orders_ids_formatted, f"Добрый день! Прошу закрыть заказы, ожидающие подтверждения: {this_orders_ids_formatted}")
+                if resp.get("error"):
+                    if resp["error"] == "Вы создали слишком много заявок. Попробуйте позже.":
+                        await call.message.answer(text=Templates.System.Error.text(resp["error"]), parse_mode="HTML")
+                        break
+                    raise Exception(resp["error"])
+                if not resp.get("action"):
+                    raise Exception(f"Не удалось создать тикет. Ответ запроса: {resp}")
+                if resp["action"]["message"] != "Ваша заявка отправлена.":
+                    raise Exception(f"Не удалось создать тикет в тех. поддержку. Ответ: {resp["action"]["message"]}")
+                created_count += len(this_orders_ids)
+                await call.message.edit_text(text=Templates.Navigation.ActiveOrders.CreatingTicketsToOrders.text(len(orders), tickets_count),
+                                             parse_mode="HTML")
+            except Exception as e:
+                await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
+            time.sleep(1)
+        else:
+            await call.message.answer(text=Templates.Navigation.ActiveOrders.TicketsToOrdersCreated.text(len(orders)),
+                                      parse_mode="HTML")
+    except Exception as e:
+        await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
+
+@router.callback_query(CallbackDatas.ActiveOrderPage.filter())
+async def callback_active_order_page(callback: CallbackQuery, callback_data: CallbackDatas.ActiveOrderPage, state: FSMContext):
+    """ Срабатывает при переходе на страницу активного заказа   """
+    try:
+        order_id = callback_data.order_id
+        data = await state.get_data()
+        await state.update_data(active_order_id=order_id)
+        last_page = data.get("last_page") if data.get("last_page") else 0
+        try:
+            await callback.message.edit_text(text=Templates.Navigation.ActiveOrders.Page.Loading.text(),
+                                            reply_markup=Templates.Navigation.ActiveOrders.Page.Default.kb(last_page, order_id),
+                                            parse_mode="HTML")
+            order = funpaybot.funpay_account.get_order(order_id)
+            await callback.message.edit_text(text=Templates.Navigation.ActiveOrders.Page.Default.text(order),
+                                            reply_markup=Templates.Navigation.ActiveOrders.Page.Default.kb(last_page, order_id),
+                                            parse_mode="HTML")
+        except Exception as e:
+            await callback.message.edit_text(text=Templates.Navigation.ActiveOrders.Page.Error.text(),
+                                             reply_markup=Templates.Navigation.ActiveOrders.Page.Default.kb(last_page, order_id),
+                                             parse_mode="HTML")
+            raise e
+    except Exception as e:
+        await callback.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
+
+@router.callback_query(F.data == "confirm_creating_ticket_to_order")
+async def callback_confirm_creating_ticket_to_order(call: CallbackQuery, state: FSMContext):
+    """ Подтверждение создания тикета на закрытие заказа """
+    try:
+        await state.set_state(ActiveOrderPageNavigationStates.confirming_creating_ticket_to_order)
+        data = await state.get_data()
+        order_id = data.get("active_order_id")
+        if not order_id:
+            raise Exception("Заказ не найден. Обновите страницу активных заказов и попробуйте снова")
+        await call.message.answer(text=Templates.Navigation.ActiveOrders.Page.ConfirmCreatingTicketToOrder.text(order_id),
+                                  reply_markup=Templates.Navigation.ActiveOrders.Page.ConfirmCreatingTicketToOrder.kb(),
+                                  parse_mode="HTML")
+    except Exception as e:
+        await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
+
+@router.callback_query(F.data == "create_ticket_to_order")
+async def callback_create_ticket_to_order(call: CallbackQuery, state: FSMContext):
+    """ Подтверждение создания тикета на закрытие заказа """
+    try:
+        await state.set_state(None)
+        data = await state.get_data()
+        order_id = data.get("active_order_id")
+        if not order_id:
+            raise Exception("Заказ не найден. Обновите страницу активных заказов и попробуйте снова")
+        
+        support_api = FunPaySupportAPI(funpaybot.funpay_account.golden_key, 
+                                       funpaybot.funpay_account.user_agent, 
+                                       funpaybot.funpay_account.requests_timeout).get()
+        
+        resp: dict = support_api.create_ticket(funpaybot.funpay_account.username, order_id, f"Добрый день! Прошу закрыть заказ, ожидающий подтверждения: {order_id}")
+        if resp.get("error"):
+            raise Exception(resp["error"])
+        if not resp.get("action"):
+            raise Exception(f"Не удалось создать тикет. Ответ запроса: {resp}")
+        if resp["action"]["message"] != "Ваша заявка отправлена.":
+            raise Exception(f"Не удалось создать тикет в тех. поддержку. Ответ: {resp["action"]["message"]}")
+        await call.message.edit_text(text=Templates.Navigation.ActiveOrders.Page.TicketToOrderCreated.text(order_id, f'https://support.funpay.com{resp["action"]["ticket"]}'),
+                                     parse_mode="HTML")
+    except Exception as e:
+        await call.message.edit_text(text=Templates.System.Error.text(e), parse_mode="HTML")
