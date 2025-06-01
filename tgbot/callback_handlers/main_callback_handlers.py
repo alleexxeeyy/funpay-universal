@@ -973,7 +973,7 @@ async def callback_create_ticket_to_order(call: CallbackQuery, state: FSMContext
         if not resp.get("action"):
             raise Exception(f"Не удалось создать тикет. Ответ запроса: {resp}")
         if resp["action"]["message"] != "Ваша заявка отправлена.":
-            raise Exception(f"Не удалось создать тикет в тех. поддержку. Ответ: {resp["action"]["message"]}")
+            raise Exception(f'Не удалось создать тикет в тех. поддержку. Ответ: {resp["action"]["message"]}')
         await call.message.edit_text(text=Templates.Navigation.ActiveOrders.Page.TicketToOrderCreated.text(order_id, f'https://support.funpay.com{resp["action"]["ticket"]}'),
                                      parse_mode="HTML")
     except Exception as e:
