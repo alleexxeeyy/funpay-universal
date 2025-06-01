@@ -50,3 +50,12 @@ class AutoDeliveryPageNavigationStates(StatesGroup):
     entering_auto_delivery_lot_id = State()
     entering_auto_delivery_message = State()
     entering_new_auto_delivery_message = State()
+
+class ActiveOrdersNavigationStates(StatesGroup):
+    """ Состояния навигации по активным заказам """
+    entering_active_orders_page = State()
+    confirming_creating_tickets_to_orders = State()
+
+class ActiveOrderPageNavigationStates(StatesGroup):
+    """ Состояния навигации по странице активного заказа """
+    confirming_creating_ticket_to_order = State()

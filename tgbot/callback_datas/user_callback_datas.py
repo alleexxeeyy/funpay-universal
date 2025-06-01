@@ -34,6 +34,15 @@ class ModulePage(CallbackData, prefix="modpage"):
     uuid: UUID
 
 
+class ActiveOrdersPagination(CallbackData, prefix="aopag"):
+    """ Пагинация в активных заказах """
+    page: int
+
+class ActiveOrderPage(CallbackData, prefix="aopag"):
+    """ Пагинация в активных заказах """
+    order_id: str
+
+
 class CustomCommandsPagination(CallbackData, prefix="cucopag"):
     """ Пагинация в пользовательских командах """
     page: int

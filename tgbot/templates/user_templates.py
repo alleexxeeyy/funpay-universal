@@ -17,6 +17,8 @@ from fpbot.utils.stats import get_stats
 from core.modules_manager import ModulesManager, Module
 from uuid import UUID
 
+from FunPayAPI import types as fpapi_types
+
 funpaybot = FunPayBot()
         
 class System:
@@ -31,98 +33,66 @@ class Navigation:
 
     class MenuNavigation:
         class Default:
-            class Error:
-                def text() -> str:
-                    msg = f"🏠 <b>Главное меню</b>" \
-                        f"\n" \
-                        f"\n<b>FunPay UNIVERSAL</b> v{CURRENT_VERSION} " \
-                        f"\nБот-помощник для FunPay" \
-                        f"\n" \
-                        f"\n<b>Ссылки:</b>" \
-                        f"\n→ <b>@alleexxeeyy</b> — главный и единственный разработчик" \
-                        f"\n→ <b>@alexeyproduction</b> — канал, где публикуются новости" \
-                        f"\n→ <b>@alexey_production_bot</b> — бот для покупки официальных модулей" \
-                        f"\n" \
-                        f"\nПеремещайтесь по разделам ниже ↓"
-                    return msg
-
-            class Loading:
-                def text() -> str:
-                    msg = f"🏠 <b>Главное меню</b>" \
-                        f"\n" \
-                        f"\n<b>FunPay UNIVERSAL</b> v{CURRENT_VERSION} " \
-                        f"\nБот-помощник для FunPay" \
-                        f"\n" \
-                        f"\n<b>Ссылки:</b>" \
-                        f"\n→ <b>@alleexxeeyy</b> — главный и единственный разработчик" \
-                        f"\n→ <b>@alexeyproduction</b> — канал, где публикуются новости" \
-                        f"\n→ <b>@alexey_production_bot</b> — бот для покупки официальных модулей" \
-                        f"\n" \
-                        f"\nПеремещайтесь по разделам ниже ↓"
-                    return msg
-
-            class Default:
-                def text() -> str:
-                    msg = f"🏠 <b>Главное меню</b>" \
-                        f"\n" \
-                        f"\n<b>FunPay UNIVERSAL</b> v{CURRENT_VERSION} " \
-                        f"\nБот-помощник для FunPay" \
-                        f"\n" \
-                        f"\n<b>Ссылки:</b>" \
-                        f"\n→ <b>@alleexxeeyy</b> — главный и единственный разработчик" \
-                        f"\n→ <b>@alexeyproduction</b> — канал, где публикуются новости" \
-                        f"\n→ <b>@alexey_production_bot</b> — бот для покупки официальных модулей" \
-                        f"\n" \
-                        f"\nПеремещайтесь по разделам ниже ↓"
-                    return msg
-                    
-                def kb() -> InlineKeyboardMarkup:
-                    btn1 = InlineKeyboardButton(
-                        text="⚙️ Настройки",
-                        callback_data=CallbackDatas.SettingsNavigation(
-                            to="default"
-                        ).pack()
-                    )
-                    btn2 = InlineKeyboardButton(
-                        text="📊 Статистика",
-                        callback_data=CallbackDatas.MenuNavigation(
-                            to="stats"
-                        ).pack()
-                    )
-                    btn3 = InlineKeyboardButton(
-                        text="🔌 Модули",
-                        callback_data=CallbackDatas.ModulesPagination(
-                            page=0
-                        ).pack()
-                    )
-                    btn4 = InlineKeyboardButton(
-                        text="📖 Инструкция",
-                        callback_data=CallbackDatas.InstructionNavigation(
-                            to="default"
-                        ).pack()
-                    )
-                    btn_refresh = InlineKeyboardButton(
-                        text="🔄️ Обновить",
-                        callback_data=CallbackDatas.MenuNavigation(
-                            to="default"
-                        ).pack()
-                    )
-                    btn4 = InlineKeyboardButton(
-                        text="👨‍💻 Разработчик",
-                        url="https://t.me/alleexxeeyy",
-                    )
-                    btn5 = InlineKeyboardButton(
-                        text="📢 Наш канал",
-                        url="https://t.me/alexeyproduction",
-                    )
-                    btn6 = InlineKeyboardButton(
-                        text="🤖 Наш бот",
-                        url="https://t.me/alexey_production_bot",
-                    )
-
-                    rows = [[btn1, btn2, btn3], [btn4], [btn_refresh], [btn4, btn5, btn6]]
-                    markup = InlineKeyboardMarkup(inline_keyboard=rows)
-                    return markup
+            def text() -> str:
+                msg = f"🏠 <b>Главное меню</b>" \
+                    f"\n" \
+                    f"\n<b>FunPay UNIVERSAL</b> v{CURRENT_VERSION} " \
+                    f"\nБот-помощник для FunPay" \
+                    f"\n" \
+                    f"\n<b>Ссылки:</b>" \
+                    f"\n→ <b>@alleexxeeyy</b> — главный и единственный разработчик" \
+                    f"\n→ <b>@alexeyproduction</b> — канал, где публикуются новости" \
+                    f"\n→ <b>@alexey_production_bot</b> — бот для покупки официальных модулей" \
+                    f"\n" \
+                    f"\nПеремещайтесь по разделам ниже ↓"
+                return msg
+                
+            def kb() -> InlineKeyboardMarkup:
+                btn1 = InlineKeyboardButton(
+                    text="⚙️ Настройки",
+                    callback_data=CallbackDatas.SettingsNavigation(
+                        to="default"
+                    ).pack()
+                )
+                btn2 = InlineKeyboardButton(
+                    text="📊 Статистика",
+                    callback_data=CallbackDatas.MenuNavigation(
+                        to="stats"
+                    ).pack()
+                )
+                btn3 = InlineKeyboardButton(
+                    text="🔌 Модули",
+                    callback_data=CallbackDatas.ModulesPagination(
+                        page=0
+                    ).pack()
+                )
+                btn4 = InlineKeyboardButton(
+                    text="🛒 Активные заказы",
+                    callback_data=CallbackDatas.ActiveOrdersPagination(
+                        page=0
+                    ).pack()
+                )
+                btn5 = InlineKeyboardButton(
+                    text="📖 Инструкция",
+                    callback_data=CallbackDatas.InstructionNavigation(
+                        to="default"
+                    ).pack()
+                )
+                btn6 = InlineKeyboardButton(
+                    text="👨‍💻 Разработчик",
+                    url="https://t.me/alleexxeeyy",
+                )
+                btn7 = InlineKeyboardButton(
+                    text="📢 Наш канал",
+                    url="https://t.me/alexeyproduction",
+                )
+                btn8 = InlineKeyboardButton(
+                    text="🤖 Наш бот",
+                    url="https://t.me/alexey_production_bot",
+                )
+                rows = [[btn1, btn2], [btn3, btn4], [btn5], [btn6, btn7, btn8]]
+                markup = InlineKeyboardMarkup(inline_keyboard=rows)
+                return markup
                 
         class Stats:
             class Error:
@@ -185,178 +155,6 @@ class Navigation:
                     markup = InlineKeyboardMarkup(inline_keyboard=rows)
                     return markup
                 
-        class Modules:
-            class Pagination:
-                def text() -> str:
-                    modules = ModulesManager.get_modules()
-                    msg = f"🔌 <b>Модули</b>" \
-                            f"\nВсего <b>{len(modules)}</b> загруженных модулей" \
-                            f"\n\nПеремещайтесь по разделам ниже. Нажмите на название модуля, чтобы перейти в его управление ↓"
-                    return msg
-                
-                def kb(page: int = 0) -> InlineKeyboardMarkup:
-                    modules = ModulesManager.get_modules()
-
-                    rows = []
-                    items_per_page = 7
-                    total_pages = math.ceil(len(modules)/items_per_page)
-                    total_pages = total_pages if total_pages > 0 else 1
-
-                    if page < 0:
-                        page = 0
-                    elif page >= total_pages:
-                        page = total_pages-1
-
-                    start_offset = page * items_per_page
-                    end_offset = start_offset + items_per_page
-
-                    for module in list(modules)[start_offset:end_offset]:
-                        btn = InlineKeyboardButton(
-                            text=module.meta.name,
-                            callback_data=CallbackDatas.ModulePage(
-                                uuid=module.uuid
-                            ).pack()
-                        )
-                        rows.append([btn])
-                        
-                    buttons_row = []
-                    if page > 0:
-                        btn_back = InlineKeyboardButton(
-                            text="←",
-                            callback_data=CallbackDatas.ModulesPagination(
-                                page=page-1
-                            ).pack()
-                        )
-                    else:
-                        btn_back = InlineKeyboardButton(
-                            text="🛑",
-                            callback_data="123"
-                        )
-                    buttons_row.append(btn_back)
-                        
-                    btn_pages = InlineKeyboardButton(
-                        text=f"{page+1}/{total_pages}",
-                        callback_data="enter_modules_page"
-                    )
-                    buttons_row.append(btn_pages)
-                    
-                    if end_offset < total_pages:
-                        btn_next = InlineKeyboardButton(
-                            text="→",
-                            callback_data=CallbackDatas.ModulesPagination(
-                                page=page+1
-                            ).pack()
-                        )
-                    else:
-                        btn_next = InlineKeyboardButton(
-                            text="🛑",
-                            callback_data="123"
-                        )
-                    buttons_row.append(btn_next)
-                    rows.append(buttons_row)
-
-                    btn2 = InlineKeyboardButton(
-                        text="🚪 Выход",
-                        callback_data=CallbackDatas.MenuNavigation(
-                            to="default"
-                        ).pack()
-                    )
-                    rows.append([btn2])
-                    markup = InlineKeyboardMarkup(inline_keyboard=rows)
-                    return markup
-                
-            class Page:
-                class Error:
-                    def text() -> str:
-                        msg = f"🔧 <b>Управление модулем</b>" \
-                            f"\n" \
-                            f"\n→ Состояние: <i>не удалось загрузить</i>" \
-                            f"\n" \
-                            f"\n→ UUID: <i>не удалось загрузить</i>" \
-                            f"\n→ Название: <i>не удалось загрузить</i>" \
-                            f"\n→ Версия: <i>не удалось загрузить</i>" \
-                            f"\n→ Описание: <i>не удалось загрузить</i>" \
-                            f"\n" \
-                            f"\n→ Авторы: <i>не удалось загрузить</i>" \
-                            f"\n→ Ссылки: <i>не удалось загрузить</i>" \
-                            f"\n" \
-                            f"\nВыберите действие для управвления ↓"
-                        return msg
-
-                class Loading:
-                    def text() -> str:
-                        msg = f"🔧 <b>Управлением модулем</b>" \
-                            f"\n" \
-                            f"\n→ Состояние: <i>загрузка</i>" \
-                            f"\n" \
-                            f"\n→ UUID: <i>загрузка</i>" \
-                            f"\n→ Название: <i>загрузка</i>" \
-                            f"\n→ Версия: <i>загрузка</i>" \
-                            f"\n→ Описание: <i>загрузка</i>" \
-                            f"\n" \
-                            f"\n→ Авторы: <i>загрузка</i>" \
-                            f"\n→ Ссылки: <i>загрузка</i>" \
-                            f"\n" \
-                            f"\nВыберите действие для управвления ↓"
-                        return msg
-
-                class Default:
-                    def text(module_uuid: UUID) -> str:
-                        module: Module = ModulesManager.get_module_by_uuid(module_uuid)
-                        if not module:
-                            raise Exception("Не удалось найти модуль")
-                        
-                        enabled = "🟢 Включен" if module.enabled else "🔴 Выключен"
-                        msg = f"🔧 <b>Управлением модулем</b>" \
-                            f"\n" \
-                            f"\n→ Состояние: <code>{enabled}</code>" \
-                            f"\n" \
-                            f"\n→ UUID: <code>{module.uuid}</code>" \
-                            f"\n→ Название: <code>{module.meta.name}</code>" \
-                            f"\n→ Версия: <code>{module.meta.version}</code>" \
-                            f"\n→ Описание: <blockquote>{module.meta.description}</blockquote>" \
-                            f"\n" \
-                            f"\n→ Авторы: <code>{module.meta.authors}</code>" \
-                            f"\n→ Ссылки: <code>{module.meta.links}</code>" \
-                            f"\n" \
-                            f"\nВыберите действие для управвления ↓"
-                        return msg
-                    
-                    def kb(module_uuid: UUID, page: int) -> InlineKeyboardMarkup:
-                        module: Module = ModulesManager.get_module_by_uuid(module_uuid)
-                        if not module:
-                            raise Exception("Не удалось найти модуль")
-                        
-                        rows = []
-                        if module.enabled:
-                            btn_disable = InlineKeyboardButton(
-                                text="🔴 Отключить модуль",
-                                callback_data="disable_module"
-                            )
-                            rows.append([btn_disable])
-                        else:
-                            btn_enable = InlineKeyboardButton(
-                                text="🟢 Подключить модуль",
-                                callback_data="enable_module"
-                            )
-                            rows.append([btn_enable])
-                        btn_refresh = InlineKeyboardButton(
-                            text="🔄️ Обновить",
-                            callback_data=CallbackDatas.ModulePage(
-                                uuid=module_uuid
-                            ).pack()
-                        )
-                        rows.append([btn_refresh])
-                        btn_back = InlineKeyboardButton(
-                            text="⬅️ Назад",
-                            callback_data=CallbackDatas.ModulesPagination(
-                                page=page
-                            ).pack()
-                        )
-                        rows.append([btn_back])
-                        markup = InlineKeyboardMarkup(inline_keyboard=rows)
-                        return markup
-
     class InstructionNavigation:
         class Default:
             def text() -> str:
@@ -784,6 +582,7 @@ class Navigation:
                             text="⏲️ Интервал сохранения лотов",
                             callback_data="enter_lots_saving_interval"
                         )
+                        rows.append([btn1])
                         btn_refresh = InlineKeyboardButton(
                             text="🔄️ Обновить",
                             callback_data=CallbackDatas.BotSettingsNavigation(
@@ -840,7 +639,7 @@ class Navigation:
 
                         for command in list(custom_commands.keys())[start_offset:end_offset]:
                             btn = InlineKeyboardButton(
-                                text=command,
+                                text=f"{command} → {" ".join(custom_commands[command])[:64]}",
                                 callback_data=CallbackDatas.CustomCommandPage(
                                     command=command
                                 ).pack()
@@ -868,7 +667,7 @@ class Navigation:
                         )
                         buttons_row.append(btn_pages)
                         
-                        if end_offset < total_pages:
+                        if page < total_pages-1:
                             btn_next = InlineKeyboardButton(
                                 text="→",
                                 callback_data=CallbackDatas.CustomCommandsPagination(
@@ -1064,7 +863,7 @@ class Navigation:
                         for lot_id in list(auto_deliveries.keys())[start_offset:end_offset]:
                             auto_delivery_text = " ".join(auto_deliveries[lot_id])
                             btn = InlineKeyboardButton(
-                                text=f"{lot_id} → {auto_delivery_text[:48]}...",
+                                text=f"{lot_id} → {auto_delivery_text[:64]}",
                                 callback_data=CallbackDatas.AutoDeliveryPage(
                                     lot_id=lot_id
                                 ).pack()
@@ -1092,7 +891,7 @@ class Navigation:
                         )
                         buttons_row.append(btn_pages)
                         
-                        if end_offset < total_pages:
+                        if page < total_pages-1:
                             btn_next = InlineKeyboardButton(
                                 text="→",
                                 callback_data=CallbackDatas.AutoDeliveriesPagination(
@@ -1320,7 +1119,7 @@ class Navigation:
                         )
                         buttons_row.append(btn_pages)
                         
-                        if end_offset < total_pages:
+                        if page < total_pages-1:
                             btn_next = InlineKeyboardButton(
                                 text="→",
                                 callback_data=CallbackDatas.MessagesPagination(
@@ -1457,13 +1256,13 @@ class Navigation:
                         auto_reviews_replies_enabled = "🟢 Включено" if config["auto_reviews_replies_enabled"] else "🔴 Выключено"
                         first_message_enabled = "🟢 Включено" if config["first_message_enabled"] else "🔴 Выключено"
                         custom_commands_enabled = "🟢 Включено" if config["custom_commands_enabled"] else "🔴 Выключено"
-                        auto_delivery_enabled = "🟢 Включено" if config["auto_delivery_enabled"] else "🔴 Выключено"
+                        auto_deliveries_enabled = "🟢 Включено" if config["auto_deliveries_enabled"] else "🔴 Выключено"
                         msg = f"🤖 <b>Настройки бота → 🔧 Прочее</b>" \
                               f"\n" \
                               f"\n→ Автоматические ответы на отзывы: <code>{auto_reviews_replies_enabled}</code>" \
                               f"\n→ Приветственное сообщение: <code>{first_message_enabled}</code>" \
                               f"\n→ Пользовательские команды: <code>{custom_commands_enabled}</code>" \
-                              f"\n→ Авто-выдача: <code>{auto_delivery_enabled}</code>" \
+                              f"\n→ Авто-выдача: <code>{auto_deliveries_enabled}</code>" \
                               f"\n" \
                               f"\n<b>Что такое автоматические ответы на отзывы?</b>" \
                               f"\nКогда покупатель будет оставлять отзыв, бот будет автоматически отвечать на него. " \
@@ -1515,7 +1314,7 @@ class Navigation:
                             )
                             rows.append([btn_enable])
 
-                        if config["auto_delivery_enabled"]:
+                        if config["auto_deliveries_enabled"]:
                             btn_disable = InlineKeyboardButton(
                                 text="🔴 ВЫКЛ авто-выдачу",
                                 callback_data="disable_auto_delivery"
@@ -1678,6 +1477,500 @@ class Navigation:
             class LotsSaved:
                 def text() -> str:
                     msg = f"✅ Все лоты вашего профиля были сохранены" 
+                    return msg
+                
+    class Modules:
+        class Pagination:
+            def text() -> str:
+                modules = ModulesManager.get_modules()
+                msg = f"🔌 <b>Модули</b>" \
+                        f"\nВсего <b>{len(modules)}</b> загруженных модулей" \
+                        f"\n\nПеремещайтесь по разделам ниже. Нажмите на название модуля, чтобы перейти в его управление ↓"
+                return msg
+            
+            def kb(page: int = 0) -> InlineKeyboardMarkup:
+                modules = ModulesManager.get_modules()
+
+                rows = []
+                items_per_page = 7
+                total_pages = math.ceil(len(modules)/items_per_page)
+                total_pages = total_pages if total_pages > 0 else 1
+
+                if page < 0:
+                    page = 0
+                elif page >= total_pages:
+                    page = total_pages-1
+
+                start_offset = page * items_per_page
+                end_offset = start_offset + items_per_page
+
+                for module in list(modules)[start_offset:end_offset]:
+                    btn = InlineKeyboardButton(
+                        text=module.meta.name,
+                        callback_data=CallbackDatas.ModulePage(
+                            uuid=module.uuid
+                        ).pack()
+                    )
+                    rows.append([btn])
+                    
+                buttons_row = []
+                if page > 0:
+                    btn_back = InlineKeyboardButton(
+                        text="←",
+                        callback_data=CallbackDatas.ModulesPagination(
+                            page=page-1
+                        ).pack()
+                    )
+                else:
+                    btn_back = InlineKeyboardButton(
+                        text="🛑",
+                        callback_data="123"
+                    )
+                buttons_row.append(btn_back)
+                    
+                btn_pages = InlineKeyboardButton(
+                    text=f"{page+1}/{total_pages}",
+                    callback_data="enter_modules_page"
+                )
+                buttons_row.append(btn_pages)
+                
+                if page < total_pages-1:
+                    btn_next = InlineKeyboardButton(
+                        text="→",
+                        callback_data=CallbackDatas.ModulesPagination(
+                            page=page+1
+                        ).pack()
+                    )
+                else:
+                    btn_next = InlineKeyboardButton(
+                        text="🛑",
+                        callback_data="123"
+                    )
+                buttons_row.append(btn_next)
+                rows.append(buttons_row)
+
+                btn2 = InlineKeyboardButton(
+                    text="🚪 Выход",
+                    callback_data=CallbackDatas.MenuNavigation(
+                        to="default"
+                    ).pack()
+                )
+                rows.append([btn2])
+                markup = InlineKeyboardMarkup(inline_keyboard=rows)
+                return markup
+            
+        class Page:
+            class Error:
+                def text() -> str:
+                    msg = f"🔧 <b>Управление модулем</b>" \
+                        f"\n" \
+                        f"\n→ Состояние: <i>не удалось загрузить</i>" \
+                        f"\n" \
+                        f"\n→ UUID: <i>не удалось загрузить</i>" \
+                        f"\n→ Название: <i>не удалось загрузить</i>" \
+                        f"\n→ Версия: <i>не удалось загрузить</i>" \
+                        f"\n→ Описание: <i>не удалось загрузить</i>" \
+                        f"\n" \
+                        f"\n→ Авторы: <i>не удалось загрузить</i>" \
+                        f"\n→ Ссылки: <i>не удалось загрузить</i>" \
+                        f"\n" \
+                        f"\nВыберите действие для управвления ↓"
+                    return msg
+
+            class Loading:
+                def text() -> str:
+                    msg = f"🔧 <b>Управлением модулем</b>" \
+                        f"\n" \
+                        f"\n→ Состояние: <i>загрузка</i>" \
+                        f"\n" \
+                        f"\n→ UUID: <i>загрузка</i>" \
+                        f"\n→ Название: <i>загрузка</i>" \
+                        f"\n→ Версия: <i>загрузка</i>" \
+                        f"\n→ Описание: <i>загрузка</i>" \
+                        f"\n" \
+                        f"\n→ Авторы: <i>загрузка</i>" \
+                        f"\n→ Ссылки: <i>загрузка</i>" \
+                        f"\n" \
+                        f"\nВыберите действие для управвления ↓"
+                    return msg
+
+            class Default:
+                def text(module_uuid: UUID) -> str:
+                    module: Module = ModulesManager.get_module_by_uuid(module_uuid)
+                    if not module:
+                        raise Exception("Не удалось найти модуль")
+                    
+                    enabled = "🟢 Включен" if module.enabled else "🔴 Выключен"
+                    msg = f"🔧 <b>Управлением модулем</b>" \
+                        f"\n" \
+                        f"\n→ Состояние: <code>{enabled}</code>" \
+                        f"\n" \
+                        f"\n→ UUID: <code>{module.uuid}</code>" \
+                        f"\n→ Название: <code>{module.meta.name}</code>" \
+                        f"\n→ Версия: <code>{module.meta.version}</code>" \
+                        f"\n→ Описание: <blockquote>{module.meta.description}</blockquote>" \
+                        f"\n" \
+                        f"\n→ Авторы: <code>{module.meta.authors}</code>" \
+                        f"\n→ Ссылки: <code>{module.meta.links}</code>" \
+                        f"\n" \
+                        f"\nВыберите действие для управвления ↓"
+                    return msg
+                
+                def kb(module_uuid: UUID, page: int) -> InlineKeyboardMarkup:
+                    module: Module = ModulesManager.get_module_by_uuid(module_uuid)
+                    if not module:
+                        raise Exception("Не удалось найти модуль")
+                    
+                    rows = []
+                    if module.enabled:
+                        btn_disable = InlineKeyboardButton(
+                            text="🔴 Отключить модуль",
+                            callback_data="disable_module"
+                        )
+                        rows.append([btn_disable])
+                    else:
+                        btn_enable = InlineKeyboardButton(
+                            text="🟢 Подключить модуль",
+                            callback_data="enable_module"
+                        )
+                        rows.append([btn_enable])
+                    btn_refresh = InlineKeyboardButton(
+                        text="🔄️ Обновить",
+                        callback_data=CallbackDatas.ModulePage(
+                            uuid=module_uuid
+                        ).pack()
+                    )
+                    rows.append([btn_refresh])
+                    btn_back = InlineKeyboardButton(
+                        text="⬅️ Назад",
+                        callback_data=CallbackDatas.ModulesPagination(
+                            page=page
+                        ).pack()
+                    )
+                    rows.append([btn_back])
+                    markup = InlineKeyboardMarkup(inline_keyboard=rows)
+                    return markup
+                
+    class ActiveOrders:
+        class Pagination:
+            class Error:
+                def text() -> str:
+                    msg = f"🛒 <b>Активные заказы</b>" \
+                            f"\nВсего <i>не удалось загрузить</i> активных заказов" \
+                            f"\n\nПеремещайтесь по разделам ниже. Нажмите на заказ, чтобы перейти на его страницу"
+                    return msg
+                
+                def kb(page: int = 0) -> InlineKeyboardMarkup:
+                    btn1 = InlineKeyboardButton(
+                        text="...",
+                        callback_data="123"
+                    )
+                    btn2 = InlineKeyboardButton(
+                        text="🛑",
+                        callback_data="123"
+                    )
+                    btn3 = InlineKeyboardButton(
+                        text="?/?",
+                        callback_data="123"
+                    )
+                    btn4 = InlineKeyboardButton(
+                        text="🛑",
+                        callback_data="123"
+                    )
+                    btn5 = InlineKeyboardButton(
+                        text="📞 Создать тикет на подтверждение заказов",
+                        callback_data="confirm_creating_ticket_to_orders"
+                    )
+                    btn_refresh = InlineKeyboardButton(
+                        text="🔄️ Обновить",
+                        callback_data=CallbackDatas.ActiveOrdersPagination(
+                            page=page
+                        ).pack()
+                    )
+                    btn_exit = InlineKeyboardButton(
+                        text="🚪 Выход",
+                        callback_data=CallbackDatas.MenuNavigation(
+                            to="default"
+                        ).pack()
+                    )
+                    rows = [[btn1], [btn2, btn3, btn4], [btn5], [btn_refresh], [btn_exit]]
+                    markup = InlineKeyboardMarkup(inline_keyboard=rows)
+                    return markup
+
+            class Loading:
+                def text(loaded: int = 0, count: int | str = 0) -> str:
+                    msg = f"🛒 <b>Активные заказы</b>" \
+                            f"\nЗагружаю заказы: <b>{loaded}</b>/<b>{count}</b>" \
+                            f"\n\nПеремещайтесь по разделам ниже. Нажмите на заказ, чтобы перейти на его страницу"
+                    return msg
+                
+                def kb(page: int = 0) -> InlineKeyboardMarkup:
+                    btn1 = InlineKeyboardButton(
+                        text="...",
+                        callback_data="123"
+                    )
+                    btn2 = InlineKeyboardButton(
+                        text="🛑",
+                        callback_data="123"
+                    )
+                    btn3 = InlineKeyboardButton(
+                        text="?/?",
+                        callback_data="123"
+                    )
+                    btn4 = InlineKeyboardButton(
+                        text="🛑",
+                        callback_data="123"
+                    )
+                    btn5 = InlineKeyboardButton(
+                        text="📞 Создать тикет на подтверждение заказов",
+                        callback_data="confirm_creating_ticket_to_orders"
+                    )
+                    btn_refresh = InlineKeyboardButton(
+                        text="🔄️ Обновить",
+                        callback_data=CallbackDatas.ActiveOrdersPagination(
+                            page=page
+                        ).pack()
+                    )
+                    btn_exit = InlineKeyboardButton(
+                        text="🚪 Выход",
+                        callback_data=CallbackDatas.MenuNavigation(
+                            to="default"
+                        ).pack()
+                    )
+                    rows = [[btn1], [btn2, btn3, btn4], [btn5], [btn_refresh], [btn_exit]]
+                    markup = InlineKeyboardMarkup(inline_keyboard=rows)
+                    return markup
+            
+            class Default:
+                def text(active_orders: list[fpapi_types.OrderShortcut]) -> str:
+                    msg = f"🛒 <b>Активные заказы</b>" \
+                            f"\nВсего <b>{len(active_orders)}</b> активных заказов" \
+                            f"\n\nПеремещайтесь по разделам ниже. Нажмите на заказ, чтобы перейти на его страницу"
+                    return msg
+            
+                def kb(page: int = 0, active_orders: list[fpapi_types.OrderShortcut] = None) -> InlineKeyboardMarkup:
+                    rows = []
+                    items_per_page = 12
+                    items_per_row = 2
+                    total_pages = math.ceil(len(active_orders)/items_per_page)
+                    total_pages = total_pages if total_pages > 0 else 1
+
+                    if page < 0:
+                        page = 0
+                    elif page >= total_pages:
+                        page = total_pages-1
+
+                    start_offset = page * items_per_page
+                    end_offset = start_offset + items_per_page
+
+                    prev_btn = None
+                    for i in range(len(active_orders[start_offset:end_offset])):
+                        order = active_orders[i+start_offset]
+                        btn = InlineKeyboardButton(
+                            text=f"#{order.id} ({order.buyer_username})",
+                            callback_data=CallbackDatas.ActiveOrderPage(
+                                order_id=order.id
+                            ).pack()
+                        )
+                        if i > 0 and i % items_per_row == 0:
+                            rows.append([prev_btn, btn])
+                        elif page == total_pages and i == len(active_orders[start_offset:end_offset])-1:
+                            rows.append([btn])
+                        prev_btn = btn
+                        
+                    buttons_row = []
+                    if page > 0:
+                        btn_back = InlineKeyboardButton(
+                            text="←",
+                            callback_data=CallbackDatas.ActiveOrdersPagination(
+                                page=page-1
+                            ).pack()
+                        )
+                    else:
+                        btn_back = InlineKeyboardButton(
+                            text="🛑",
+                            callback_data="123"
+                        )
+                    buttons_row.append(btn_back)
+
+                        
+                    btn_pages = InlineKeyboardButton(
+                        text=f"{page+1}/{total_pages}",
+                        callback_data="enter_active_orders_page"
+                    )
+                    buttons_row.append(btn_pages)
+                    
+                    if page < total_pages-1:
+                        btn_next = InlineKeyboardButton(
+                            text="→",
+                            callback_data=CallbackDatas.ActiveOrdersPagination(
+                                page=page+1
+                            ).pack()
+                        )
+                    else:
+                        btn_next = InlineKeyboardButton(
+                            text="🛑",
+                            callback_data="123"
+                        )
+                    buttons_row.append(btn_next)
+                    rows.append(buttons_row)
+
+                    btn_create_ticket = InlineKeyboardButton(
+                        text="📞 Создать тикет на подтверждение заказов",
+                        callback_data="confirm_creating_tickets_to_orders"
+                    )
+                    rows.append([btn_create_ticket])
+                    btn_refresh = InlineKeyboardButton(
+                        text="🔄️ Обновить",
+                        callback_data="refresh_active_orders_pagination"
+                    )
+                    rows.append([btn_refresh])
+                    btn_exit = InlineKeyboardButton(
+                        text="🚪 Выход",
+                        callback_data=CallbackDatas.MenuNavigation(
+                            to="default"
+                        ).pack()
+                    )
+                    rows.append([btn_exit])
+                    markup = InlineKeyboardMarkup(inline_keyboard=rows)
+                    return markup
+                
+        class EnterActiveOrderPage:
+            def text() -> str:
+                msg = f"📃 Введите номер страницы для перехода ↓" 
+                return msg
+            
+        class ConfirmCreatingTicketsToOrders:
+            def text(active_orders_count) -> str:
+                msg = f"➕📞 <b>Подтвердите создание тикетов в тех.поддержку на подтверждение активных заказов</b>" \
+                        f"\nЭто действие создаст заявки в тех. поддержку FunPay на подтверждение <code>{active_orders_count}</code> оплаченных заказов" \
+                        f"\n\nВсего будет создано <b>{math.ceil(active_orders_count/5)}</b> тикетов <i>(по 5 заказов на 1 тикет, чтобы не перегружать общее количество)</i>"
+                return msg
+
+            def kb() -> InlineKeyboardMarkup:
+                btn1 = InlineKeyboardButton(
+                    text="✅ Подтвердить",
+                    callback_data="create_tickets_to_orders"
+                )
+                btn2 = InlineKeyboardButton(
+                    text="❌ Отменить",
+                    callback_data="destroy"
+                )
+                rows = [[btn1, btn2]]
+                markup = InlineKeyboardMarkup(inline_keyboard=rows)
+                return markup
+            
+        class CreatingTicketsToOrders:
+            def text(active_orders_count, created) -> str:
+                msg = f"🕐 Создаю тикеты в тех. поддержку для заказов..." \
+                      f"\nПроцесс: <b>{created}</b>/<b>{active_orders_count}</b>"
+                return msg
+            
+        class TicketsToOrdersCreated:
+            def text(active_orders_count, created_count) -> str:
+                msg = f"✅ Тикеты в тех.поддержку для <b>{created_count}</b>/<b>{active_orders_count}</b> заказов <b>были успешно созданы</b> ↓" \
+                      f"\nhttps://support.funpay.com/tickets"
+                return msg
+        
+        class Page:
+            class Error:
+                def text() -> str:
+                    msg = f"📄 <b>Страница активного заказа</b>" \
+                        f"\n" \
+                        f"\n→ ID заказа: <i>не удалось загрузить</i>" \
+                        f"\n→ Покупатель: <i>не удалось загрузить</i>" \
+                        f"\n→ Сумма: <i>не удалось загрузить</i>" \
+                        f"\n" \
+                        f"\n→ Название: <i>не удалось загрузить</i>" \
+                        f"\n" \
+                        f"\n→ Ссылка: <i>не удалось загрузить</i>" \
+                        f"\n" \
+                        f"\nВыберите параметр для изменения ↓"
+                    return msg
+
+            class Loading:
+                def text() -> str:
+                    msg = f"📄 <b>Страница активного заказа</b>" \
+                        f"\n" \
+                        f"\n→ ID заказа: <i>загрузка</i>" \
+                        f"\n→ Покупатель: <i>загрузка</i>" \
+                        f"\n→ Сумма: <i>загрузка</i>" \
+                        f"\n" \
+                        f"\n→ Название: <i>загрузка</i>" \
+                        f"\n" \
+                        f"\n→ Ссылка: <i>загрузка</i>" \
+                        f"\n" \
+                        f"\nВыберите параметр для изменения ↓"
+                    return msg
+
+            class Default:
+                def text(order: fpapi_types.Order) -> str:
+                    msg = f"📄 <b>Страница активного заказа</b>" \
+                        f"\n" \
+                        f"\n→ ID заказа: <code>{order.id}</code>" \
+                        f"\n→ Покупатель: <code>{order.buyer_username}</code>" \
+                        f"\n→ Сумма: <code>{order.sum}</code> р." \
+                        f"\n" \
+                        f"\n→ Название: <blockquote>{order.title}</blockquote>" \
+                        f"\n" \
+                        f"\n→ Ссылка: <b>https://funpay.com/orders/{order.id}/</b>" \
+                        f"\n" \
+                        f"\nВыберите действие для управления ↓"
+                    return msg
+                
+                def kb(page: int = 0, order_id: str = "") -> InlineKeyboardMarkup:
+                    btn1 = InlineKeyboardButton(
+                        text="📞 Создать тикет на подтверждение заказа",
+                        callback_data="confirm_creating_ticket_to_order"
+                    )
+                    btn2 = InlineKeyboardButton(
+                        text="🔗 Открыть заказ на сайте",
+                        url=f"https://funpay.com/orders/{order_id}/"
+                    )
+                    btn_refresh = InlineKeyboardButton(
+                        text="🔄️ Обновить",
+                        callback_data=CallbackDatas.ActiveOrderPage(
+                            order_id=order_id
+                        ).pack()
+                    )
+                    btn_back = InlineKeyboardButton(
+                        text="⬅️ Назад",
+                        callback_data=CallbackDatas.ActiveOrdersPagination(
+                            page=page
+                        ).pack()
+                    )
+                    rows = [[btn1, btn2], [btn_refresh], [btn_back]]
+                    markup = InlineKeyboardMarkup(inline_keyboard=rows)
+                    return markup
+                
+            class ConfirmCreatingTicketToOrder:
+                def text(order_id) -> str:
+                    msg = f"➕📞 <b>Подтвердите создание тикета в тех. поддержку на подтверждение заказа</b>" \
+                            f"\nЭто действие создаст заявку в тех. поддержку FunPay на подтверждение заказа <code>#{order_id}</code>"
+                    return msg
+
+                def kb() -> InlineKeyboardMarkup:
+                    btn1 = InlineKeyboardButton(
+                        text="✅ Подтвердить",
+                        callback_data="create_ticket_to_order"
+                    )
+                    btn2 = InlineKeyboardButton(
+                        text="❌ Отменить",
+                        callback_data="destroy"
+                    )
+                    rows = [[btn1, btn2]]
+                    markup = InlineKeyboardMarkup(inline_keyboard=rows)
+                    return markup
+                
+            class CreatingTicketToOrders:
+                def text(order_id) -> str:
+                    msg = f"🕐 Создаю тикет в тех. поддержку для заказа <code>#{order_id}</code>"
+                    return msg
+                
+            class TicketToOrderCreated:
+                def text(order_id, ticket_link) -> str:
+                    msg = f"✅ Тикет в тех. поддержку на подтверждение заказа <code>#{order_id}</code> <b>был успешно создан</b>" \
+                          f"\n→ {ticket_link}"
                     return msg
 
 class Callbacks:

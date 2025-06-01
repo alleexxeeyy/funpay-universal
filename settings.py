@@ -247,7 +247,7 @@ class CustomCommands:
             return custom_commands
         
     @staticmethod
-    def update(new_data):
+    def set(new_data):
         """ Перезаписывает данные в custom_commands.json. """
         with open(CustomCommands.PATH, 'w', encoding='utf-8') as f:
             json.dump(new_data, f, indent=4, ensure_ascii=False)
@@ -280,7 +280,7 @@ class AutoDeliveries:
             return auto_deliveries
         
     @staticmethod
-    def update(new_data):
+    def set(new_data):
         """ Перезаписывает данные в auto_deliveries.json """
         with open(AutoDeliveries.PATH, 'w', encoding='utf-8') as f:
             json.dump(new_data, f, indent=4, ensure_ascii=False)
