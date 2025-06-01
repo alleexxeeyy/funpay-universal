@@ -582,6 +582,7 @@ class Navigation:
                             text="⏲️ Интервал сохранения лотов",
                             callback_data="enter_lots_saving_interval"
                         )
+                        rows.append([btn1])
                         btn_refresh = InlineKeyboardButton(
                             text="🔄️ Обновить",
                             callback_data=CallbackDatas.BotSettingsNavigation(
