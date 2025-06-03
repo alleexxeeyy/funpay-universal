@@ -859,8 +859,8 @@ async def callback_confirm_creating_tickets_to_orders(call: CallbackQuery, state
         orders = data.get("active_orders")
         if not orders:
             raise Exception("Не найдено активных заказов. Обновите страницу активных заказов и попробуйте снова")
-        await call.message.answer(text=Templates.Navigation.ActiveOrders.ConfirmCreatingTicketToOrders.text(len(orders)),
-                                  reply_markup=Templates.Navigation.ActiveOrders.ConfirmCreatingTicketToOrders.kb(),
+        await call.message.answer(text=Templates.Navigation.ActiveOrders.ConfirmCreatingTicketsToOrders.text(len(orders)),
+                                  reply_markup=Templates.Navigation.ActiveOrders.ConfirmCreatingTicketsToOrders.kb(),
                                   parse_mode="HTML")
     except Exception as e:
         await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
