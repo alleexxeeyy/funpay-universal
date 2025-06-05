@@ -1350,7 +1350,6 @@ class Navigation:
                     msg = f"📰 <b>Настройки лотов</b>" \
                           f"\n" \
                           f"\n→ Активные лоты: <i>не удалось загрузить</i>" \
-                          f"\n→ Сохранённые лоты: <i>не удалось загрузить</i>" \
                           f"\n" \
                           f"\nВыберите действие для управления ↓"
                     return msg
@@ -1360,124 +1359,37 @@ class Navigation:
                     msg = f"📰 <b>Настройки лотов</b>" \
                           f"\n" \
                           f"\n→ Активные лоты: <i>загрузка</i>" \
-                          f"\n→ Сохранённые лоты: <i>загрузка</i>" \
                           f"\n" \
                           f"\nВыберите действие для управления ↓"
                     return msg
 
             class Default:
                 def text() -> str:
-                    funpay_profile = funpaybot.funpay_profile
-                    active_lots = funpay_profile.get_lots()
-                    saved_lots = Data().get_saved_lots()
-                    my_saved_lots = 0
-                    for active_lot in active_lots:
-                        if active_lot.id in saved_lots["active"] or active_lot.id in saved_lots["inactive"]:
-                            my_saved_lots += 1
+                    profile = funpaybot.funpay_account.get_user(funpaybot.funpay_account.id)
+                    active_lots = profile.get_lots()
                     msg = f"📰 <b>Настройки лотов</b>" \
                           f"\n" \
                           f"\n→ Активные лоты: <code>{len(active_lots)}</code>" \
-                          f"\n→ Сохранённые лоты: <code>{my_saved_lots}</code>" \
                           f"\n" \
                           f"\nВыберите действие для управления ↓"
                     return msg
                 
                 def kb() -> InlineKeyboardMarkup:
-                    btn1 = InlineKeyboardButton(
-                        text="🟢 Сделать лоты активными",
-                        callback_data="confirm_activating_lots"
-                    )
-                    btn2 = InlineKeyboardButton(
-                        text="🔴 Сделать лоты неактивными",
-                        callback_data="confirm_deactivating_lots"
-                    )
-                    btn3 = InlineKeyboardButton(
-                        text="📃 Сохранить все лоты профиля",
-                        callback_data="save_lots"
-                    )
-                    btn5 = InlineKeyboardButton(
+                    btn_refresh = InlineKeyboardButton(
                         text="🔄️ Обновить",
                         callback_data=CallbackDatas.LotsSettingsNavigation(
                             to="default"
                         ).pack()
                     )
-                    btn6 = InlineKeyboardButton(
+                    btn_back = InlineKeyboardButton(
                         text="⬅️ Назад",
                         callback_data=CallbackDatas.MenuNavigation(
                             to="settings"
                         ).pack()
                     )
-                    rows = [[btn1, btn2], [btn3], [btn5], [btn6]]
+                    rows = [[btn_refresh], [btn_back]]
                     markup = InlineKeyboardMarkup(inline_keyboard=rows)
                     return markup
-
-            class ConfirmActivatingLots:
-                def text() -> str:
-                    msg = f"🟢 <b>Подтвердите активацию всех лотов</b>" \
-                          f"\nЭто действие активирует только все сохранённые нашим ботом лоты с вашего профиля (интервал сохранения лотов можно указать в разделе настроек бота)" 
-                    return msg
-
-                def kb() -> InlineKeyboardMarkup:
-                    btn1 = InlineKeyboardButton(
-                        text="✅ Подтвердить",
-                        callback_data="activate_lots"
-                    )
-                    btn2 = InlineKeyboardButton(
-                        text="❌ Отменить",
-                        callback_data="destroy"
-                    )
-                    rows = [[btn1, btn2]]
-                    markup = InlineKeyboardMarkup(inline_keyboard=rows)
-                    return markup
-
-            class ConfirmDeactivatingLots:
-                def text() -> str:
-                    msg = f"🔴 <b>Подтвердите деактивацию всех лотов</b>" \
-                          f"\nЭто действие деактивирует только все сохранённые нашим ботом лоты с вашего профиля (интервал сохранения лотов можно указать в разделе настроек бота)" 
-                    return msg
-                
-                def kb() -> InlineKeyboardMarkup:
-                    btn1 = InlineKeyboardButton(
-                        text="✅ Подтвердить",
-                        callback_data="deactivate_lots"
-                    )
-                    btn2 = InlineKeyboardButton(
-                        text="❌ Отменить",
-                        callback_data="destroy"
-                    )
-                    rows = [[btn1, btn2]]
-                    markup = InlineKeyboardMarkup(inline_keyboard=rows)
-                    return markup
-                
-            class ActivatingLots:
-                def text() -> str:
-                    msg = f"🕓 Активация всех лотов вашего профиля, ожидайте..." 
-                    return msg
-
-            class DeactivatingLots:
-                def text() -> str:
-                    msg = f"🕓 Деактивация всех лотов вашего профиля, ожидайте..." 
-                    return msg
-                
-            class LotsActivated:
-                def text() -> str:
-                    msg = f"🟢 Все ваши лоты были активированы" 
-                    return msg
-
-            class LotsDeactivated:
-                def text() -> str:
-                    msg = f"🔴 Все ваши лоты были деактивированы" 
-                    return msg
-
-            class SavingLots:
-                def text() -> str:
-                    msg = f"🕓 Сохранение всех лотов вашего профиля, ожидайте..." 
-                    return msg
-
-            class LotsSaved:
-                def text() -> str:
-                    msg = f"✅ Все лоты вашего профиля были сохранены" 
-                    return msg
                 
     class Modules:
         class Pagination:

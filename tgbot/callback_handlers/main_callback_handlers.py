@@ -665,65 +665,6 @@ async def callback_lotssettings_navigation(callback: CallbackQuery, callback_dat
     except Exception as e:
         await callback.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
 
-@router.callback_query(F.data == "confirm_activating_lots")
-async def callback_confirm_activating_lots(call: CallbackQuery, state: FSMContext):
-    """ Подтверждение активации всех лотов """
-    try:
-        await state.set_state(LotsSettingsNavigationStates.confirming_activating_lots)
-        await call.message.answer(text=Templates.Navigation.SettingsNavigation.LotsSettings.ConfirmActivatingLots.text(),
-                                  reply_markup=Templates.Navigation.SettingsNavigation.LotsSettings.ConfirmActivatingLots.kb(),
-                                  parse_mode="HTML")
-    except Exception as e:
-        await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
-                                
-@router.callback_query(F.data == "activate_lots")
-async def callback_activate_lots(call: CallbackQuery, state: FSMContext):
-    """ Активация всех лотов """
-    try:
-        await call.message.edit_text(text=Templates.Navigation.SettingsNavigation.LotsSettings.ActivatingLots.text(),
-                                     parse_mode="HTML")
-        funpaybot.activate_lots()
-        await call.message.answer(text=Templates.Navigation.SettingsNavigation.LotsSettings.LotsActivated.text(),
-                                  parse_mode="HTML")
-    except Exception as e:
-        await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
-
-@router.callback_query(F.data == "confirm_deactivating_lots")
-async def callback_confirm_deactivating_lots(call: CallbackQuery, state: FSMContext):
-    """ Подтверждение деактивации всех лотов """
-    try:
-        await state.set_state(LotsSettingsNavigationStates.confirming_deactivating_lots)
-        await call.message.answer(text=Templates.Navigation.SettingsNavigation.LotsSettings.ConfirmDeactivatingLots.text(),
-                                reply_markup=Templates.Navigation.SettingsNavigation.LotsSettings.ConfirmDeactivatingLots.kb(),
-                                parse_mode="HTML")
-    except Exception as e:
-        await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
-
-@router.callback_query(F.data == "deactivate_lots")
-async def callback_deactivate_lots(call: CallbackQuery, state: FSMContext):
-    """ Деактивация всех лотов """
-    try:
-        await call.message.edit_text(text=Templates.Navigation.SettingsNavigation.LotsSettings.DeactivatingLots.text(),
-                                    parse_mode="HTML")
-        funpaybot.deactivate_lots()
-        await call.message.answer(text=Templates.Navigation.SettingsNavigation.LotsSettings.LotsDeactivated.text(),
-                                  parse_mode="HTML")
-    except Exception as e:
-        await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
-
-@router.callback_query(F.data == "save_lots")
-async def callback_save_lots(call: CallbackQuery, state: FSMContext):
-    """ Сохранение всех лотов """
-    try:
-        await call.message.answer(text=Templates.Navigation.SettingsNavigation.LotsSettings.SavingLots.text(),
-                                  parse_mode="HTML")
-        funpaybot.save_lots()
-        await call.message.answer(text=Templates.Navigation.SettingsNavigation.LotsSettings.LotsSaved.text(),
-                                  parse_mode="HTML")
-    except Exception as e:
-        await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
-        
-
 @router.callback_query(CallbackDatas.ModulesPagination.filter())
 async def callback_modules_pagination(callback: CallbackQuery, callback_data: CallbackDatas.ModulesPagination, state: FSMContext):
     """ Срабатывает при пагинации в модулях """

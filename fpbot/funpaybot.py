@@ -36,12 +36,10 @@ class FunPayBot:
 
     def __init__(self, tgbot: 'TelegramBot' = None, 
                  tgbot_loop: asyncio.AbstractEventLoop = None):
-        global _funpay_account, _funpay_profile
         self.config = Config.get()
         self.messages = Messages.get()
         self.custom_commands = CustomCommands.get()
         self.auto_deliveries = AutoDeliveries.get()
-        self.data = Data()
         self.logger = get_logger(f"UNIVERSAL.TelegramBot")
 
         self.tgbot = tgbot
@@ -65,18 +63,12 @@ class FunPayBot:
             else:
                 self.logger.info(f"{PREFIX} Вы отказались от настройки конфига. Пробуем снова подключиться к вашему FunPay аккаунту...")
                 return FunPayBot(self.tgbot, self.tgbot_loop).run_bot()
-            
-        self.funpay_profile = self.funpay_account.get_user(self.funpay_account.id)
-        """ Класс, содержащий данные и методы нашего профиля FunPay """
-        _funpay_profile = self.funpay_profile
 
         # Инициализация data классов
-        self.initialized_users = self.data.get_initialized_users()
+        self.initialized_users = Data.get_initialized_users()
         """ Инициализированные пользователи """
-        self.categories_raise_time = self.data.get_categories_raise_time()
+        self.categories_raise_time = Data.get_categories_raise_time()
         """ Следующие времена поднятия категорий """
-        self.events_next_time = self.data.get_events_next_time()
-        """ Следующие времена событий, которые нужно будет выполнить """
         self.stats = get_stats()
         """ Словарь статистика бота с момента запуска """
 
@@ -114,15 +106,15 @@ class FunPayBot:
         Получает лот по названию заказа.
 
         :param title: Краткое описание заказа.
-        :type title: str
+        :type title: `str`
 
-        :return: Лот.
-        :rtype: `FunPayApi.types.LotShortcut`
+        :return: Объект лота.
+        :rtype: `FunPayAPI.types.LotShortcut`
         """
-
-        lots = self.funpay_profile.get_lots()
+        profile = self.funpay_account.get_user(self.funpay_account.id)
+        lots = profile.get_lots()
         for lot in lots:
-            if title in lot.description or title == lot.description:
+            if title in lot.title or lot.title in title or title == lot.title:
                 return lot
         return None
     
@@ -133,9 +125,9 @@ class FunPayBot:
         """
         next_time = datetime.now() + timedelta(hours=4)
         raised_categories = []
-        for subcategory in list(self.funpay_profile.get_sorted_lots(2).keys()):
+        profile = self.funpay_account.get_user(self.funpay_account.id)
+        for subcategory in list(profile.get_sorted_lots(2).keys()):
             category = subcategory.category
-
             if subcategory.fullname in self.categories_raise_time:
                 if datetime.now() < datetime.fromisoformat(self.categories_raise_time[subcategory.fullname]):
                     continue
@@ -165,77 +157,7 @@ class FunPayBot:
         if len(raised_categories) > 0:
             self.logger.info(f'{PREFIX} {Fore.LIGHTYELLOW_EX}↑ Подняты категории: {Fore.LIGHTWHITE_EX}{f"{Fore.WHITE}, {Fore.LIGHTWHITE_EX}".join(map(str, raised_categories))}')
 
-    def save_lots(self) -> bool:
-        """ Сохраняет все лоты профиля в Data файл saved_lots.json """
-
-        lots = self.funpay_profile.get_lots()
-        saved_lots = self.data.get_saved_lots()
-        self.logger.info(f"{PREFIX} Сохранение всех лотов профиля...")
-        for lot in lots:
-            try:
-                if lot.id in saved_lots["inactive"]:
-                    saved_lots["inactive"].remove(lot.id)
-                if lot.id not in saved_lots["active"]:
-                    saved_lots["active"].append(lot.id)
-            except Exception as e:
-                self.logger.error(f"{PREFIX} При сохранении лота {lot.id} произошла ошибка: {e}")
-        else:
-            self.data.set_saved_lots(saved_lots)
-            self.logger.info(f"{PREFIX} Лоты были сохранены")
-            return True
-
-    def activate_lots(self) -> bool:
-        """ Активирует все сохранённые лоты профиля """
-        saved_lots = self.data.get_saved_lots()
-        self.logger.info(f"{PREFIX} Активация всех лотов профиля...")
-        for lot_id in list(saved_lots["inactive"]):
-            try:
-                lot_fields = self.funpay_account.get_lot_fields(lot_id)
-                lot_fields.active = True
-                self.funpay_account.save_lot(lot_fields)
-                
-                saved_lots["inactive"].remove(lot_id)
-                if lot_id not in saved_lots["active"]:
-                    saved_lots["active"].append(lot_id)
-            except Exception as e:
-                saved_lots["inactive"].remove(lot_id)
-        else:
-            self.data.set_saved_lots(saved_lots)
-            self.logger.info(f"{PREFIX} Все лоты профиля были активированы")
-            return True
-
-    def deactivate_lots(self) -> bool:
-        """ Деактивирует все сохранённые лоты профиля """
-
-        saved_lots = self.data.get_saved_lots()
-        self.logger.info(f"{PREFIX} Деактивация всех лотов профиля...")
-        for lot_id in list(saved_lots["active"]):
-            try:
-                lot_fields = self.funpay_account.get_lot_fields(lot_id)
-                lot_fields.active = False
-                self.funpay_account.save_lot(lot_fields)
-
-                saved_lots["active"].remove(lot_id)
-                if lot_id not in saved_lots["inactive"]:
-                    saved_lots["inactive"].append(lot_id)
-            except Exception as e:
-                saved_lots["active"].remove(lot_id)
-        else:
-            self.data.set_saved_lots(saved_lots)
-            self.logger.info(f"{PREFIX} Все лоты профиля были деактивированы")
-            return True
-
-    def find_lot_by_order_title(self, order_title: str) -> types.LotShortcut:
-        """ Находит лот по названию заказа. """
-        
-        lots = self.funpay_profile.get_lots()
-        for lot in lots:
-            if order_title in lot.title or lot.title in order_title or order_title == lot.title:
-                return lot
-        return None
-
-
-    async def run_bot(self) -> None:
+    async def run_bot(self) :
         """ Основная функция-запускатор бота. """
 
         # --- задаём начальные хендлеры бота ---
@@ -245,13 +167,11 @@ class FunPayBot:
                 """ Действия, которые должны выполняться в другом потоке, вне цикла раннера """
                 while True:
                     try:
-                        set_title(f"FunPay Universal v{CURRENT_VERSION} | {self.funpay_profile.username}: {self.funpay_account.total_balance} {self.funpay_account.currency.name}. Активных заказов: {self.funpay_account.active_sales}")
-                        if fpbot.data.get_initialized_users() != fpbot.initialized_users:
-                            fpbot.data.set_initialized_users(fpbot.initialized_users)
-                        if fpbot.data.get_categories_raise_time() != fpbot.categories_raise_time:
-                            fpbot.data.set_categories_raise_time(fpbot.categories_raise_time)
-                        if fpbot.data.get_events_next_time() != fpbot.events_next_time:
-                            fpbot.data.set_events_next_time(fpbot.events_next_time)
+                        set_title(f"FunPay Universal v{CURRENT_VERSION} | {self.funpay_account.username}: {self.funpay_account.total_balance} {self.funpay_account.currency.name}. Активных заказов: {self.funpay_account.active_sales}")
+                        if Data.get_initialized_users() != fpbot.initialized_users:
+                            Data.set_initialized_users(fpbot.initialized_users)
+                        if Data.get_categories_raise_time() != fpbot.categories_raise_time:
+                            Data.set_categories_raise_time(fpbot.categories_raise_time)
                         if Config.get() != fpbot.config:
                             fpbot.config = Config.get()
                         if Messages.get() != fpbot.messages:
@@ -265,14 +185,8 @@ class FunPayBot:
                             self.funpay_account = Account(golden_key=self.config["golden_key"],
                                                           user_agent=self.config["user_agent"],
                                                           requests_timeout=self.config["funpayapi_timeout"]).get()
-
-                        if datetime.now() > datetime.fromisoformat(fpbot.events_next_time["save_lots_next_time"]):
-                            try:
-                                fpbot.save_lots()
-                                timedelta_sec = fpbot.config["lots_saving_interval"]
-                                fpbot.events_next_time["save_lots_next_time"] = (datetime.now() + timedelta(seconds=timedelta_sec)).isoformat()
-                            except Exception as e:
-                                self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При сохранении лотов произошла ошибка: {Fore.WHITE}{e}")
+                            self.refresh_funpay_account_next_time = datetime.now() + timedelta(seconds=3600)
+                        self.funpay_account.get
 
                         if fpbot.config["auto_raising_lots_enabled"]:
                             if datetime.now() > fpbot.lots_raise_next_time:
@@ -363,7 +277,7 @@ class FunPayBot:
                     self.logger.info(f"{PREFIX} 🛒  Новый заказ {Fore.LIGHTYELLOW_EX}{event.order.id}{Fore.WHITE} от {Fore.LIGHTYELLOW_EX}{event.order.buyer_username}{Fore.WHITE} на сумму {Fore.LIGHTYELLOW_EX}{event.order.price} р.")
                     if self.config["auto_deliveries_enabled"]:
                         order = self.funpay_account.get_order(event.order.id)
-                        lot = self.find_lot_by_order_title(order.title)
+                        lot = self.get_lot_by_order_title(order.title)
                         if lot:
                             if str(lot.id) in self.auto_deliveries.keys():
                                 self.funpay_account.send_message(this_chat.id, "\n".join(self.auto_deliveries[str(lot.id)]))

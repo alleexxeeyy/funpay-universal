@@ -201,7 +201,7 @@ class ModulesManager:
         """ Загружает все модули из папки modules. """
         modules = []
         modules_path = "modules"
-        os.makedirs(modules_path)
+        os.makedirs(modules_path, exist_ok=True)
 
         def is_package_installed(requirement_string: str) -> bool:
             """ Проверяет, установлена ли библотека. """
