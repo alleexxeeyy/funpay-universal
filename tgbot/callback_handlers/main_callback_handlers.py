@@ -406,8 +406,8 @@ async def callback_add_custom_command(call: CallbackQuery, state: FSMContext):
         for line in new_custom_command_answer.splitlines():
             custom_commands[new_custom_command].append(line)
         CustomCommands.set(custom_commands)
-        await call.message.answer(text=Templates.Navigation.SettingsNavigation.BotSettings.CustomCommands.CustomCommandAdded.text(new_custom_command),
-                                  parse_mode="HTML") 
+        await call.message.edit_text(text=Templates.Navigation.SettingsNavigation.BotSettings.CustomCommands.CustomCommandAdded.text(new_custom_command),
+                                     parse_mode="HTML") 
         await state.set_state(None)
     except Exception as e:
         await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
@@ -529,8 +529,8 @@ async def callback_add_auto_delivery(call: CallbackQuery, state: FSMContext):
         for line in auto_delivery_message.splitlines():
             auto_deliveries[str(auto_devliery_lot_id)].append(line)
         AutoDeliveries.set(auto_deliveries)
-        await call.message.answer(text=Templates.Navigation.SettingsNavigation.BotSettings.AutoDeliveries.AutoDeliveryAdded.text(auto_devliery_lot_id),
-                                  parse_mode="HTML") 
+        await call.message.edit_text(text=Templates.Navigation.SettingsNavigation.BotSettings.AutoDeliveries.AutoDeliveryAdded.text(auto_devliery_lot_id),
+                                     parse_mode="HTML") 
         await state.set_state(None)
     except Exception as e:
         await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
@@ -734,6 +734,7 @@ async def callback_enable_module(call: CallbackQuery, state: FSMContext):
 async def callback_active_orders_pagination(callback: CallbackQuery, callback_data: CallbackDatas.ActiveOrdersPagination, state: FSMContext, refresh: bool = False):
     """ Срабатывает при пагинации в активных заказах """
     page = callback_data.page
+    await state.update_data(last_page=page)
     data = await state.get_data()
     try:
         active_orders = data.get("active_orders")
@@ -850,7 +851,7 @@ async def callback_create_tickets_to_orders(call: CallbackQuery, state: FSMConte
                 await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
             time.sleep(1)
         else:
-            await call.message.answer(text=Templates.Navigation.ActiveOrders.TicketsToOrdersCreated.text(len(orders)),
+            await call.message.answer(text=Templates.Navigation.ActiveOrders.TicketsToOrdersCreated.text(len(orders), created_count),
                                       parse_mode="HTML")
     except Exception as e:
         await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
@@ -915,7 +916,7 @@ async def callback_create_ticket_to_order(call: CallbackQuery, state: FSMContext
             raise Exception(f"Не удалось создать тикет. Ответ запроса: {resp}")
         if resp["action"]["message"] != "Ваша заявка отправлена.":
             raise Exception(f'Не удалось создать тикет в тех. поддержку. Ответ: {resp["action"]["message"]}')
-        await call.message.edit_text(text=Templates.Navigation.ActiveOrders.Page.TicketToOrderCreated.text(order_id, f'https://support.funpay.com{resp["action"]["ticket"]}'),
+        await call.message.edit_text(text=Templates.Navigation.ActiveOrders.Page.TicketToOrderCreated.text(order_id, f'https://support.funpay.com{resp["action"]["url"]}'),
                                      parse_mode="HTML")
     except Exception as e:
         await call.message.edit_text(text=Templates.System.Error.text(e), parse_mode="HTML")
