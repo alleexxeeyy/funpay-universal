@@ -1323,8 +1323,8 @@ class Navigation:
                               f"\n→ Пользовательские команды: <code>{custom_commands_enabled}</code>" \
                               f"\n→ Автоматическая выдача: <code>{auto_deliveries_enabled}</code>" \
                               f"\n" \
-                              f"\n→ Водяной знак под сообщениями: <code>{auto_deliveries_enabled}</code>" \
-                              f"\n→ Водяной знак: <code>{auto_deliveries_enabled}</code>" \
+                              f"\n→ Водяной знак под сообщениями: <code>{messages_watermark_enabled}</code>" \
+                              f"\n→ Водяной знак: <code>{messages_watermark}</code>" \
                               f"\n" \
                               f"\n<b>Что такое автоматические ответы на отзывы?</b>" \
                               f"\nКогда покупатель будет оставлять отзыв, бот будет автоматически отвечать на него. " \
