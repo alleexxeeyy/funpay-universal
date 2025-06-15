@@ -8,6 +8,7 @@ import tgbot.callback_datas.user_callback_datas as CallbackDatas
 
 from fpbot.funpaybot import FunPayBot
 from fpbot.data import Data
+from fpbot import get_funpay_bot
 
 from settings import Config, Messages, CustomCommands, AutoDeliveries
 
@@ -18,18 +19,16 @@ from core.modules_manager import ModulesManager, Module
 from uuid import UUID
 
 from FunPayAPI import types as fpapi_types
-
-funpaybot = FunPayBot()
         
 class System:
-    """ Шаблоны системных сообщений """
+    """ Шаблоны системных сообщений. """
     class Error:
         def text(error_text) -> str:
             msg = f"❌ Произошла ошибка: <b>{error_text}</b>"
             return msg
 
 class Navigation:
-    """ Шаблоны навигации по боту """
+    """ Шаблоны навигации по боту. """
 
     class MenuNavigation:
         class Default:
@@ -61,36 +60,42 @@ class Navigation:
                     ).pack()
                 )
                 btn3 = InlineKeyboardButton(
+                    text="👤 Мой профиль",
+                    callback_data=CallbackDatas.MenuNavigation(
+                        to="profile"
+                    ).pack()
+                )
+                btn4 = InlineKeyboardButton(
                     text="🔌 Модули",
                     callback_data=CallbackDatas.ModulesPagination(
                         page=0
                     ).pack()
                 )
-                btn4 = InlineKeyboardButton(
+                btn5 = InlineKeyboardButton(
                     text="🛒 Активные заказы",
                     callback_data=CallbackDatas.ActiveOrdersPagination(
                         page=0
                     ).pack()
                 )
-                btn5 = InlineKeyboardButton(
+                btn6 = InlineKeyboardButton(
                     text="📖 Инструкция",
                     callback_data=CallbackDatas.InstructionNavigation(
                         to="default"
                     ).pack()
                 )
-                btn6 = InlineKeyboardButton(
+                btn7 = InlineKeyboardButton(
                     text="👨‍💻 Разработчик",
                     url="https://t.me/alleexxeeyy",
                 )
-                btn7 = InlineKeyboardButton(
+                btn8 = InlineKeyboardButton(
                     text="📢 Наш канал",
                     url="https://t.me/alexeyproduction",
                 )
-                btn8 = InlineKeyboardButton(
+                btn9 = InlineKeyboardButton(
                     text="🤖 Наш бот",
                     url="https://t.me/alexey_production_bot",
                 )
-                rows = [[btn1, btn2], [btn3, btn4], [btn5], [btn6, btn7, btn8]]
+                rows = [[btn1, btn2], [btn3, btn4], [btn5], [btn6], [btn7, btn8, btn9]]
                 markup = InlineKeyboardMarkup(inline_keyboard=rows)
                 return markup
                 
@@ -143,6 +148,75 @@ class Navigation:
                         text="🔄️ Обновить",
                         callback_data=CallbackDatas.MenuNavigation(
                             to="stats"
+                        ).pack()
+                    )
+                    btn_back = InlineKeyboardButton(
+                        text="⬅️ Назад",
+                        callback_data=CallbackDatas.MenuNavigation(
+                            to="default"
+                        ).pack()
+                    )
+                    rows = [[btn_refresh], [btn_back]]
+                    markup = InlineKeyboardMarkup(inline_keyboard=rows)
+                    return markup
+
+        class Profile:
+            class Error:
+                def text() -> str:
+                    msg = "👤 <b>Мой профиль</b>" \
+                        f"\n" \
+                        f"\n→ ID: <i>не удалось загрузить</i>" \
+                        f"\n→ Никнейм: <i>не удалось загрузить</i>" \
+                        f"\n→ Баланс: <i>не удалось загрузить</i>" \
+                        f"\n" \
+                        f"\n→ Статистика:" \
+                        f"\n  ┕ Активные лоты: <i>не удалось загрузить</i>" \
+                        f"\n  ┕ Активные покупки: <i>не удалось загрузить</i>" \
+                        f"\n  ┕ Активные продажи: <i>не удалось загрузить</i>" \
+                        f"\n" \
+                        f"\nВыберите действие ↓"
+                    return msg
+
+            class Loading:
+                def text() -> str:
+                    msg = "👤 <b>Мой профиль</b>" \
+                        f"\n" \
+                        f"\n→ ID: <i>загрузка</i>" \
+                        f"\n→ Никнейм: <i>загрузка</i>" \
+                        f"\n→ Баланс: <i>загрузка</i>" \
+                        f"\n" \
+                        f"\n→ Статистика:" \
+                        f"\n  ┕ Активные лоты: <i>загрузка</i>" \
+                        f"\n  ┕ Активные покупки: <i>загрузка</i>" \
+                        f"\n  ┕ Активные продажи: <i>загрузка</i>" \
+                        f"\n" \
+                        f"\nВыберите действие ↓"
+                    return msg
+                
+            class Default:
+                def text() -> str:
+                    funpaybot = get_funpay_bot()
+                    account = funpaybot.funpay_account
+                    profile = account.get_user(account.id)
+                    msg = "👤 <b>Мой профиль</b>" \
+                        f"\n" \
+                        f"\n→ ID: <code>{profile.id}</code>" \
+                        f"\n→ Никнейм: <b>{profile.username}</b>" \
+                        f"\n→ Баланс: <b>{account.total_balance} {account.currency.name}</b>" \
+                        f"\n" \
+                        f"\n→ Статистика:" \
+                        f"\n  ┕ Активные лоты: <b>{len(profile.get_lots())}</b>" \
+                        f"\n  ┕ Активные покупки: <b>{account.active_purchases}</b>" \
+                        f"\n  ┕ Активные продажи: <b>{account.active_sales}</b>" \
+                        f"\n" \
+                        f"\nВыберите действие ↓"
+                    return msg
+                    
+                def kb() -> InlineKeyboardMarkup:
+                    btn_refresh = InlineKeyboardButton(
+                        text="🔄️ Обновить",
+                        callback_data=CallbackDatas.MenuNavigation(
+                            to="profile"
                         ).pack()
                     )
                     btn_back = InlineKeyboardButton(
@@ -367,12 +441,15 @@ class Navigation:
                         return msg
                     
                     def kb() -> InlineKeyboardMarkup:
+                        config = Config.get()
+                        user_agent = config["user_agent"] if config["user_agent"] else "❌ Не задано"
+                        golden_key = config["golden_key"][:3] + "*" * (len(config['golden_key']) - 3) if config["golden_key"] else "❌ Не задано"
                         btn1 = InlineKeyboardButton(
-                            text="🔑 golden_key",
+                            text=f"🔑 golden_key: {golden_key}",
                             callback_data="enter_golden_key"
                         )
                         btn2 = InlineKeyboardButton(
-                            text="🎩 user_agent",
+                            text=f"🎩 user_agent: {user_agent}",
                             callback_data="enter_user_agent"
                         )
                         btn_refresh = InlineKeyboardButton(
@@ -460,11 +537,12 @@ class Navigation:
                 class Default:
                     def text() -> str:
                         config = Config.get()
-
+                        funpayapi_requests_timeout = config["funpayapi_requests_timeout"] if config.get("funpayapi_requests_timeout") else "❌ Не задано"
+                        funpayapi_runner_requests_delay = config["funpayapi_runner_requests_delay"] if config.get("funpayapi_runner_requests_delay") else "❌ Не задано"
                         msg = f"🤖 <b>Настройки бота → 📶 Соединение</b>"\
                               f"\n" \
-                              f"\n→ Таймаут подключения к funpay.com: <code>{config['funpayapi_timeout']}</code> сек." \
-                              f"\n→ Периодичность запросов к funpay.com: <code>{config['runner_requests_delay']}</code> сек." \
+                              f"\n→ Таймаут подключения к funpay.com: <code>{funpayapi_requests_timeout}</code> сек." \
+                              f"\n→ Периодичность запросов к funpay.com: <code>{funpayapi_runner_requests_delay}</code> сек." \
                               f"\n" \
                               f"\n<b>Что такое таймаут подключения к funpay.com?</b>" \
                               f"\nЭто максимальное время, за которое должен прийти ответ на запрос с сайта FunPay. " \
@@ -480,13 +558,16 @@ class Navigation:
                         return msg
 
                     def kb() -> InlineKeyboardMarkup:
+                        config = Config.get()
+                        funpayapi_requests_timeout = config["funpayapi_requests_timeout"] if config.get("funpayapi_requests_timeout") else "❌ Не задано"
+                        funpayapi_runner_requests_delay = config["funpayapi_runner_requests_delay"] if config.get("funpayapi_runner_requests_delay") else "❌ Не задано"
                         btn1 = InlineKeyboardButton(
-                            text="🛜 Таймаут подключения",
-                            callback_data="enter_funpayapi_timeout"
+                            text=f"🛜 Таймаут подключения: {funpayapi_requests_timeout}",
+                            callback_data="enter_funpayapi_requests_timeout"
                         )
                         btn2 = InlineKeyboardButton(
-                            text="⏱️ Периодичность запросов",
-                            callback_data="enter_runner_requests_delay"
+                            text=f"⏱️ Периодичность запросов: {funpayapi_runner_requests_delay}",
+                            callback_data="enter_funpayapi_runner_requests_delay"
                         )
                         btn_update = InlineKeyboardButton(
                             text="🔄️ Обновить",
@@ -500,30 +581,30 @@ class Navigation:
                                 to="default"
                             ).pack()
                         )
-                        rows = [[btn1], [btn2], [btn_update], [btn_back]]
+                        rows = [[btn1, btn2], [btn_update], [btn_back]]
                         markup = InlineKeyboardMarkup(inline_keyboard=rows)
                         return markup
                 
-                class EnterFunpayApiTimeout:
+                class EnterFunpayApiRequestsTimeout:
                     def text() -> str:
                         config = Config.get()
                         msg = f"🛜 <b>Введите новый таймаут подключения к funpay.com ↓</b>" \
-                              f"\nТекущее значение: <code>{config['funpayapi_timeout']}</code> сек."
+                              f"\nТекущее значение: <code>{config['funpayapi_requests_timeout']}</code> сек."
                         return msg
                     
-                class FunpayApiTimeoutChanged:
+                class FunpayApiRequestsTimeoutChanged:
                     def text(new):
                         msg = f"✅ <b>Таймаут подключения к funpay.com</b> был успешно изменён на <code>{new}</code> сек."
                         return msg
                 
-                class EnterRunnerRequestsDelay:
+                class EnterFunPayApiRunnerRequestsDelay:
                     def text() -> str:
                         config = Config.get()
                         msg = f"⏱️ <b>Введите новую периодичность запросов к funpay.com ↓</b>" \
-                              f"\nТекущее значение: <code>{config['runner_requests_delay']}</code> сек."
+                              f"\nТекущее значение: <code>{config['funpayapi_runner_requests_delay']}</code> сек."
                         return msg
                     
-                class RunnerRequestsDelayChanged:
+                class FunPayApiRunnerRequestsDelayChanged:
                     def text(new):
                         msg = f"✅ <b>Периодичность запросов к funpay.com</b> была успешно изменена на <code>{new}</code> сек."
                         return msg
@@ -534,7 +615,6 @@ class Navigation:
                         msg = f"🤖 <b>Настройки бота → 🎫 Лоты</b>"\
                               f"\n" \
                               f"\n→ Автоматическое поднятие лотов: <i>не удалось загрузить</i>" \
-                              f"\n→ Интервал сохранения лотов: <i>не удалось загрузить</i>" \
                               f"\n" \
                               f"\nВыберите параметр для изменения ↓"
                         return msg
@@ -544,7 +624,6 @@ class Navigation:
                         msg = f"🤖 <b>Настройки бота → 🎫 Лоты</b>"\
                               f"\n" \
                               f"\n→ Автоматическое поднятие лотов: <i>загрузка</i>" \
-                              f"\n→ Интервал сохранения лотов: <i>загрузка</i>" \
                               f"\n" \
                               f"\nВыберите параметр для изменения ↓"
                         return msg
@@ -552,65 +631,36 @@ class Navigation:
                 class Default:
                     def text() -> str:
                         config = Config.get()
-                        auto_raising_lots_enabled = "🟢 Включено" if config["auto_raising_lots_enabled"] == True else "🔴 Выключено"
-                        
+                        auto_raising_lots_enabled = "🟢 Включено" if config.get("auto_raising_lots_enabled") == True else "🔴 Выключено"
                         msg = f"🤖 <b>Настройки бота → 🎫 Лоты</b>"\
                               f"\n" \
                               f"\n→ Автоматическое поднятие лотов: <code>{auto_raising_lots_enabled}</code>" \
-                              f"\n→ Интервал сохранения лотов: <code>{config['lots_saving_interval']}</code> сек." \
                               f"\n" \
                               f"\nВыберите параметр для изменения ↓" 
                         return msg
 
                     def kb() -> InlineKeyboardMarkup:
                         config = Config.get()
-                        rows = []
-                        
-                        if config["auto_raising_lots_enabled"]:
-                            btn_disable = InlineKeyboardButton(
-                                text="🔴 ВЫКЛ Автоподнятие лотов",
-                                callback_data="disable_auto_raising_lots"
-                            )
-                            rows.append([btn_disable])
-                        else:
-                            btn_enable = InlineKeyboardButton(
-                                text="🟢 ВКЛ Автоподнятие лотов",
-                                callback_data="enable_auto_raising_lots"
-                            )
-                            rows.append([btn_enable])
+                        auto_raising_lots_enabled = "🟢 Включено" if config.get("auto_raising_lots_enabled") == True else "🔴 Выключено"
                         btn1 = InlineKeyboardButton(
-                            text="⏲️ Интервал сохранения лотов",
-                            callback_data="enter_lots_saving_interval"
+                            text=f"⬆️ Автоподнятие лотов: {auto_raising_lots_enabled}",
+                            callback_data="disable_auto_raising_lots" if config.get("auto_raising_lots_enabled") == True else "enable_auto_raising_lots"
                         )
-                        rows.append([btn1])
                         btn_refresh = InlineKeyboardButton(
                             text="🔄️ Обновить",
                             callback_data=CallbackDatas.BotSettingsNavigation(
                                 to="lots"
                             ).pack()
                         )
-                        rows.append([btn_refresh])
                         btn_back = InlineKeyboardButton(
                             text="⬅️ Назад",
                             callback_data=CallbackDatas.BotSettingsNavigation(
                                 to="default"
                             ).pack()
                         )
-                        rows.append([btn_back])
+                        rows = [[btn1], [btn_refresh], [btn_back]]
                         markup = InlineKeyboardMarkup(inline_keyboard=rows)
                         return markup
-                    
-                class EnterLotsSavingInterval:
-                    def text() -> str:
-                        config = Config.get()
-                        msg = f"⏲️ <b>Введите новый интервал сохранения лотов ↓</b>" \
-                              f"\nТекущее значение: <code>{config['lots_saving_interval']}</code> сек."
-                        return msg
-                    
-                class LotsSavingIntervalChanged:
-                    def text(new) -> str:
-                        msg = f"✅ <b>Интервал сохранения лотов</b> был успешно изменён на <code>{new}</code>" 
-                        return msg
                     
             class CustomCommands:
                 class Pagination:
@@ -639,7 +689,7 @@ class Navigation:
 
                         for command in list(custom_commands.keys())[start_offset:end_offset]:
                             btn = InlineKeyboardButton(
-                                text=f'{command} → {" ".join(custom_commands[command])[:64]}',
+                                text=f'{command} → {"\n".join(custom_commands[command])}',
                                 callback_data=CallbackDatas.CustomCommandPage(
                                     command=command
                                 ).pack()
@@ -721,7 +771,7 @@ class Navigation:
                     class Default:
                         def text(command: str) -> str:
                             custom_commands = CustomCommands.get()
-                            command_text = "\n".join(custom_commands[command])
+                            command_text = "\n".join(custom_commands[command]) if custom_commands.get(command) else "❌ Не задано"
                             msg = f"✏️ <b>Редактирование пользовательской команды</b>" \
                                 f"\n" \
                                 f"\n→ Команда: <code>{command}</code>" \
@@ -731,8 +781,10 @@ class Navigation:
                             return msg
                         
                         def kb(command, page) -> InlineKeyboardMarkup:
+                            custom_commands = CustomCommands.get()
+                            command_text = "\n".join(custom_commands[command]) if custom_commands.get(command) else "❌ Не задано"
                             btn1 = InlineKeyboardButton(
-                                text="✍️ Текст ответа",
+                                text=f"✍️ Текст ответа: {command_text}",
                                 callback_data="enter_new_custom_command_answer"
                             )
                             btn2 = InlineKeyboardButton(
@@ -861,9 +913,8 @@ class Navigation:
                         end_offset = start_offset + items_per_page
 
                         for lot_id in list(auto_deliveries.keys())[start_offset:end_offset]:
-                            auto_delivery_text = " ".join(auto_deliveries[lot_id])
                             btn = InlineKeyboardButton(
-                                text=f"{lot_id} → {auto_delivery_text[:64]}",
+                                text=f"{lot_id} → {"\n".join(auto_deliveries[lot_id])}",
                                 callback_data=CallbackDatas.AutoDeliveryPage(
                                     lot_id=lot_id
                                 ).pack()
@@ -945,7 +996,7 @@ class Navigation:
                     class Default:
                         def text(lot_id: str) -> str:
                             auto_deliveries = AutoDeliveries.get()
-                            auto_delivery_message = "\n".join(auto_deliveries[str(lot_id)])
+                            auto_delivery_message = "\n".join(auto_deliveries[str(lot_id)]) if auto_deliveries.get(str(lot_id)) else "❌ Не задано"
                             msg = f"✏️ <b>Редактирование авто-выдачи</b>" \
                                 f"\n" \
                                 f"\n→ ID лота: <code>{lot_id}</code>" \
@@ -955,8 +1006,10 @@ class Navigation:
                             return msg
                         
                         def kb(lot_id, page) -> InlineKeyboardMarkup:
+                            auto_deliveries = AutoDeliveries.get()
+                            auto_delivery_message = "\n".join(auto_deliveries[str(lot_id)]) if auto_deliveries.get(str(lot_id)) else "❌ Не задано"
                             btn1 = InlineKeyboardButton(
-                                text="✍️ Сообщение после покупки",
+                                text=f"✍️ Сообщение после покупки: {auto_delivery_message}",
                                 callback_data="enter_new_auto_delivery_message"
                             )
                             btn2 = InlineKeyboardButton(
@@ -1024,7 +1077,7 @@ class Navigation:
                 class EnterNewAutoDeliveryMessage:
                     def text(lot_id) -> str:
                         auto_deliveries = AutoDeliveries.get()
-                        auto_delivery_message = "\n".join(auto_deliveries[str(lot_id)])
+                        auto_delivery_message = "\n".join(auto_deliveries[str(lot_id)]) if auto_deliveries.get(str(lot_id)) else "❌ Не задано"
                         msg = f"✍️ <b>Введите новое сообщение после покупки ↓</b>" \
                               f"\nID лота: <code>{lot_id}</code>" \
                               f"\nТекущее сообщение: <blockquote>{auto_delivery_message}</blockquote>"
@@ -1168,7 +1221,7 @@ class Navigation:
                     class Default:
                         def text(message_id) -> str:
                             messages = Messages.get()
-                            message_text = "\n".join(messages[message_id])
+                            message_text = "\n".join(messages[message_id]) if messages.get(message_id) else "❌ Не задано"
                             msg = f"✒️ <b>Редактирование сообщения</b>" \
                                 f"\n" \
                                 f"\n→ ID сообщения: <code>{message_id}</code>" \
@@ -1178,8 +1231,10 @@ class Navigation:
                             return msg
                         
                         def kb(message_id, page) -> InlineKeyboardMarkup:
+                            messages = Messages.get()
+                            message_text = "\n".join(messages[message_id]) if messages.get(message_id) else "❌ Не задано"
                             btn1 = InlineKeyboardButton(
-                                text="✍️ Текст сообщения",
+                                text=f"✍️ Текст сообщения: {message_text}",
                                 callback_data="enter_message_text"
                             )
                             btn_refresh = InlineKeyboardButton(
@@ -1206,7 +1261,7 @@ class Navigation:
                 class EnterMessageText:
                     def text(message_id) -> str:
                         messages = Messages.get()
-                        message_text = "\n".join(messages[message_id])
+                        message_text = "\n".join(messages[message_id]) if messages.get(message_id) else "❌ Не задано"
                         msg = f"✍️ <b>Введите новый текст сообщения ↓</b>" \
                               f"\nID сообщения: \n<code>{message_id}</code>" \
                               f"\nТекущий текст: \n<blockquote>{message_text}</blockquote>"
@@ -1253,16 +1308,16 @@ class Navigation:
                 class Default:
                     def text() -> str:
                         config = Config.get()
-                        auto_reviews_replies_enabled = "🟢 Включено" if config["auto_reviews_replies_enabled"] else "🔴 Выключено"
-                        first_message_enabled = "🟢 Включено" if config["first_message_enabled"] else "🔴 Выключено"
-                        custom_commands_enabled = "🟢 Включено" if config["custom_commands_enabled"] else "🔴 Выключено"
-                        auto_deliveries_enabled = "🟢 Включено" if config["auto_deliveries_enabled"] else "🔴 Выключено"
+                        auto_reviews_replies_enabled = "🟢 Включено" if config.get("auto_reviews_replies_enabled") == True else "🔴 Выключено"
+                        first_message_enabled = "🟢 Включено" if config.get("first_message_enabled") == True else "🔴 Выключено"
+                        custom_commands_enabled = "🟢 Включено" if config.get("custom_commands_enabled") == True else "🔴 Выключено"
+                        auto_deliveries_enabled = "🟢 Включено" if config.get("auto_deliveries_enabled") == True else "🔴 Выключено"
                         msg = f"🤖 <b>Настройки бота → 🔧 Прочее</b>" \
                               f"\n" \
                               f"\n→ Автоматические ответы на отзывы: <code>{auto_reviews_replies_enabled}</code>" \
                               f"\n→ Приветственное сообщение: <code>{first_message_enabled}</code>" \
                               f"\n→ Пользовательские команды: <code>{custom_commands_enabled}</code>" \
-                              f"\n→ Авто-выдача: <code>{auto_deliveries_enabled}</code>" \
+                              f"\n→ Автоматическая выдача: <code>{auto_deliveries_enabled}</code>" \
                               f"\n" \
                               f"\n<b>Что такое автоматические ответы на отзывы?</b>" \
                               f"\nКогда покупатель будет оставлять отзыв, бот будет автоматически отвечать на него. " \
@@ -1275,72 +1330,40 @@ class Navigation:
                         config = Config.get()
                         rows = []
 
-                        if config["auto_reviews_replies_enabled"]:
-                            btn_disable = InlineKeyboardButton(
-                                text="🔴 ВЫКЛ авто-ответы на отзывы",
-                                callback_data="disable_auto_reviews_replies"
-                            )
-                            rows.append([btn_disable])
-                        else:
-                            btn_enable = InlineKeyboardButton(
-                                text="🟢 ВКЛ авто-ответы на отзывы",
-                                callback_data="enable_auto_reviews_replies"
-                            )
-                            rows.append([btn_enable])
-
-                        if config["first_message_enabled"]:
-                            btn_disable = InlineKeyboardButton(
-                                text="🔴 ВЫКЛ приветственное сообщение",
-                                callback_data="disable_first_message"
-                            )
-                            rows.append([btn_disable])
-                        else:
-                            btn_enable = InlineKeyboardButton(
-                                text="🟢 ВКЛ приветственное сообщение",
-                                callback_data="enable_first_message"
-                            )
-                            rows.append([btn_enable])
-
-                        if config["custom_commands_enabled"]:
-                            btn_disable = InlineKeyboardButton(
-                                text="🔴 ВЫКЛ пользовательские ответы",
-                                callback_data="disable_custom_commands"
-                            )
-                            rows.append([btn_disable])
-                        else:
-                            btn_enable = InlineKeyboardButton(
-                                text="🟢 ВКЛ пользовательские ответы",
-                                callback_data="enable_custom_commands"
-                            )
-                            rows.append([btn_enable])
-
-                        if config["auto_deliveries_enabled"]:
-                            btn_disable = InlineKeyboardButton(
-                                text="🔴 ВЫКЛ авто-выдачу",
-                                callback_data="disable_auto_delivery"
-                            )
-                            rows.append([btn_disable])
-                        else:
-                            btn_enable = InlineKeyboardButton(
-                                text="🟢 ВКЛ авто-выдачу",
-                                callback_data="enable_auto_delivery"
-                            )
-                            rows.append([btn_enable])
-
+                        config = Config.get()
+                        auto_reviews_replies_enabled = "🟢 Включено" if config.get("auto_reviews_replies_enabled") == True else "🔴 Выключено"
+                        first_message_enabled = "🟢 Включено" if config.get("first_message_enabled") == True else "🔴 Выключено"
+                        custom_commands_enabled = "🟢 Включено" if config.get("custom_commands_enabled") == True else "🔴 Выключено"
+                        auto_deliveries_enabled = "🟢 Включено" if config.get("auto_deliveries_enabled") == True else "🔴 Выключено"
+                        btn1 = InlineKeyboardButton(
+                            text=f"💬 Автоответы на отзывы: {auto_reviews_replies_enabled}",
+                            callback_data="disable_auto_reviews_replies" if config.get("auto_reviews_replies_enabled") == True else "enable_auto_reviews_replies"
+                        )
+                        btn2 = InlineKeyboardButton(
+                            text=f"👋 Приветственное сообщение: {first_message_enabled}",
+                            callback_data="disable_first_message" if config.get("first_message_enabled") == True else "enable_first_message"
+                        )
+                        btn3 = InlineKeyboardButton(
+                            text=f"🔧 Пользовательские команды: {custom_commands_enabled}",
+                            callback_data="disable_custom_commands" if config.get("custom_commands_enabled") == True else "enable_custom_commands"
+                        )
+                        btn4 = InlineKeyboardButton(
+                            text=f"🚀 Автоматическая выдача: {auto_deliveries_enabled}",
+                            callback_data="disable_auto_delivery" if config.get("auto_deliveries_enabled") == True else "enable_auto_delivery"
+                        )
                         btn_refresh = InlineKeyboardButton(
                             text="🔄️ Обновить",
                             callback_data=CallbackDatas.BotSettingsNavigation(
                                 to="other"
                             ).pack()
                         )
-                        rows.append([btn_refresh])
                         btn_back = InlineKeyboardButton(
                             text="⬅️ Назад",
                             callback_data=CallbackDatas.BotSettingsNavigation(
                                 to="default"
                             ).pack()
                         )
-                        rows.append([btn_back])
+                        rows = [[btn1], [btn2], [btn3], [btn4], [btn_refresh], [btn_back]]
                         markup = InlineKeyboardMarkup(inline_keyboard=rows)
                         return markup
                     
@@ -1365,6 +1388,7 @@ class Navigation:
 
             class Default:
                 def text() -> str:
+                    funpaybot = get_funpay_bot()
                     profile = funpaybot.funpay_account.get_user(funpaybot.funpay_account.id)
                     active_lots = profile.get_lots()
                     msg = f"📰 <b>Настройки лотов</b>" \

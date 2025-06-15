@@ -15,11 +15,10 @@ class BotSettingsNavigationStates(StatesGroup):
     """ Состояния навигации по настройкам бота """
     entering_golden_key = State()
     entering_user_agent = State()
-    entering_funpayapi_timeout = State()
-    entering_runner_requests_delay = State()
+    entering_funpayapi_requests_timeout = State()
+    entering_funpayapi_runner_requests_delay = State()
     confirming_enabling_auto_raising_lots = State()
     confirming_disabling_auto_raising_lots = State()
-    entering_lots_saving_interval = State()
     confirming_enabling_auto_reviews_replies = State()
     confirming_disabling_auto_reviews_replies = State()
 

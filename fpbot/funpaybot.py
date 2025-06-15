@@ -7,8 +7,9 @@ from threading import Thread
 from colorama import Fore, Style
 
 from settings import Config, Messages, CustomCommands, AutoDeliveries
-from utils.logger import get_logger
+from logging import getLogger
 from fpbot.utils.stats import get_stats, set_stats
+from . import set_funpay_bot
 
 from FunPayAPI import Account, Runner, exceptions as fpapi_exceptions
 from FunPayAPI.common.enums import *
@@ -25,7 +26,6 @@ from core.handlers_manager import HandlersManager
 
 PREFIX = F"{Fore.LIGHTWHITE_EX}[funpay bot]{Fore.WHITE}"
 
-
 class FunPayBot:
     """
     Класс, запускающий и инициализирующий FunPay бота.
@@ -40,7 +40,7 @@ class FunPayBot:
         self.messages = Messages.get()
         self.custom_commands = CustomCommands.get()
         self.auto_deliveries = AutoDeliveries.get()
-        self.logger = get_logger(f"UNIVERSAL.TelegramBot")
+        self.logger = getLogger(f"UNIVERSAL.FunPayBot")
 
         self.tgbot = tgbot
         """ Класс, содержащий данные и методы Telegram бота """
@@ -50,7 +50,7 @@ class FunPayBot:
         try:
             self.funpay_account = Account(golden_key=self.config["golden_key"],
                                           user_agent=self.config["user_agent"],
-                                          requests_timeout=self.config["funpayapi_timeout"]).get()
+                                          requests_timeout=self.config["funpayapi_requests_timeout"]).get()
             """ Класс, содержащий данные и методы аккаунта FunPay """
         except fpapi_exceptions.UnauthorizedError as e:
             self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось подключиться к вашему FunPay аккаунту. Ошибка: {Fore.WHITE}{e.short_str()}")
@@ -62,7 +62,8 @@ class FunPayBot:
                 raise SystemExit(1)
             else:
                 self.logger.info(f"{PREFIX} Вы отказались от настройки конфига. Пробуем снова подключиться к вашему FunPay аккаунту...")
-                return FunPayBot(self.tgbot, self.tgbot_loop).run_bot()
+                print(f"\n{Fore.LIGHTWHITE_EX}Перезапустите бота, чтобы продолжить работу.")
+                raise SystemExit(1)
 
         # Инициализация data классов
         self.initialized_users = Data.get_initialized_users()
@@ -78,7 +79,8 @@ class FunPayBot:
         """ Время следующего поднятия лотов (изначально текущее) """
         self.refresh_funpay_account_next_time = datetime.now() + timedelta(seconds=3600)
         """ Время следующего обновления FunPay аккаунта (для обновления PHPSESSID) """
-        
+
+        set_funpay_bot(self)
 
     def msg(self, message_name: str, **kwargs) -> str:
         """ 
@@ -96,7 +98,9 @@ class FunPayBot:
         if message_lines:
             try:
                 formatted_lines = [line.format_map(SafeDict(**kwargs)) for line in message_lines]
-                return "\n".join(formatted_lines)
+                msg = "\n".join(formatted_lines)
+                msg += f'\n{self.config["messages_watermark"]}' if self.config["messages_watermark_enabled"] and self.config["messages_watermark"] else ""
+                return msg
             except:
                 pass
         return "Не удалось получить сообщение"
@@ -167,6 +171,7 @@ class FunPayBot:
                 """ Действия, которые должны выполняться в другом потоке, вне цикла раннера """
                 while True:
                     try:
+                        set_funpay_bot(fpbot)
                         set_title(f"FunPay Universal v{CURRENT_VERSION} | {self.funpay_account.username}: {self.funpay_account.total_balance} {self.funpay_account.currency.name}. Активных заказов: {self.funpay_account.active_sales}")
                         if Data.get_initialized_users() != fpbot.initialized_users:
                             Data.set_initialized_users(fpbot.initialized_users)
@@ -186,7 +191,6 @@ class FunPayBot:
                                                           user_agent=self.config["user_agent"],
                                                           requests_timeout=self.config["funpayapi_timeout"]).get()
                             self.refresh_funpay_account_next_time = datetime.now() + timedelta(seconds=3600)
-                        self.funpay_account.get
 
                         if fpbot.config["auto_raising_lots_enabled"]:
                             if datetime.now() > fpbot.lots_raise_next_time:
@@ -342,7 +346,7 @@ class FunPayBot:
 
         self.logger.info(f"{PREFIX} FunPay бот запущен и активен")
         runner = Runner(self.funpay_account)
-        for event in runner.listen(requests_delay=self.config["runner_requests_delay"]):
+        for event in runner.listen(requests_delay=self.config["funpayapi_runner_requests_delay"]):
             funpay_event_handlers = HandlersManager.get_funpay_event_handlers() # чтобы каждый раз брать свежие хендлеры, ибо модули могут отключаться/включаться
             if event.type in funpay_event_handlers:
                 for handler in funpay_event_handlers[event.type]:

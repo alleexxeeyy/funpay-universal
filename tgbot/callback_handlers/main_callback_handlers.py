@@ -17,10 +17,9 @@ from settings import Config, CustomCommands, AutoDeliveries
 from core.modules_manager import ModulesManager
 import time
 
+from fpbot import get_funpay_bot
+
 router = Router()
-funpaybot = FunPayBot()
-
-
 
 @router.callback_query(F.data == "destroy")
 async def callback_back(call: CallbackQuery, state: FSMContext):
@@ -55,6 +54,19 @@ async def callback_menu_navigation(callback: CallbackQuery, callback_data: Callb
             except Exception as e:
                 await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Stats.Error.text(),
                                                  reply_markup=Templates.Navigation.MenuNavigation.Stats.Default.kb(),
+                                                 parse_mode="HTML")
+                raise e
+        elif to == "profile":
+            try:
+                await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Profile.Loading.text(),
+                                                 reply_markup=Templates.Navigation.MenuNavigation.Profile.Default.kb(),
+                                                 parse_mode="HTML")
+                await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Profile.Default.text(),
+                                                 reply_markup=Templates.Navigation.MenuNavigation.Profile.Default.kb(),
+                                                 parse_mode="HTML")
+            except Exception as e:
+                await callback.message.edit_text(text=Templates.Navigation.MenuNavigation.Profile.Error.text(),
+                                                 reply_markup=Templates.Navigation.MenuNavigation.Profile.Default.kb(),
                                                  parse_mode="HTML")
                 raise e
         elif to == "instruction":
@@ -186,22 +198,22 @@ async def callback_enter_user_agent(call: CallbackQuery, state: FSMContext):
     except Exception as e:
         await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
 
-@router.callback_query(F.data == "enter_funpayapi_timeout")
-async def callback_enter_funpayapi_timeout(call: CallbackQuery, state: FSMContext):
-    """ Отрабатывает ввод нового funpayapi_timeout """
+@router.callback_query(F.data == "enter_funpayapi_requests_timeout")
+async def callback_enter_funpayapi_requests_timeout(call: CallbackQuery, state: FSMContext):
+    """ Отрабатывает ввод нового funpayapi_requests_timeout """
     try:
-        await state.set_state(BotSettingsNavigationStates.entering_funpayapi_timeout)
-        await call.message.answer(text=Templates.Navigation.SettingsNavigation.BotSettings.Connection.EnterFunpayApiTimeout.text(),
+        await state.set_state(BotSettingsNavigationStates.entering_funpayapi_requests_timeout)
+        await call.message.answer(text=Templates.Navigation.SettingsNavigation.BotSettings.Connection.EnterFunpayApiRequestsTimeout.text(),
                                   parse_mode="HTML")
     except Exception as e:
         await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
 
-@router.callback_query(F.data == "enter_runner_requests_delay")
-async def callback_enter_runner_requests_delay(call: CallbackQuery, state: FSMContext):
-    """ Отрабатывает ввод нового enter_runner_requests_delay """
+@router.callback_query(F.data == "enter_funpayapi_runner_requests_delay")
+async def callback_enter_funpayapi_runner_requests_delay(call: CallbackQuery, state: FSMContext):
+    """ Отрабатывает ввод нового funpayapi_runner_requests_delay """
     try:
-        await state.set_state(BotSettingsNavigationStates.entering_runner_requests_delay)
-        await call.message.answer(text=Templates.Navigation.SettingsNavigation.BotSettings.Connection.EnterRunnerRequestsDelay.text(),
+        await state.set_state(BotSettingsNavigationStates.entering_funpayapi_runner_requests_delay)
+        await call.message.answer(text=Templates.Navigation.SettingsNavigation.BotSettings.Connection.EnterFunPayApiRunnerRequestsDelay.text(),
                                   parse_mode="HTML")
     except Exception as e:
         await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
@@ -227,16 +239,6 @@ async def callback_disable_auto_raising_lots(call: CallbackQuery):
         Config.set(config)
         callback_data = CallbackDatas.BotSettingsNavigation(to="lots")
         return await callback_botsettings_navigation(call, callback_data)
-    except Exception as e:
-        await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
-
-@router.callback_query(F.data == "enter_lots_saving_interval")
-async def callback_enter_lots_saving_interval(call: CallbackQuery, state: FSMContext):
-    """ Отрабатывает ввод нового интервал сохранения лотов """
-    try:
-        await state.set_state(BotSettingsNavigationStates.entering_lots_saving_interval)
-        await call.message.answer(text=Templates.Navigation.SettingsNavigation.BotSettings.Lots.EnterLotsSavingInterval.text(),
-                                  parse_mode="HTML")
     except Exception as e:
         await call.message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
 
@@ -736,6 +738,7 @@ async def callback_active_orders_pagination(callback: CallbackQuery, callback_da
     page = callback_data.page
     await state.update_data(last_page=page)
     data = await state.get_data()
+    funpaybot = get_funpay_bot()
     try:
         active_orders = data.get("active_orders")
         if not active_orders or refresh:
@@ -817,6 +820,7 @@ async def callback_create_tickets_to_orders(call: CallbackQuery, state: FSMConte
         if not orders:
             raise Exception("Не найдено активных заказов. Обновите страницу активных заказов и попробуйте снова")
         
+        funpaybot = get_funpay_bot()
         support_api = FunPaySupportAPI(funpaybot.funpay_account.golden_key, 
                                        funpaybot.funpay_account.user_agent, 
                                        funpaybot.funpay_account.requests_timeout).get()
@@ -827,7 +831,7 @@ async def callback_create_tickets_to_orders(call: CallbackQuery, state: FSMConte
         tickets_count = math.ceil(len(orders)/orders_per_ticket)
         for order in orders:
             orders_ids.append(order.id)
-        await call.message.edit_text(text=Templates.Navigation.ActiveOrders.CreatingTicketsToOrders.text(tickets_count, created_count),
+        await call.message.edit_text(text=Templates.Navigation.ActiveOrders.CreatingTicketsToOrders.text(len(orders), created_count),
                                      parse_mode="HTML")
         for i in range(tickets_count):
             try:
@@ -864,6 +868,7 @@ async def callback_active_order_page(callback: CallbackQuery, callback_data: Cal
         data = await state.get_data()
         await state.update_data(active_order_id=order_id)
         last_page = data.get("last_page") if data.get("last_page") else 0
+        funpaybot = get_funpay_bot()
         try:
             await callback.message.edit_text(text=Templates.Navigation.ActiveOrders.Page.Loading.text(),
                                             reply_markup=Templates.Navigation.ActiveOrders.Page.Default.kb(last_page, order_id),
@@ -905,6 +910,7 @@ async def callback_create_ticket_to_order(call: CallbackQuery, state: FSMContext
         if not order_id:
             raise Exception("Заказ не найден. Обновите страницу активных заказов и попробуйте снова")
         
+        funpaybot = get_funpay_bot()
         support_api = FunPaySupportAPI(funpaybot.funpay_account.golden_key, 
                                        funpaybot.funpay_account.user_agent, 
                                        funpaybot.funpay_account.requests_timeout).get()

@@ -7,9 +7,7 @@ from tgbot.states.states import *
 
 from settings import Config, Messages, CustomCommands, AutoDeliveries
 
-
 router = Router()
-
 
 # /---- Команды ----\
 
@@ -139,9 +137,9 @@ async def handler_entering_user_agent(message: types.Message, state: FSMContext)
     except Exception as e:
         await message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
 
-@router.message(BotSettingsNavigationStates.entering_funpayapi_timeout)
-async def handler_entering_funpayapi_timeout(message: types.Message, state: FSMContext):
-    """ Считывает введённый пользователем funpayapi_timeout и изменяет его в конфиге """ 
+@router.message(BotSettingsNavigationStates.entering_funpayapi_requests_timeout)
+async def handler_entering_funpayapi_requests_timeout(message: types.Message, state: FSMContext):
+    """ Считывает введённый пользователем funpayapi_requests_timeout и изменяет его в конфиге """ 
     try:
         await state.set_state(None)
         def is_int(txt) -> bool:
@@ -158,18 +156,18 @@ async def handler_entering_funpayapi_timeout(message: types.Message, state: FSMC
             return await message.answer(text=Templates.System.Error.text("Слишком низкое значение"), parse_mode="HTML")
 
         config = Config.get()
-        config["funpayapi_timeout"] = int(message.text.strip())
+        config["funpayapi_requests_timeout"] = int(message.text.strip())
         Config.set(config)
         await message.answer(
-            text=Templates.Navigation.SettingsNavigation.BotSettings.Connection.FunpayApiTimeoutChanged.text(message.text.strip()),
+            text=Templates.Navigation.SettingsNavigation.BotSettings.Connection.FunpayApiRequestsTimeoutChanged.text(message.text.strip()),
             parse_mode="HTML"
         )
     except Exception as e:
         await message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
 
-@router.message(BotSettingsNavigationStates.entering_runner_requests_delay)
-async def handler_entering_runner_requests_delay(message: types.Message, state: FSMContext):
-    """ Считывает введённый пользователем runner_requests_delay и изменяет его в конфиге """ 
+@router.message(BotSettingsNavigationStates.entering_funpayapi_runner_requests_delay)
+async def handler_entering_funpayapi_runner_requests_delay(message: types.Message, state: FSMContext):
+    """ Считывает введённый пользователем funpayapi_runner_requests_delay и изменяет его в конфиге """ 
     try:
         await state.set_state(None)
         def is_int(txt) -> bool:
@@ -186,43 +184,14 @@ async def handler_entering_runner_requests_delay(message: types.Message, state: 
             return await message.answer(text=Templates.System.Error.text("Слишком низкое значение"), parse_mode="HTML")
 
         config = Config.get()
-        config["runner_requests_delay"] = int(message.text.strip())
+        config["funpayapi_runner_requests_delay"] = int(message.text.strip())
         Config.set(config)
         await message.answer(
-            text=Templates.Navigation.SettingsNavigation.BotSettings.Connection.RunnerRequestsDelayChanged.text(message.text.strip()),
+            text=Templates.Navigation.SettingsNavigation.BotSettings.Connection.FunPayApiRunnerRequestsDelayChanged.text(message.text.strip()),
             parse_mode="HTML"
         )
     except Exception as e:
         await message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
-
-@router.message(BotSettingsNavigationStates.entering_lots_saving_interval)
-async def handler_entering_lots_saving_interval(message: types.Message, state: FSMContext):
-    """ Считывает введёный интервал сохранения лотов и изменяет его в конфиге """ 
-    try:
-        await state.set_state(None)
-        def is_int(txt) -> bool:
-            try:
-                int(txt)
-                return True
-            except ValueError:
-                return False
-
-        if not is_int(message.text.strip()):
-            return await message.answer(text=Templates.System.Error.text("Вы должны ввести числовое значение"), parse_mode="HTML")
-
-        if int(message.text.strip()) <= 0:
-            return await message.answer(text=Templates.System.Error.text("Слишком низкий интервал"), parse_mode="HTML")
-
-        config = Config.get()
-        config["lots_saving_interval"] = int(message.text.strip())
-        Config.set(config)
-        await message.answer(
-            text=Templates.Navigation.SettingsNavigation.BotSettings.Lots.LotsSavingIntervalChanged.text(message.text),
-            parse_mode="HTML"
-        )
-    except Exception as e:
-        await message.answer(text=Templates.System.Error.text(e), parse_mode="HTML")
-
 
 @router.message(CustomCommandsNavigationStates.entering_custom_commands_page)
 async def handler_entering_custom_commands_page(message: types.Message, state: FSMContext):

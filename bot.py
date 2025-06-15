@@ -1,16 +1,14 @@
 from core.modules_manager import ModulesManager
 from core.handlers_manager import HandlersManager
 
-from services.fp_support import FunPaySupportAPI
-
-from core.console import set_title
+from core.console import set_title, setup_logger
 import asyncio
 from threading import Thread
 import ctypes
 from settings import Config
 import traceback
-from utils.logger import get_logger
-logger = get_logger("UNIVERSAL")
+from logging import getLogger
+logger = getLogger("UNIVERSAL")
 from colorama import init, Fore, Style
 init()
 
@@ -49,6 +47,7 @@ if __name__ == "__main__":
     """ Запуск всех ботов """
     from bot_settings.app import CURRENT_VERSION
     try:
+        setup_logger()
         set_title(f"FunPay Universal v{CURRENT_VERSION} by @alleexxeeyy")
         print(f"\n   {Fore.CYAN}FunPay Universal {Fore.WHITE}v{Fore.LIGHTWHITE_EX}{CURRENT_VERSION}"
               f"\n   {Fore.WHITE}→ tg: {Fore.LIGHTWHITE_EX}@alleexxeeyy"

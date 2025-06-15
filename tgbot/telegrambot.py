@@ -8,8 +8,8 @@ from tgbot import router as main_router
 import tgbot.templates.user_templates as Templates
 
 from settings import Config
-from utils.logger import get_logger
-logger = get_logger("UNIVERSAL.TelegramBot")
+import logging
+logger = logging.getLogger("UNIVERSAL.TelegramBot")
 
 from core.modules_manager import ModulesManager
 from core.handlers_manager import HandlersManager
@@ -23,6 +23,9 @@ class TelegramBot:
         self.config = Config.get()
         self.admin_id = self.config["tg_admin_id"]
         self.bot_token = bot_token
+
+        logging.getLogger("aiogram").setLevel(logging.CRITICAL)
+        logging.getLogger("aiogram.event").setLevel(logging.CRITICAL)
 
         try:
             self.bot = Bot(token=self.bot_token)

@@ -1,7 +1,6 @@
 import json
 from colorama import Fore, Style
 
-
 class Config:
     PATH = "bot_settings/config.json"
     
@@ -11,6 +10,10 @@ class Config:
         try:
             with open(Config.PATH, 'r', encoding='utf-8') as f:
                 config = json.load(f)
+                def_config = Config.default_config()
+                for k, v in def_config.items():
+                    if k not in config:
+                        config[k] = v
         except:
             with open(Config.PATH, 'w', encoding='utf-8') as f:
                 json.dump(Config.default_config(), f, indent=4, ensure_ascii=False)
@@ -33,13 +36,14 @@ class Config:
             "user_agent": "",
             "tg_admin_id": 0,
             "tg_bot_token": "",
-            "funpayapi_timeout": 30,
-            "runner_requests_delay": 4,
+            "funpayapi_requests_timeout": 30,
+            "funpayapi_runner_requests_delay": 4,
+            "messages_watermark_enabled": True,
+            "messages_watermark": "©️ 𝗙𝘂𝗻𝗣𝗮𝘆 𝗨𝗻𝗶𝘃𝗲𝗿𝘀𝗮𝗹",
             "first_message_enabled": True,
             "custom_commands_enabled": True,
             "auto_deliveries_enabled": True,
             "auto_raising_lots_enabled": True,
-            "lots_saving_interval": 3600,
             "auto_reviews_replies_enabled": True,
         }
     
