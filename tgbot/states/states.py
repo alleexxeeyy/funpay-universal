@@ -17,10 +17,7 @@ class BotSettingsNavigationStates(StatesGroup):
     entering_user_agent = State()
     entering_funpayapi_requests_timeout = State()
     entering_funpayapi_runner_requests_delay = State()
-    confirming_enabling_auto_raising_lots = State()
-    confirming_disabling_auto_raising_lots = State()
-    confirming_enabling_auto_reviews_replies = State()
-    confirming_disabling_auto_reviews_replies = State()
+    entering_messages_watermark = State()
 
 class MessagesNavigationStates(StatesGroup):
     """ Состояния навигации по сообщениям """

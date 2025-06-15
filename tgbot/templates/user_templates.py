@@ -1312,12 +1312,17 @@ class Navigation:
                         first_message_enabled = "🟢 Включено" if config.get("first_message_enabled") == True else "🔴 Выключено"
                         custom_commands_enabled = "🟢 Включено" if config.get("custom_commands_enabled") == True else "🔴 Выключено"
                         auto_deliveries_enabled = "🟢 Включено" if config.get("auto_deliveries_enabled") == True else "🔴 Выключено"
+                        messages_watermark_enabled = "🟢 Включено" if config["messages_watermark_enabled"] else "🔴 Выключено"
+                        messages_watermark = config["messages_watermark"] if config["messages_watermark"] else "❌ Не задано"
                         msg = f"🤖 <b>Настройки бота → 🔧 Прочее</b>" \
                               f"\n" \
                               f"\n→ Автоматические ответы на отзывы: <code>{auto_reviews_replies_enabled}</code>" \
                               f"\n→ Приветственное сообщение: <code>{first_message_enabled}</code>" \
                               f"\n→ Пользовательские команды: <code>{custom_commands_enabled}</code>" \
                               f"\n→ Автоматическая выдача: <code>{auto_deliveries_enabled}</code>" \
+                              f"\n" \
+                              f"\n→ Водяной знак под сообщениями: <code>{auto_deliveries_enabled}</code>" \
+                              f"\n→ Водяной знак: <code>{auto_deliveries_enabled}</code>" \
                               f"\n" \
                               f"\n<b>Что такое автоматические ответы на отзывы?</b>" \
                               f"\nКогда покупатель будет оставлять отзыв, бот будет автоматически отвечать на него. " \
@@ -1328,13 +1333,13 @@ class Navigation:
                     
                     def kb() -> InlineKeyboardMarkup:
                         config = Config.get()
-                        rows = []
-
                         config = Config.get()
                         auto_reviews_replies_enabled = "🟢 Включено" if config.get("auto_reviews_replies_enabled") == True else "🔴 Выключено"
                         first_message_enabled = "🟢 Включено" if config.get("first_message_enabled") == True else "🔴 Выключено"
                         custom_commands_enabled = "🟢 Включено" if config.get("custom_commands_enabled") == True else "🔴 Выключено"
                         auto_deliveries_enabled = "🟢 Включено" if config.get("auto_deliveries_enabled") == True else "🔴 Выключено"
+                        messages_watermark_enabled = "🟢 Включено" if config["messages_watermark_enabled"] else "🔴 Выключено"
+                        messages_watermark = config["messages_watermark"] if config["messages_watermark"] else "❌ Не задано"
                         btn1 = InlineKeyboardButton(
                             text=f"💬 Автоответы на отзывы: {auto_reviews_replies_enabled}",
                             callback_data="disable_auto_reviews_replies" if config.get("auto_reviews_replies_enabled") == True else "enable_auto_reviews_replies"
@@ -1351,6 +1356,14 @@ class Navigation:
                             text=f"🚀 Автоматическая выдача: {auto_deliveries_enabled}",
                             callback_data="disable_auto_delivery" if config.get("auto_deliveries_enabled") == True else "enable_auto_delivery"
                         )
+                        btn5 = InlineKeyboardButton(
+                            text=f"©️ Водяной знак под сообщениями: {messages_watermark_enabled}",
+                            callback_data="disable_messages_watermark" if config["messages_watermark_enabled"] else "enable_messages_watermark"
+                        )
+                        btn6 = InlineKeyboardButton(
+                            text=f"✍️©️ Водяной знак: {messages_watermark}",
+                            callback_data="enter_messages_watermark"
+                        )
                         btn_refresh = InlineKeyboardButton(
                             text="🔄️ Обновить",
                             callback_data=CallbackDatas.BotSettingsNavigation(
@@ -1363,7 +1376,7 @@ class Navigation:
                                 to="default"
                             ).pack()
                         )
-                        rows = [[btn1], [btn2], [btn3], [btn4], [btn_refresh], [btn_back]]
+                        rows = [[btn1], [btn2], [btn3], [btn4], [btn5], [btn6], [btn_refresh], [btn_back]]
                         markup = InlineKeyboardMarkup(inline_keyboard=rows)
                         return markup
                     
