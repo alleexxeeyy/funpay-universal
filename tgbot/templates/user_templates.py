@@ -688,8 +688,9 @@ class Navigation:
                         end_offset = start_offset + items_per_page
 
                         for command in list(custom_commands.keys())[start_offset:end_offset]:
+                            command_text = "\n".join(custom_commands[command])
                             btn = InlineKeyboardButton(
-                                text=f'{command} → {"\n".join(custom_commands[command])}',
+                                text=f'{command} → {command_text}',
                                 callback_data=CallbackDatas.CustomCommandPage(
                                     command=command
                                 ).pack()
@@ -913,8 +914,9 @@ class Navigation:
                         end_offset = start_offset + items_per_page
 
                         for lot_id in list(auto_deliveries.keys())[start_offset:end_offset]:
+                            auto_delivery_text = "\n".join(auto_deliveries[lot_id])
                             btn = InlineKeyboardButton(
-                                text=f"{lot_id} → {"\n".join(auto_deliveries[lot_id])}",
+                                text=f"{lot_id} → {auto_delivery_text}",
                                 callback_data=CallbackDatas.AutoDeliveryPage(
                                     lot_id=lot_id
                                 ).pack()
