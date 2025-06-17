@@ -82,24 +82,28 @@ class FunPayBot:
 
         set_funpay_bot(self)
 
-    def msg(self, message_name: str, **kwargs) -> str:
+    def msg(self, message_name: str, exclude_watermark: bool = False, **kwargs) -> str:
         """ 
-        Получает отформатированное сообщение из словаря сообщений
+        Получает отформатированное сообщение из словаря сообщений.
 
         :param message_name: Наименование сообщения в словаре сообщений (ID).
         :type message_name: str
+
+        :param exclude_watermark: Пропустить и не использовать водяной знак.
+        :type exclude_watermark: bool
         """
 
         class SafeDict(dict):
             def __missing__(self, key):
                 return "{" + key + "}"
         
-        message_lines = self.messages[message_name]
+        message_lines: list[str] = self.messages[message_name]
         if message_lines:
             try:
                 formatted_lines = [line.format_map(SafeDict(**kwargs)) for line in message_lines]
                 msg = "\n".join(formatted_lines)
-                msg += f'\n{self.config["messages_watermark"]}' if self.config["messages_watermark_enabled"] and self.config["messages_watermark"] else ""
+                if not exclude_watermark:
+                    msg += f'\n{self.config["messages_watermark"]}' if self.config["messages_watermark_enabled"] and self.config["messages_watermark"] else ""
                 return msg
             except:
                 pass
