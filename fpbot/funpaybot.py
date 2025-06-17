@@ -191,7 +191,7 @@ class FunPayBot:
                         if datetime.now() > self.refresh_funpay_account_next_time:
                             self.funpay_account = Account(golden_key=self.config["golden_key"],
                                                           user_agent=self.config["user_agent"],
-                                                          requests_timeout=self.config["funpayapi_timeout"]).get()
+                                                          requests_timeout=self.config["funpayapi_requests_timeout"]).get()
                             self.refresh_funpay_account_next_time = datetime.now() + timedelta(seconds=3600)
 
                         if fpbot.config["auto_raising_lots_enabled"]:
