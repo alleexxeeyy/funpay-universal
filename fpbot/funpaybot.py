@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from tgbot.telegrambot import TelegramBot
 
 from bot_settings.app import CURRENT_VERSION
-from core.console import set_title
+from core.console import set_title, restart
 from core.handlers_manager import HandlersManager
 
 PREFIX = F"{Fore.LIGHTWHITE_EX}[funpay bot]{Fore.WHITE}"
@@ -58,12 +58,10 @@ class FunPayBot:
             a = input(f"{Fore.WHITE}> {Fore.LIGHTWHITE_EX}")
             if a == "+":
                 Config.configure_config()
-                print(f"\n{Fore.LIGHTWHITE_EX}Перезапустите бота, чтобы продолжить работу.")
-                raise SystemExit(1)
+                restart()
             else:
-                self.logger.info(f"{PREFIX} Вы отказались от настройки конфига. Пробуем снова подключиться к вашему FunPay аккаунту...")
-                print(f"\n{Fore.LIGHTWHITE_EX}Перезапустите бота, чтобы продолжить работу.")
-                raise SystemExit(1)
+                self.logger.info(f"{PREFIX} Вы отказались от настройки конфига. Перезагрузим бота и попробуем снова подключиться к вашему аккаунту...")
+                restart()
 
         # Инициализация data классов
         self.initialized_users = Data.get_initialized_users()
