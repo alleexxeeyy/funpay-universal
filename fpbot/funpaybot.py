@@ -218,7 +218,7 @@ class FunPayBot:
         async def handler_new_message(fpbot: FunPayBot, event: NewMessageEvent):
             """ Начальный хендлер новых сообщений """
             try:
-                this_chat = fpbot.funpay_account.get_chat_by_id(int(event.message.chat_id), True)
+                this_chat = fpbot.funpay_account.get_chat_by_name(event.message.chat_name, True)
                 if self.config["first_message_enabled"]:
                     if this_chat.name not in fpbot.initialized_users:
                         try:
@@ -278,7 +278,7 @@ class FunPayBot:
         async def handler_new_order(fpbot: FunPayBot, event: NewOrderEvent):
             """ Начальный хендлер нового заказа """
             try:
-                this_chat = fpbot.funpay_account.get_chat_by_id(int(event.order.chat_id), True)
+                this_chat = fpbot.funpay_account.get_chat_by_name(event.order.chat_name, True)
                 try:
                     self.logger.info(f"{PREFIX} 🛒  Новый заказ {Fore.LIGHTYELLOW_EX}{event.order.id}{Fore.WHITE} от {Fore.LIGHTYELLOW_EX}{event.order.buyer_username}{Fore.WHITE} на сумму {Fore.LIGHTYELLOW_EX}{event.order.price} р.")
                     if self.config["auto_deliveries_enabled"]:
@@ -315,7 +315,7 @@ class FunPayBot:
 
                 if event.order.status is OrderStatuses.CLOSED or event.order.status is OrderStatuses.REFUNDED:
                     if event.order.status is OrderStatuses.CLOSED:
-                        chat = fpbot.funpay_account.get_chat_by_id(int(event.order.chat_id), True)
+                        chat = fpbot.funpay_account.get_chat_by_name(event.order.chat_name, True)
                         fpbot.funpay_account.send_message(chat.id, fpbot.msg("order_confirmed"))
             except fpapi_exceptions.RequestFailedError as e:
                 if e.status_code == 429:
