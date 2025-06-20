@@ -304,7 +304,7 @@ class FunPayBot:
             try:
                 try:
                     if event.order.status is OrderStatuses.CLOSED:
-                        fpbot.stats["earned_money"] += event.order.price
+                        fpbot.stats["earned_money"] += round(event.order.price, 2)
                         fpbot.stats["earned_money"] = round(fpbot.stats["earned_money"], 2)
                     elif event.order.status is OrderStatuses.REFUNDED:
                         fpbot.stats["orders_refunded"] += 1

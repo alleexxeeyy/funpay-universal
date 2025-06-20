@@ -138,7 +138,7 @@ class Navigation:
                         f"\n→ Продаж: <code>{stats['orders_completed']}</code>" \
                         f"\n→ Активных: <code>{stats['active_orders']}</code>" \
                         f"\n→ Возвратов: <code>{stats['orders_refunded']}</code>" \
-                        f"\n→ Заработано: <code>{stats['earned_money']}</code> р." \
+                        f"\n→ Заработано: <code>{round(stats['earned_money'], 2)}</code> р." \
                         f"\n" \
                         f"\nВыберите действие ↓"
                     return msg
