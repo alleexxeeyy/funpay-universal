@@ -100,8 +100,8 @@ class FunPayBot:
             try:
                 formatted_lines = [line.format_map(SafeDict(**kwargs)) for line in message_lines]
                 msg = "\n".join(formatted_lines)
-                if not exclude_watermark:
-                    msg += f'\n{self.config["messages_watermark"]}' if self.config["messages_watermark_enabled"] and self.config["messages_watermark"] else ""
+                if not exclude_watermark and self.config["messages_watermark_enabled"]:
+                    msg += f'\n{self.config["messages_watermark"]}' or ""
                 return msg
             except:
                 pass
