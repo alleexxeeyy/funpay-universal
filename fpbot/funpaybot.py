@@ -117,11 +117,11 @@ class FunPayBot:
         :return: Объект лота.
         :rtype: `FunPayAPI.types.LotShortcut`
         """
-        if not title:
-            return None
         profile = self.funpay_account.get_user(self.funpay_account.id)
         lots = profile.get_lots()
         for lot in lots:
+            if not lot.title:
+                continue
             if title in lot.title or lot.title in title or title == lot.title:
                 return lot
         return None
