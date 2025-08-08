@@ -10,7 +10,7 @@ from fpbot.funpaybot import FunPayBot
 from fpbot.data import Data
 from fpbot import get_funpay_bot
 
-from settings import Config, Messages, CustomCommands, AutoDeliveries
+from settings import Settings
 
 from bot_settings.app import CURRENT_VERSION
 from fpbot.utils.stats import get_stats
@@ -335,7 +335,7 @@ class Navigation:
                     
                 class Default:
                     def text() -> str:
-                        config = Config.get()
+                        config = Settings.get_config()
                         golden_key = config["golden_key"][:3] + "*" * (len(config["golden_key"]) - 3) if config["golden_key"] else "❌ Не задано"
                         user_agent = config["user_agent"] if config["user_agent"] else "❌ Не задано"
                         msg = f"🤖 <b>Настройки бота</b>" \
@@ -429,7 +429,7 @@ class Navigation:
                         
                 class Default:
                     def text() -> str:
-                        config = Config.get()
+                        config = Settings.get_config()
                         user_agent = config["user_agent"] if config["user_agent"] else "❌ Не задано"
                         golden_key = config["golden_key"][:3] + "*" * (len(config['golden_key']) - 3) if config["golden_key"] else "❌ Не задано"
                         msg = f"🤖 <b>Настройки бота → 🔑 Авторизация</b>"\
@@ -441,7 +441,7 @@ class Navigation:
                         return msg
                     
                     def kb() -> InlineKeyboardMarkup:
-                        config = Config.get()
+                        config = Settings.get_config()
                         user_agent = config["user_agent"] if config["user_agent"] else "❌ Не задано"
                         golden_key = config["golden_key"][:3] + "*" * (len(config['golden_key']) - 3) if config["golden_key"] else "❌ Не задано"
                         btn1 = InlineKeyboardButton(
@@ -470,7 +470,7 @@ class Navigation:
                     
                 class EnterGoldenKey:
                     def text() -> str:
-                        config = Config.get()
+                        config = Settings.get_config()
                         msg = f"🔑 <b>Введите новый golden_key вашего FunPay аккаунта ↓</b>" \
                               f"\nТекущее значение: <code>{config['golden_key']}</code>"
                         return msg
@@ -482,7 +482,7 @@ class Navigation:
                     
                 class EnterUserAgent:
                     def text() -> str:
-                        config = Config.get()
+                        config = Settings.get_config()
                         user_agent = config["user_agent"] if config["user_agent"] != "" else "❌ Не задано"
                         msg = f"🎩 <b>Введитe новый user_agent вашего браузера ↓</b>" \
                               f"\nТекущее значение: <code>{user_agent}</code>"
@@ -536,7 +536,7 @@ class Navigation:
 
                 class Default:
                     def text() -> str:
-                        config = Config.get()
+                        config = Settings.get_config()
                         funpayapi_requests_timeout = config["funpayapi_requests_timeout"] if config.get("funpayapi_requests_timeout") else "❌ Не задано"
                         funpayapi_runner_requests_delay = config["funpayapi_runner_requests_delay"] if config.get("funpayapi_runner_requests_delay") else "❌ Не задано"
                         msg = f"🤖 <b>Настройки бота → 📶 Соединение</b>"\
@@ -558,7 +558,7 @@ class Navigation:
                         return msg
 
                     def kb() -> InlineKeyboardMarkup:
-                        config = Config.get()
+                        config = Settings.get_config()
                         funpayapi_requests_timeout = config["funpayapi_requests_timeout"] if config.get("funpayapi_requests_timeout") else "❌ Не задано"
                         funpayapi_runner_requests_delay = config["funpayapi_runner_requests_delay"] if config.get("funpayapi_runner_requests_delay") else "❌ Не задано"
                         btn1 = InlineKeyboardButton(
@@ -587,7 +587,7 @@ class Navigation:
                 
                 class EnterFunpayApiRequestsTimeout:
                     def text() -> str:
-                        config = Config.get()
+                        config = Settings.get_config()
                         msg = f"🛜 <b>Введите новый таймаут подключения к funpay.com ↓</b>" \
                               f"\nТекущее значение: <code>{config['funpayapi_requests_timeout']}</code> сек."
                         return msg
@@ -599,7 +599,7 @@ class Navigation:
                 
                 class EnterFunPayApiRunnerRequestsDelay:
                     def text() -> str:
-                        config = Config.get()
+                        config = Settings.get_config()
                         msg = f"⏱️ <b>Введите новую периодичность запросов к funpay.com ↓</b>" \
                               f"\nТекущее значение: <code>{config['funpayapi_runner_requests_delay']}</code> сек."
                         return msg
@@ -630,7 +630,7 @@ class Navigation:
 
                 class Default:
                     def text() -> str:
-                        config = Config.get()
+                        config = Settings.get_config()
                         auto_raising_lots_enabled = "🟢 Включено" if config.get("auto_raising_lots_enabled") == True else "🔴 Выключено"
                         msg = f"🤖 <b>Настройки бота → 🎫 Лоты</b>"\
                               f"\n" \
@@ -640,7 +640,7 @@ class Navigation:
                         return msg
 
                     def kb() -> InlineKeyboardMarkup:
-                        config = Config.get()
+                        config = Settings.get_config()
                         auto_raising_lots_enabled = "🟢 Включено" if config.get("auto_raising_lots_enabled") == True else "🔴 Выключено"
                         btn1 = InlineKeyboardButton(
                             text=f"⬆️ Автоподнятие лотов: {auto_raising_lots_enabled}",
@@ -665,14 +665,14 @@ class Navigation:
             class CustomCommands:
                 class Pagination:
                     def text() -> str:
-                        custom_commands = CustomCommands.get()
+                        custom_commands = Settings.get_custom_commands()
                         msg = f"🤖 <b>Настройки бота</b> → ⌨️ <b>Пользовательские команды</b>" \
                               f"\nВсего <b>{len(custom_commands.keys())}</b> пользовательских команд в конфиге" \
                               f"\n\nПеремещайтесь по разделам ниже. Нажмите на команду, чтобы перейти в её редактирование ↓"
                         return msg
                     
                     def kb(page: int = 0) -> InlineKeyboardMarkup:
-                        custom_commands = CustomCommands.get()
+                        custom_commands = Settings.get_custom_commands()
 
                         rows = []
                         items_per_page = 7
@@ -771,7 +771,7 @@ class Navigation:
 
                     class Default:
                         def text(command: str) -> str:
-                            custom_commands = CustomCommands.get()
+                            custom_commands = Settings.get_custom_commands()
                             command_text = "\n".join(custom_commands[command]) if custom_commands.get(command) else "❌ Не задано"
                             msg = f"✏️ <b>Редактирование пользовательской команды</b>" \
                                 f"\n" \
@@ -782,7 +782,7 @@ class Navigation:
                             return msg
                         
                         def kb(command, page) -> InlineKeyboardMarkup:
-                            custom_commands = CustomCommands.get()
+                            custom_commands = Settings.get_custom_commands()
                             command_text = "\n".join(custom_commands[command]) if custom_commands.get(command) else "❌ Не задано"
                             btn1 = InlineKeyboardButton(
                                 text=f"✍️ Текст ответа: {command_text}",
@@ -852,7 +852,7 @@ class Navigation:
                     
                 class EnterNewCustomCommandAnswer:
                     def text(command) -> str:
-                        custom_commands = CustomCommands.get()
+                        custom_commands = Settings.get_custom_commands()
                         command_answer = "\n".join(custom_commands[command])
                         msg = f"✍️ <b>Введите новый текст ответа ↓</b>" \
                               f"\nКоманда: <code>{command}</code>" \
@@ -891,14 +891,14 @@ class Navigation:
             class AutoDeliveries:
                 class Pagination:
                     def text() -> str:
-                        auto_deliveries = AutoDeliveries.get()
+                        auto_deliveries = Settings.get_auto_deliveries()
                         msg = f"🤖 <b>Настройки бота</b> → 🚀 <b>Автоматическая выдача</b>" \
                               f"\nВсего <b>{len(auto_deliveries.keys())}</b> настроенных лотов для авто-выдачи в конфиге" \
                               f"\n\nПеремещайтесь по разделам ниже. Нажмите на ID лота, чтобы перейти в редактирование его авто-выдачи ↓"
                         return msg
                     
                     def kb(page: int = 0) -> InlineKeyboardMarkup:
-                        auto_deliveries = AutoDeliveries.get()
+                        auto_deliveries = Settings.get_auto_deliveries()
 
                         rows = []
                         items_per_page = 7
@@ -997,7 +997,7 @@ class Navigation:
 
                     class Default:
                         def text(lot_id: str) -> str:
-                            auto_deliveries = AutoDeliveries.get()
+                            auto_deliveries = Settings.get_auto_deliveries()
                             auto_delivery_message = "\n".join(auto_deliveries[str(lot_id)]) if auto_deliveries.get(str(lot_id)) else "❌ Не задано"
                             msg = f"✏️ <b>Редактирование авто-выдачи</b>" \
                                 f"\n" \
@@ -1008,7 +1008,7 @@ class Navigation:
                             return msg
                         
                         def kb(lot_id, page) -> InlineKeyboardMarkup:
-                            auto_deliveries = AutoDeliveries.get()
+                            auto_deliveries = Settings.get_auto_deliveries()
                             auto_delivery_message = "\n".join(auto_deliveries[str(lot_id)]) if auto_deliveries.get(str(lot_id)) else "❌ Не задано"
                             btn1 = InlineKeyboardButton(
                                 text=f"✍️ Сообщение после покупки: {auto_delivery_message}",
@@ -1078,7 +1078,7 @@ class Navigation:
                     
                 class EnterNewAutoDeliveryMessage:
                     def text(lot_id) -> str:
-                        auto_deliveries = AutoDeliveries.get()
+                        auto_deliveries = Settings.get_auto_deliveries()
                         auto_delivery_message = "\n".join(auto_deliveries[str(lot_id)]) if auto_deliveries.get(str(lot_id)) else "❌ Не задано"
                         msg = f"✍️ <b>Введите новое сообщение после покупки ↓</b>" \
                               f"\nID лота: <code>{lot_id}</code>" \
@@ -1117,7 +1117,7 @@ class Navigation:
             class Messages:
                 class Pagination:
                     def text() -> str:
-                        messages = Messages.get()
+                        messages = Settings.get_messages()
                         if not messages:
                             raise Exception("В конфиге нет ни одного сообщения")
                         msg = f"🤖 <b>Настройки бота</b> → ✉️ <b>Сообщения</b>" \
@@ -1126,7 +1126,7 @@ class Navigation:
                         return msg
                     
                     def kb(page: int = 0) -> InlineKeyboardMarkup:
-                        messages = Messages.get()
+                        messages = Settings.get_messages()
                         if not messages:
                             raise Exception("В конфиге нет ни одного сообщения")
 
@@ -1222,7 +1222,7 @@ class Navigation:
 
                     class Default:
                         def text(message_id) -> str:
-                            messages = Messages.get()
+                            messages = Settings.get_messages()
                             message_text = "\n".join(messages[message_id]) if messages.get(message_id) else "❌ Не задано"
                             msg = f"✒️ <b>Редактирование сообщения</b>" \
                                 f"\n" \
@@ -1233,7 +1233,7 @@ class Navigation:
                             return msg
                         
                         def kb(message_id, page) -> InlineKeyboardMarkup:
-                            messages = Messages.get()
+                            messages = Settings.get_messages()
                             message_text = "\n".join(messages[message_id]) if messages.get(message_id) else "❌ Не задано"
                             btn1 = InlineKeyboardButton(
                                 text=f"✍️ Текст сообщения: {message_text}",
@@ -1262,7 +1262,7 @@ class Navigation:
                     
                 class EnterMessageText:
                     def text(message_id) -> str:
-                        messages = Messages.get()
+                        messages = Settings.get_messages()
                         message_text = "\n".join(messages[message_id]) if messages.get(message_id) else "❌ Не задано"
                         msg = f"✍️ <b>Введите новый текст сообщения ↓</b>" \
                               f"\nID сообщения: \n<code>{message_id}</code>" \
@@ -1309,7 +1309,7 @@ class Navigation:
 
                 class Default:
                     def text() -> str:
-                        config = Config.get()
+                        config = Settings.get_config()
                         auto_reviews_replies_enabled = "🟢 Включено" if config.get("auto_reviews_replies_enabled") == True else "🔴 Выключено"
                         first_message_enabled = "🟢 Включено" if config.get("first_message_enabled") == True else "🔴 Выключено"
                         custom_commands_enabled = "🟢 Включено" if config.get("custom_commands_enabled") == True else "🔴 Выключено"
@@ -1334,8 +1334,8 @@ class Navigation:
                         return msg
                     
                     def kb() -> InlineKeyboardMarkup:
-                        config = Config.get()
-                        config = Config.get()
+                        config = Settings.get_config()
+                        config = Settings.get_config()
                         auto_reviews_replies_enabled = "🟢 Включено" if config.get("auto_reviews_replies_enabled") == True else "🔴 Выключено"
                         first_message_enabled = "🟢 Включено" if config.get("first_message_enabled") == True else "🔴 Выключено"
                         custom_commands_enabled = "🟢 Включено" if config.get("custom_commands_enabled") == True else "🔴 Выключено"

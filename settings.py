@@ -44,7 +44,7 @@ class Config:
             "custom_commands_enabled": True,
             "auto_deliveries_enabled": True,
             "auto_raising_lots_enabled": True,
-            "auto_reviews_replies_enabled": True,
+            "auto_reviews_replies_enabled": True
         }
     
     @staticmethod
