@@ -3,27 +3,24 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import html
+from FunPayAPI import Account
 
 class FunPaySupportAPI:
     """
     API сайта поддержки FunPay.
 
-    :param golden_key: golden_key аккаунта.
-    :type golden_key: `str`
-
-    :param user_agent: user_agent браузера _(опционально)_.
-    :type user_agent: `str`
-
-    :param timeout: Максимальное длительность запроса в секундах.
-    :type timeout: `int`
+    :param funpay_account: Объект вашего аккаунта FunPay.
+    :type funpay_account: `FunPayAPI.Account`
     """
 
-    def __init__(self, golden_key: str, user_agent: str | None, timeout: int = 10):
-        self.golden_key: str = golden_key
+    def __init__(self, funpay_account: Account):
+        self.funpay_account: Account = funpay_account
+        """ Объект аккаунта FunPay. """
+        self.golden_key: str = funpay_account.golden_key
         """ golden_key аккаунта. """
-        self.user_agent: str = user_agent
+        self.user_agent: str = funpay_account.user_agent
         """ user_agent браузера _(опционально)_. """
-        self.timeout: int = timeout
+        self.requests_timeout: int = funpay_account.requests_timeout
         """ Максимальное длительность запроса в секундах. """
 
         self.app_data: dict = {}
@@ -62,14 +59,14 @@ class FunPaySupportAPI:
         link = url
         for i in range(10):
             response: requests.Response = getattr(requests, method)(link, headers=headers, 
-                                                                    data=payload, timeout=self.timeout, 
+                                                                    data=payload, timeout=self.requests_timeout, 
                                                                     allow_redirects=False)
             if not (300 <= response.status_code < 400) or not response.headers.get('Location') or response.headers.get('Location') == '/':
                 break
             link = response.headers['Location']
         else:
             response = getattr(requests, method)(url, headers=headers, data=payload,
-                                                 timeout=self.timeout)
+                                                 requests_timeout=self.requests_timeout)
         return response
         
     def get(self) -> FunPaySupportAPI:
@@ -102,14 +99,10 @@ class FunPaySupportAPI:
         soup = BeautifulSoup(r.text, "html.parser")
         body = soup.find("input", attrs={"name": "ticket[_token]"})
         return body.get("value")
-
         
-    def create_ticket(self, username: str, order_id: str | None, comment: str) -> dict:
+    def create_ticket(self, order_id: str | None, comment: str) -> dict:
         """
         Создаёт тикет в поддержку с просьбой подтвердить заказ.
-
-        :param username: Юзернейм аккаунта.
-        :type username: `str`
 
         :param order_id: ID заказа.
         :type order_id: `str` or `None`
@@ -128,7 +121,7 @@ class FunPaySupportAPI:
             "X-Requested-With": "XMLHttpRequest"
         }
         payload = {
-            "ticket[fields][1]": username,
+            "ticket[fields][1]": self.funpay_account.username,
             "ticket[fields][2]": order_id if order_id else "",
             "ticket[fields][3]": "2",
             "ticket[fields][5]": "201",

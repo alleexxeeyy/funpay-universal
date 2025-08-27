@@ -4,28 +4,28 @@ from core.handlers_manager import HandlersManager
 from core.console import set_title, setup_logger
 import asyncio
 from threading import Thread
-import ctypes
-from settings import Config
+from settings import Settings as sett
 import traceback
 from logging import getLogger
-logger = getLogger("UNIVERSAL")
+logger = getLogger("universal")
 from colorama import init, Fore, Style
 init()
 
 from fpbot.funpaybot import FunPayBot
 from services.updater import Updater
+from __init__ import ACCENT_COLOR, VERSION
+
+
+
 
 class BotsManager:
-    """ Класс для управления запусками ботов """
 
     def __init__(self):
         self.tgbot = None
 
     async def start_funpay_bot(self):
-        """ Запускает FunPay бота в отдельном потоке. """
-        this_loop = asyncio.get_running_loop()
         self.fpbot_loop = asyncio.new_event_loop()
-        self.fpbot = FunPayBot(self.tgbot, this_loop)
+        self.fpbot = FunPayBot()
 
         def run():
             self.fpbot_loop.run_until_complete(self.fpbot.run_bot())
@@ -34,33 +34,30 @@ class BotsManager:
         self.fpbot_thread.start()
 
     async def start_telegram_bot(self):
-        """ Запускает Telegram бота. """
         from tgbot.telegrambot import TelegramBot
-        config = Config.get()
-        self.tgbot = TelegramBot(config["tg_bot_token"])
+        config = sett.get("config")
+        self.tgbot = TelegramBot(config["telegram"]["api"]["token"])
         
         await self.start_funpay_bot()
         await self.tgbot.run_bot()
 
 
 if __name__ == "__main__":
-    """ Запуск всех ботов """
-    from bot_settings.app import CURRENT_VERSION
     try:
         setup_logger()
-        set_title(f"FunPay Universal v{CURRENT_VERSION} by @alleexxeeyy")
-        print(f"\n   {Fore.CYAN}FunPay Universal {Fore.WHITE}v{Fore.LIGHTWHITE_EX}{CURRENT_VERSION}"
+        set_title(f"FunPay Universal v{VERSION} by @alleexxeeyy")
+        print(f"\n   {ACCENT_COLOR}FunPay Universal {Fore.WHITE}v{Fore.LIGHTWHITE_EX}{VERSION}"
               f"\n   {Fore.WHITE}→ tg: {Fore.LIGHTWHITE_EX}@alleexxeeyy"
               f"\n   {Fore.WHITE}→ tg channel: {Fore.LIGHTWHITE_EX}@alexeyproduction\n")
         
         if Updater.check_for_updates():
             exit()
         
-        config = Config.get()
-        if not config["golden_key"]:
+        config = sett.get("config")
+        if not config["funpay"]["api"]["golden_key"]:
             print(f"{Fore.WHITE}🫸  Постойте... Не обнаружил в конфиге необходимых для работы бота данных. "
                   f"Возможно вы запускаете его впервые, поэтому давайте проведём быструю настройку конфига, чтобы вы смогли приступить к работе.")
-            Config.configure_config()
+            sett.configure("config", ACCENT_COLOR)
         
         print(f"{Fore.WHITE}⏳ Загружаю и подключаю модули...")
         modules = ModulesManager.load_modules()
@@ -70,14 +67,6 @@ if __name__ == "__main__":
         
         if len(modules) > 0:
             ModulesManager.connect_modules(modules)
-        
-        for module in modules:
-            if "ON_MODULE_CONNECTED" in module.bot_event_handlers and module.enabled:
-                for handler in module.bot_event_handlers["ON_MODULE_CONNECTED"]:
-                    try:
-                        handler(module)
-                    except Exception as e:
-                        logger.error(f"{Fore.LIGHTRED_EX}Ошибка при обработке хендлера ивента ON_MODULE_CONNECTED: {Fore.WHITE}{e}")
 
         bot_event_handlers = HandlersManager.get_bot_event_handlers()
         def handle_on_init():
@@ -96,4 +85,7 @@ if __name__ == "__main__":
         print(f"{Fore.WHITE}🤖 Запускаю бота...\n")
         asyncio.run(BotsManager().start_telegram_bot())
     except Exception as e:
-        print(traceback.print_exc())
+        traceback.print_exc()
+    print(f"\n   {Fore.LIGHTRED_EX}Ваш бот словил непредвиденную ошибку и был выключен."
+          f"\n   {Fore.WHITE}Пожалуйста, напишите в Telegram разработчика {Fore.LIGHTWHITE_EX}@alleexxeeyy{Fore.WHITE}, для уточнения причин")
+    input()

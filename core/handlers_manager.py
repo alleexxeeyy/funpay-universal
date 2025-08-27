@@ -2,6 +2,9 @@ from FunPayAPI.updater.events import EventTypes
 
 _bot_event_handlers = {
     "ON_MODULE_CONNECTED": [],
+    "ON_MODULE_ENABLED": [],
+    "ON_MODULE_DISABLED": [],
+    "ON_MODULE_RELOADED": [],
     "ON_INIT": [],
     "ON_FUNPAY_BOT_INIT": [],
     "ON_TELEGRAM_BOT_INIT": []

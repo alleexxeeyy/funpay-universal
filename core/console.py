@@ -6,7 +6,9 @@ from colorlog import ColoredFormatter
 from colorama import Fore
 
 def restart():
-    """ Перезагружает бота. """
+    """ 
+    Перезагружает бота. 
+    """
     print(f"{Fore.WHITE}Перезапуск бота...\n")
     os.execv(sys.executable, [sys.executable] + sys.argv)
     exit()
@@ -15,6 +17,9 @@ def set_title(title):
     """
     Устанавливает заголовок консоли (кросс-платформенно).
     Работает на Windows, Linux и macOS.
+
+    :param title: Заголовок консоли.
+    :type title: `str`
     """
     if sys.platform == "win32":
         ctypes.windll.kernel32.SetConsoleTitleW(title)
@@ -34,7 +39,7 @@ def setup_logger():
     LOG_FORMAT = "[%(asctime)s] %(log_color)s%(levelname)-8s %(message)s"
     formatter = ColoredFormatter(
         LOG_FORMAT,
-        datefmt="%Y.%m.%d %H:%M:%S",
+        datefmt="%d.%m.%Y %H:%M:%S",
         reset=True,
         log_colors={
             'DEBUG': 'cyan',

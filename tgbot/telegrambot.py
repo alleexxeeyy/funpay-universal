@@ -1,67 +1,79 @@
 import asyncio
-from colorama import Fore, Style
+from colorama import Fore
+import textwrap
 
-from aiogram import Bot, Dispatcher, Router
-from aiogram.types import BotCommand, BotName
+from aiogram import Bot, Dispatcher
+from aiogram.types import BotCommand
+from aiogram.exceptions import TelegramUnauthorizedError
 
-from tgbot import router as main_router
-import tgbot.templates.user_templates as Templates
+from . import router as main_router
+from . import templates as templ
 
 from core.console import restart
-from settings import Config
+import settings
+from settings import Settings as sett
 import logging
-logger = logging.getLogger("UNIVERSAL.TelegramBot")
+logger = logging.getLogger("universal.telegram")
 
 from core.modules_manager import ModulesManager
 from core.handlers_manager import HandlersManager
 
-PREFIX = f"{Fore.LIGHTCYAN_EX}[telegram bot]{Fore.WHITE}"
+from . import set_telegram_bot, set_telegram_bot_loop
+from __init__ import ACCENT_COLOR
+
+PREFIX = f"{Fore.LIGHTCYAN_EX}[TG]{Fore.WHITE}"
 
 class TelegramBot:
-    """ Класс, запускающий и инициализирующий Telegram бота """
+    """
+    Класс, описывающий Telegram бота
+    """
 
     def __init__(self, bot_token: str):
-        self.config = Config.get()
-        self.admin_id = self.config["tg_admin_id"]
+        self.config = sett.get("config")
         self.bot_token = bot_token
 
         logging.getLogger("aiogram").setLevel(logging.CRITICAL)
         logging.getLogger("aiogram.event").setLevel(logging.CRITICAL)
 
-        try:
-            self.bot = Bot(token=self.bot_token)
-        except:
-            logger.error(f"{PREFIX} Не удалось подключиться к вашему Telegram боту. Возможно вы указали неверный токен бота в конфиге.")
-            print(f"{Fore.LIGHTWHITE_EX}Начать снова настройку конфига? +/-")
-            a = input(f"{Fore.WHITE}> {Fore.LIGHTWHITE_EX}")
-            if a == "+":
-                Config.configure_config()
-                restart()
-            else:
-                logger.info(f"{PREFIX} Вы отказались от настройки конфига. Перезагрузим бота и попробуем снова подключиться к Telegram боту...")
-                restart()
+        self.bot = Bot(token=self.bot_token)
         self.dp = Dispatcher()
         
         for module in ModulesManager.get_modules():
             for router in module.telegram_bot_routers:
                 main_router.include_router(router)
         self.dp.include_router(main_router)
+        
+        set_telegram_bot_loop(asyncio.get_running_loop())
+        set_telegram_bot(self)
 
     async def set_main_menu(self):
-        """ Задаёт меню из команд боту """
-        main_menu_commands = [
-            BotCommand(command="/start",
-                    description="Главное меню"),
-            BotCommand(command="/settings",
-                    description="Настройки бота"),
-            BotCommand(command="/stats",
-                    description="Статистика бота")
-        ]
+        main_menu_commands = [BotCommand(command="/start", description="🏠 Главное меню")]
         await self.bot.set_my_commands(main_menu_commands)
 
+    async def set_short_description(self):
+        short_description = textwrap.dedent(f"""
+            FunPay Universal — Современный бот-помощник для FunPay 🟦
+            ┕ Канал — @alexeyproduction
+            ┕ Бот — @alexey_production_bot
+        """)
+        await self.bot.set_my_short_description(short_description=short_description)
+
     async def run_bot(self):
-        """ Функция-запускатор бота. """
-        await self.set_main_menu()
+        try:
+            await self.set_main_menu()
+            await self.set_short_description()
+        except TelegramUnauthorizedError:
+            logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось подключиться к вашему Telegram боту. {Fore.WHITE}Возможно вы указали неверный токен бота в конфиге.")
+            print(f"{Fore.WHITE}🤖  Указать новый {Fore.LIGHTCYAN_EX}токен бота{Fore.WHITE}? +/-")
+            a = input(f"{Fore.WHITE}→ {Fore.LIGHTWHITE_EX}")
+            if a == "+":
+                param = {"telegram": {"api": {"token": settings.DATA["config"]["params"]["telegram"]["api"]["token"]}}}
+                sett.configure("config", ACCENT_COLOR, params=param)
+                restart()
+            else:
+                logger.info(f"{PREFIX} Вы отказались от настройки конфига. Перезагрузим бота и попробуем снова подключиться к Telegram боту...")
+                restart()
+        
         bot_event_handlers = HandlersManager.get_bot_event_handlers()
         async def handle_on_telegram_bot_init():
             """ 
@@ -90,10 +102,12 @@ class TelegramBot:
         :param chat_id: ID чата с заказчиком
         :type chat_id: `int` or `str`
         """
-        await self.bot.send_message(chat_id=self.admin_id, 
-                                    text=Templates.Callbacks.CallSeller.text(calling_name, f"https://funpay.com/chat/?node={chat_id}"),
-                                    parse_mode="HTML")
+        config = sett.get("config")
+        for user_id in config["telegram"]["bot"]["signed_users"]:
+            await self.bot.send_message(chat_id=user_id, 
+                                        text=templ.call_seller_text(calling_name, f"https://funpay.com/chat/?node={chat_id}"),
+                                        parse_mode="HTML")
 
 if __name__ == "__main__":
-    config = Config.get()
-    asyncio.run(TelegramBot(config["tg_bot_token"]).run_bot())
+    config = sett.get("config")
+    asyncio.run(TelegramBot(config["telegram"]["api"]["token"]).run_bot())
