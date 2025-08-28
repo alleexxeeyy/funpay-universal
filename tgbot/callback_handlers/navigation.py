@@ -42,6 +42,8 @@ async def callback_settings_navigation(callback: CallbackQuery, callback_data: c
         await throw_float_message(state, callback.message, templ.settings_conn_text(), templ.settings_conn_kb(), callback)
     elif to == "lots":
         await throw_float_message(state, callback.message, templ.settings_lots_text(), templ.settings_lots_kb(), callback)
+    elif to == "logger":
+        await throw_float_message(state, callback.message, templ.settings_logger_text(), templ.settings_logger_kb(), callback)
     elif to == "tickets":
         await throw_float_message(state, callback.message, templ.settings_tickets_text(), templ.settings_tickets_kb(), callback)
     elif to == "other":

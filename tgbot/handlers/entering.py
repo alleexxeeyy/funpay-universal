@@ -180,6 +180,32 @@ async def handler_entering_requests_timeout(message: types.Message, state: FSMCo
                                       text=templ.settings_conn_float_text(e), 
                                       reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack()))
 
+
+@router.message(states.SettingsStates.entering_tg_logging_chat_id, F.text)
+async def handler_entering_tg_logging_chat_id(message: types.Message, state: FSMContext):
+    try:
+        await state.set_state(None) 
+        if len(message.text.strip()) < 0:
+            raise Exception("❌ Слишком низкое значение")
+        
+        if is_int(message.text.strip()): chat_id = "-100" + str(message.text.strip()).replace("-100", "")
+        else: chat_id = "@" + str(message.text.strip()).replace("@", "")
+
+        config = sett.get("config")
+        config["funpay"]["bot"]["tg_logging_chat_id"] = chat_id
+        sett.set("config", config)
+        await throw_float_message(state=state,
+                                  message=message,
+                                  text=templ.settings_logger_float_text(f"✅ <b>ID чата для логов</b> было успешно изменено на <b>{chat_id}</b>"),
+                                  reply_markup=templ.back_kb(calls.SettingsNavigation(to="logger").pack()))
+    except Exception as e:
+        if e is not TelegramAPIError:
+            await throw_float_message(state=state,
+                                      message=message,
+                                      text=templ.settings_logger_float_text(e), 
+                                      reply_markup=templ.back_kb(calls.SettingsNavigation(to="logger").pack()))
+
+
 @router.message(states.SettingsStates.entering_auto_support_tickets_orders_per_ticket, F.text)
 async def handler_entering_auto_support_tickets_orders_per_ticket(message: types.Message, state: FSMContext):
     try:

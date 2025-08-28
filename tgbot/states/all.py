@@ -14,6 +14,7 @@ class SettingsStates(StatesGroup):
     entering_proxy = State()
     entering_requests_timeout = State()
     entering_runner_requests_delay = State()
+    entering_tg_logging_chat_id = State()
     entering_auto_support_tickets_orders_per_ticket = State()
     entering_auto_support_tickets_create_interval = State()
     entering_messages_watermark = State()

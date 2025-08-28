@@ -78,7 +78,7 @@ class TelegramBot:
         async def handle_on_telegram_bot_init():
             """ 
             Запускается преред инициализацией Telegram бота. 
-            Запускает за собой все хендлеры ON_TELEGRAM_BOT_INIT
+            Запускает за собой все хендлеры ON_TELEGRAM_BOT_INIT.
             """
             if "ON_TELEGRAM_BOT_INIT" in bot_event_handlers:
                 for handler in bot_event_handlers["ON_TELEGRAM_BOT_INIT"]:
@@ -96,10 +96,10 @@ class TelegramBot:
         """
         Пишет админу в Telegram с просьбой о помощи от заказчика.
                 
-        :param calling_name: Никнейм покупателя
+        :param calling_name: Никнейм покупателя.
         :type calling_name: `str`
 
-        :param chat_id: ID чата с заказчиком
+        :param chat_id: ID чата с заказчиком.
         :type chat_id: `int` or `str`
         """
         config = sett.get("config")
@@ -107,6 +107,21 @@ class TelegramBot:
             await self.bot.send_message(chat_id=user_id, 
                                         text=templ.call_seller_text(calling_name, f"https://funpay.com/chat/?node={chat_id}"),
                                         parse_mode="HTML")
+            
+    async def log_event(self, text: str):
+        """
+        Логирует событие в чат TG бота.
+                
+        :param text: Текст лога.
+        :type text: `str`
+        """
+        config = sett.get("config")
+        chat_id = config["funpay"]["bot"]["tg_logging_chat_id"]
+        if not chat_id:
+            for user_id in config["telegram"]["bot"]["signed_users"]:
+                await self.bot.send_message(chat_id=user_id, text=text, parse_mode="HTML")
+        else:
+            await self.bot.send_message(chat_id=chat_id, text=text, parse_mode="HTML")
 
 if __name__ == "__main__":
     config = sett.get("config")

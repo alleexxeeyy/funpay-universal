@@ -26,7 +26,16 @@ DATA = {
                     "auto_reviews_replies_enabled": True,
                     "auto_support_tickets_enabled": True,
                     "auto_support_tickets_orders_per_ticket": 25,
-                    "auto_support_tickets_create_interval": 86400
+                    "auto_support_tickets_create_interval": 86400,
+                    "tg_logging_enabled": True,
+                    "tg_logging_chat_id": "",
+                    "tg_logging_events": {
+                        "new_user_message": True,
+                        "new_system_message": True,
+                        "new_order": True,
+                        "order_status_changed": True,
+                        "new_review": True
+                    }
                 }
             },
             "telegram": {

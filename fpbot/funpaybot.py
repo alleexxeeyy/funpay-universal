@@ -13,6 +13,7 @@ from logging import getLogger
 from fpbot.stats import get_stats, set_stats
 from . import set_funpay_bot
 from tgbot import get_telegram_bot, get_telegram_bot_loop
+from tgbot.templates import log_text
 
 from FunPayAPI import Account, Runner, exceptions as fpapi_exceptions, types as fpapi_types
 from FunPayAPI.common.enums import *
@@ -178,10 +179,9 @@ class FunPayBot:
         Логгирует ивент в Telegram бота.
 
         :param text: Текст лога.
-        :type text: str
+        :type text: `str`
         """
-        #asyncio.run_coroutine_threadsafe(get_telegram_bot().log_event(text), get_telegram_bot_loop())
-        a=1
+        asyncio.run_coroutine_threadsafe(get_telegram_bot().log_event(text), get_telegram_bot_loop())
     
     async def run_bot(self):
 
@@ -270,6 +270,17 @@ class FunPayBot:
         async def handler_new_message(fpbot: FunPayBot, event: NewMessageEvent):
             try:
                 this_chat = fpbot.funpay_account.get_chat_by_name(event.message.chat_name, True)
+                if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and (fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_user_message"] or fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_system_message"]):
+                    if event.message.author != fpbot.funpay_account.username:
+                        do = False
+                        if fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_user_message"] and event.message.author.lower() != "funpay": do = True 
+                        if fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_system_message"] and event.message.author.lower() == "funpay": do = True 
+                        if do:
+                            text = f"<b>{event.message.author}:</b> {event.message.text or ''}"
+                            if event.message.image_link:
+                                text += f' <b><a href="{event.message.image_link}">{event.message.image_name}</a></b>'
+                            fpbot.log_to_tg(log_text(f'💬 Новое сообщение в <a href="https://funpay.com/chat/?node={event.message.chat_id}">чате</a>', text.strip()))
+
                 if this_chat.name not in fpbot.initialized_users:
                     try:
                         if self.config["funpay"]["bot"]["first_message_enabled"]:
@@ -305,6 +316,10 @@ class FunPayBot:
                 if event.message.type is MessageTypes.NEW_FEEDBACK:
                     review_author = event.message.text.split(' ')[1]
                     review_order_id = event.message.text.split(' ')[-1].replace('#', '').replace('.', '')
+                    if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_review"]:
+                        order = fpbot.funpay_account.get_order(review_order_id)
+                        review = order.review
+                        fpbot.log_to_tg(log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┗ Текст отзыва:</b> {review.text}"))
                     if fpbot.config["funpay"]["bot"]["auto_reviews_replies_enabled"]:
                         try:
                             order = fpbot.funpay_account.get_order(review_order_id)
@@ -328,6 +343,8 @@ class FunPayBot:
         async def handler_new_order(fpbot: FunPayBot, event: NewOrderEvent):
             try:
                 this_chat = fpbot.funpay_account.get_chat_by_name(event.order.buyer_username, True)
+                if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_order"]:
+                    fpbot.log_to_tg(log_text(f'📋 Новый заказ <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a>', f"<b>┏ Покупатель:</b> {event.order.buyer_username}\n<b>┣ Товар:</b> {event.order.description}\n<b>┣ Количество:</b> {event.order.amount}\n<b>┗ Сумма:</b> {event.order.price} {fpbot.funpay_account.currency.name}"))
                 try:
                     self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}🛒  Новый заказ {Fore.LIGHTWHITE_EX}{event.order.id}{Fore.LIGHTYELLOW_EX} от {Fore.LIGHTWHITE_EX}{event.order.buyer_username}{Fore.LIGHTYELLOW_EX} на сумму {Fore.LIGHTWHITE_EX}{event.order.price} {fpbot.funpay_account.currency.name}")
                     if self.config["funpay"]["bot"]["auto_deliveries_enabled"]:
@@ -349,6 +366,11 @@ class FunPayBot:
             
         async def handler_order_status_changed(fpbot: FunPayBot, event: OrderStatusChangedEvent):
             try:
+                status = "Неизвестный"
+                if event.order.status is OrderStatuses.REFUNDED: status = "Возврат"
+                elif event.order.status is OrderStatuses.CLOSED: status = "Закрыт"
+                if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["order_status_changed"]:
+                    fpbot.log_to_tg(log_text(f'🔄️📋 Статус заказа <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a> изменился', f"<b>Новый статус:</b> {status}"))
                 try:
                     if event.order.status is OrderStatuses.CLOSED:
                         fpbot.stats.earned_money = round(fpbot.stats.earned_money + event.order.price, 2)

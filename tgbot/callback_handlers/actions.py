@@ -413,6 +413,66 @@ async def callback_enter_message_text(callback: CallbackQuery, state: FSMContext
                                       reply_markup=templ.back_kb(calls.MessagesPagination(page=last_page).pack()))
 
 
+@router.callback_query(F.data == "switch_tg_logging_enabled")
+async def callback_switch_tg_logging_enabled(callback: CallbackQuery, state: FSMContext):
+    config = sett.get("config")
+    config["funpay"]["bot"]["tg_logging_enabled"] = not config["funpay"]["bot"]["tg_logging_enabled"]
+    sett.set("config", config)
+    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="logger"), state)
+
+@router.callback_query(F.data == "enter_tg_logging_chat_id")
+async def callback_enter_tg_logging_chat_id(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(states.SettingsStates.entering_tg_logging_chat_id)
+    config = sett.get("config")
+    tg_logging_chat_id = config["funpay"]["bot"]["tg_logging_chat_id"] or "✔️ Ваш чат с ботом"
+    await throw_float_message(state=state, 
+                              message=callback.message, 
+                              text=templ.settings_logger_float_text(f"💬 Введите новый <b>ID чата для логов</b> (вы можете указать как цифровой ID, так и юзернейм чата) ↓\n┗ Текущее: <code>{tg_logging_chat_id}</code>"), 
+                              reply_markup=templ.back_kb(calls.SettingsNavigation(to="logger").pack()))
+
+@router.callback_query(F.data == "switch_tg_logging_event_new_user_message")
+async def callback_switch_tg_logging_event_new_user_message(callback: CallbackQuery, state: FSMContext):
+    config = sett.get("config")
+    config["funpay"]["bot"]["tg_logging_events"]["new_user_message"] = not config["funpay"]["bot"]["tg_logging_events"]["new_user_message"]
+    sett.set("config", config)
+    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="logger"), state)
+
+@router.callback_query(F.data == "switch_tg_logging_event_new_system_message")
+async def callback_switch_tg_logging_event_new_system_message(callback: CallbackQuery, state: FSMContext):
+    config = sett.get("config")
+    config["funpay"]["bot"]["tg_logging_events"]["new_system_message"] = not config["funpay"]["bot"]["tg_logging_events"]["new_system_message"]
+    sett.set("config", config)
+    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="logger"), state)
+
+@router.callback_query(F.data == "switch_tg_logging_event_new_order")
+async def callback_switch_tg_logging_event_new_order(callback: CallbackQuery, state: FSMContext):
+    config = sett.get("config")
+    config["funpay"]["bot"]["tg_logging_events"]["new_order"] = not config["funpay"]["bot"]["tg_logging_events"]["new_order"]
+    sett.set("config", config)
+    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="logger"), state)
+
+@router.callback_query(F.data == "switch_tg_logging_event_order_status_changed")
+async def callback_switch_tg_logging_event_order_status_changed(callback: CallbackQuery, state: FSMContext):
+    config = sett.get("config")
+    config["funpay"]["bot"]["tg_logging_events"]["order_status_changed"] = not config["funpay"]["bot"]["tg_logging_events"]["order_status_changed"]
+    sett.set("config", config)
+    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="logger"), state)
+
+@router.callback_query(F.data == "switch_tg_logging_event_new_review")
+async def callback_switch_tg_logging_event_new_review(callback: CallbackQuery, state: FSMContext):
+    config = sett.get("config")
+    config["funpay"]["bot"]["tg_logging_events"]["new_review"] = not config["funpay"]["bot"]["tg_logging_events"]["new_review"]
+    sett.set("config", config)
+    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="logger"), state)
+
+@router.callback_query(F.data == "clean_tg_logging_chat_id")
+async def callback_clean_tg_logging_chat_id(callback: CallbackQuery, state: FSMContext):
+    config = sett.get("config")
+    config["funpay"]["bot"]["tg_logging_chat_id"] = ""
+    sett.set("config", config)
+    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="logger"), state)
+
+
 @router.callback_query(F.data == "switch_auto_support_tickets_enabled")
 async def callback_switch_auto_support_tickets_enabled(callback: CallbackQuery, state: FSMContext):
     config = sett.get("config")
@@ -428,7 +488,7 @@ async def callback_enter_auto_support_tickets_orders_per_ticket(callback: Callba
     await throw_float_message(state=state, 
                               message=callback.message, 
                               text=templ.settings_tickets_float_text(f"📋 Введите новое <b>кол-во заказов в одном тикете</b> ↓\n┗ Текущее: <code>{auto_support_tickets_orders_per_ticket}</code>"), 
-                              reply_markup=templ.back_kb(calls.SettingsNavigation(to="auth").pack()))
+                              reply_markup=templ.back_kb(calls.SettingsNavigation(to="tickets").pack()))
 
 @router.callback_query(F.data == "enter_auto_support_tickets_create_interval")
 async def callback_enter_enter_auto_support_tickets_create_interval(callback: CallbackQuery, state: FSMContext):
@@ -438,7 +498,7 @@ async def callback_enter_enter_auto_support_tickets_create_interval(callback: Ca
     await throw_float_message(state=state, 
                               message=callback.message, 
                               text=templ.settings_tickets_float_text(f"⏱️ Введите новый <b>интервал создания тикетов</b> (в секундах) ↓\n┗ Текущее: <code>{auto_support_tickets_create_interval}</code>"), 
-                              reply_markup=templ.back_kb(calls.SettingsNavigation(to="auth").pack()))
+                              reply_markup=templ.back_kb(calls.SettingsNavigation(to="tickets").pack()))
 
 
 @router.callback_query(F.data == "switch_module_enabled")
