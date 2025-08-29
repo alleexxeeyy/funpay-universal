@@ -9,7 +9,10 @@ from colorama import Fore
 from logging import getLogger
 logger = getLogger("universal")
 
-from core.handlers_manager import HandlersManager
+from core.handlers_manager import HandlersManager as handlers_m
+from tgbot import get_telegram_bot
+
+
 
 class ModuleMeta:
     """
@@ -142,8 +145,8 @@ class ModulesManager:
             if not module:
                 raise Exception("Модуль не найден в загруженных")
         
-            HandlersManager.register_bot_event_handlers(module.bot_event_handlers)
-            HandlersManager.register_funpay_event_handlers(module.funpay_event_handlers)
+            handlers_m.register_bot_event_handlers(module.bot_event_handlers)
+            handlers_m.register_funpay_event_handlers(module.funpay_event_handlers)
             i = _loaded_modules.index(module)
             module.enabled = True
             _loaded_modules[i] = module
@@ -185,7 +188,7 @@ class ModulesManager:
             if not module:
                 raise Exception("Модуль не найден в загруженных")
             
-            HandlersManager.remove_handlers(module.bot_event_handlers, module.funpay_event_handlers)
+            handlers_m.remove_handlers(module.bot_event_handlers, module.funpay_event_handlers)
             i = _loaded_modules.index(module)
             module.enabled = False
             _loaded_modules[i] = module
@@ -229,6 +232,7 @@ class ModulesManager:
             if module._dir_name in sys.modules:
                 del sys.modules[f"modules.{module._dir_name}"]
             mod = importlib.import_module(f"modules.{module._dir_name}")
+                
             print(f"{Fore.WHITE}🔄  Модуль {Fore.LIGHTWHITE_EX}{module.meta.name} {Fore.WHITE}был перезагружен")
 
             def handle_on_module_reloaded():
@@ -336,8 +340,8 @@ class ModulesManager:
         names = []
         for module in modules:
             try:
-                HandlersManager.register_bot_event_handlers(module.bot_event_handlers)
-                HandlersManager.register_funpay_event_handlers(module.funpay_event_handlers)
+                handlers_m.register_bot_event_handlers(module.bot_event_handlers)
+                handlers_m.register_funpay_event_handlers(module.funpay_event_handlers)
                 i = _loaded_modules.index(module)
                 module.enabled = True
                 _loaded_modules[i] = module

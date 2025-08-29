@@ -8,8 +8,6 @@ from .. import templates as templ
 from .. import callback_datas as calls
 from .. import states as states
 
-from core.modules_manager import ModulesManager as modman
-
 from ..helpful import throw_float_message
 from .navigation import *
 
@@ -503,6 +501,7 @@ async def callback_enter_enter_auto_support_tickets_create_interval(callback: Ca
 
 @router.callback_query(F.data == "switch_module_enabled")
 async def callback_disable_module(callback: CallbackQuery, state: FSMContext):
+    from core.modules_manager import ModulesManager as modman
     try:
         data = await state.get_data()
         last_page = data.get("last_page") or 0

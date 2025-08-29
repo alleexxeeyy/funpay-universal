@@ -10,7 +10,6 @@ from fpbot import get_funpay_bot
 from settings import Settings as sett
 from fpbot.stats import get_stats
 
-from core.modules_manager import ModulesManager, Module
 from uuid import UUID
 
 
@@ -796,6 +795,7 @@ def settings_other_float_text(placeholder: str):
 
 
 def modules_text():
+    from core.modules_manager import ModulesManager
     modules = ModulesManager.get_modules()
     txt = textwrap.dedent(f"""
         🔌 <b>Модули</b>
@@ -806,6 +806,7 @@ def modules_text():
     return txt
 
 def modules_kb(page: int = 0):
+    from core.modules_manager import ModulesManager
     modules = ModulesManager.get_modules()
     rows = []
     items_per_page = 7
@@ -839,6 +840,7 @@ def modules_kb(page: int = 0):
 
 
 def module_page_text(module_uuid: UUID):
+    from core.modules_manager import ModulesManager, Module
     module: Module = ModulesManager.get_module_by_uuid(module_uuid)
     if not module: raise Exception("Не удалось найти модуль")
     txt = textwrap.dedent(f"""
@@ -858,6 +860,7 @@ def module_page_text(module_uuid: UUID):
     return txt
 
 def module_page_kb(module_uuid: UUID, page: int = 0):
+    from core.modules_manager import ModulesManager, Module
     module: Module = ModulesManager.get_module_by_uuid(module_uuid)
     if not module: raise Exception("Не удалось найти модуль")
     rows = [

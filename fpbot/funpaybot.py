@@ -316,10 +316,11 @@ class FunPayBot:
                 if event.message.type is MessageTypes.NEW_FEEDBACK:
                     review_author = event.message.text.split(' ')[1]
                     review_order_id = event.message.text.split(' ')[-1].replace('#', '').replace('.', '')
+                    order = fpbot.funpay_account.get_order(review_order_id)
+                    review = order.review
+                    self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}✨💬 Новый {'⭐' * review.stars} отзыв на заказ {Fore.LIGHTWHITE_EX}{order.id}{Fore.LIGHTYELLOW_EX} от {Fore.LIGHTWHITE_EX}{order.buyer_username}{Fore.LIGHTYELLOW_EX}")
                     if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_review"]:
-                        order = fpbot.funpay_account.get_order(review_order_id)
-                        review = order.review
-                        fpbot.log_to_tg(log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┗ Текст отзыва:</b> {review.text}"))
+                        fpbot.log_to_tg(log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┣ Оставил:</b> {review.author}\n<b>┗ Текст отзыва:</b> {review.text}"))
                     if fpbot.config["funpay"]["bot"]["auto_reviews_replies_enabled"]:
                         try:
                             order = fpbot.funpay_account.get_order(review_order_id)
@@ -343,10 +344,10 @@ class FunPayBot:
         async def handler_new_order(fpbot: FunPayBot, event: NewOrderEvent):
             try:
                 this_chat = fpbot.funpay_account.get_chat_by_name(event.order.buyer_username, True)
+                self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}📋  Новый заказ {Fore.LIGHTWHITE_EX}{event.order.id}{Fore.LIGHTYELLOW_EX} от {Fore.LIGHTWHITE_EX}{event.order.buyer_username}{Fore.LIGHTYELLOW_EX} на сумму {Fore.LIGHTWHITE_EX}{event.order.price} {fpbot.funpay_account.currency.name}")
                 if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_order"]:
                     fpbot.log_to_tg(log_text(f'📋 Новый заказ <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a>', f"<b>┏ Покупатель:</b> {event.order.buyer_username}\n<b>┣ Товар:</b> {event.order.description}\n<b>┣ Количество:</b> {event.order.amount}\n<b>┗ Сумма:</b> {event.order.price} {fpbot.funpay_account.currency.name}"))
                 try:
-                    self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}🛒  Новый заказ {Fore.LIGHTWHITE_EX}{event.order.id}{Fore.LIGHTYELLOW_EX} от {Fore.LIGHTWHITE_EX}{event.order.buyer_username}{Fore.LIGHTYELLOW_EX} на сумму {Fore.LIGHTWHITE_EX}{event.order.price} {fpbot.funpay_account.currency.name}")
                     if self.config["funpay"]["bot"]["auto_deliveries_enabled"]:
                         order = self.funpay_account.get_order(event.order.id)
                         lot = self.get_lot_by_order_title(order.title)
@@ -369,6 +370,7 @@ class FunPayBot:
                 status = "Неизвестный"
                 if event.order.status is OrderStatuses.REFUNDED: status = "Возврат"
                 elif event.order.status is OrderStatuses.CLOSED: status = "Закрыт"
+                self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}🔄️📋  Статус заказа {Fore.LIGHTWHITE_EX}{event.order.id}{Fore.LIGHTYELLOW_EX} от {Fore.LIGHTWHITE_EX}{event.order.buyer_username}{Fore.LIGHTYELLOW_EX} изменился на: {Fore.LIGHTWHITE_EX}«{status}»")
                 if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["order_status_changed"]:
                     fpbot.log_to_tg(log_text(f'🔄️📋 Статус заказа <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a> изменился', f"<b>Новый статус:</b> {status}"))
                 try:

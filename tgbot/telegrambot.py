@@ -15,9 +15,8 @@ from settings import Settings as sett
 import logging
 logger = logging.getLogger("universal.telegram")
 
-from core.modules_manager import ModulesManager
-from core.handlers_manager import HandlersManager
-
+from core.modules_manager import ModulesManager as modules_m
+from core.handlers_manager import HandlersManager as handlers_m
 from . import set_telegram_bot, set_telegram_bot_loop
 from __init__ import ACCENT_COLOR
 
@@ -38,7 +37,7 @@ class TelegramBot:
         self.bot = Bot(token=self.bot_token)
         self.dp = Dispatcher()
         
-        for module in ModulesManager.get_modules():
+        for module in modules_m.get_modules():
             for router in module.telegram_bot_routers:
                 main_router.include_router(router)
         self.dp.include_router(main_router)
@@ -74,7 +73,7 @@ class TelegramBot:
                 logger.info(f"{PREFIX} Вы отказались от настройки конфига. Перезагрузим бота и попробуем снова подключиться к Telegram боту...")
                 restart()
         
-        bot_event_handlers = HandlersManager.get_bot_event_handlers()
+        bot_event_handlers = handlers_m.get_bot_event_handlers()
         async def handle_on_telegram_bot_init():
             """ 
             Запускается преред инициализацией Telegram бота. 

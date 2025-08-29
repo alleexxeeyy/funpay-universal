@@ -18,28 +18,19 @@ from __init__ import ACCENT_COLOR, VERSION
 
 
 
-class BotsManager:
 
-    def __init__(self):
-        self.tgbot = None
+async def start_funpay_bot():
+    def run():
+        asyncio.new_event_loop().run_until_complete(FunPayBot().run_bot())
 
-    async def start_funpay_bot(self):
-        self.fpbot_loop = asyncio.new_event_loop()
-        self.fpbot = FunPayBot()
+    fpbot_thread = Thread(target=run, daemon=True)
+    fpbot_thread.start()
 
-        def run():
-            self.fpbot_loop.run_until_complete(self.fpbot.run_bot())
-        
-        self.fpbot_thread = Thread(target=run, daemon=True)
-        self.fpbot_thread.start()
-
-    async def start_telegram_bot(self):
-        from tgbot.telegrambot import TelegramBot
-        config = sett.get("config")
-        self.tgbot = TelegramBot(config["telegram"]["api"]["token"])
-        
-        await self.start_funpay_bot()
-        await self.tgbot.run_bot()
+async def start_telegram_bot():
+    from tgbot.telegrambot import TelegramBot
+    config = sett.get("config")
+    tgbot = TelegramBot(config["telegram"]["api"]["token"])
+    await tgbot.run_bot()
 
 
 if __name__ == "__main__":
@@ -83,7 +74,8 @@ if __name__ == "__main__":
         handle_on_init()
         
         print(f"{Fore.WHITE}🤖 Запускаю бота...\n")
-        asyncio.run(BotsManager().start_telegram_bot())
+        asyncio.run(start_funpay_bot())
+        asyncio.run(start_telegram_bot())
     except Exception as e:
         traceback.print_exc()
     print(f"\n   {Fore.LIGHTRED_EX}Ваш бот словил непредвиденную ошибку и был выключен."
