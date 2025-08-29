@@ -5,6 +5,7 @@ import time
 import traceback
 from threading import Thread
 from colorama import Fore
+import difflib
 
 import settings
 from settings import Settings as sett
@@ -116,24 +117,34 @@ class FunPayBot:
                 pass
         return "Не удалось получить сообщение"
     
-    def get_lot_by_order_title(self, title: str) -> types.LotShortcut:
+    def get_lot_by_order_title(self, title: str, subcategory: types.SubCategory) -> types.LotShortcut:
         """
         Получает лот по названию заказа.
 
         :param title: Краткое описание заказа.
         :type title: `str`
 
+        :param subcategory: Подкатегория товара заказа.
+        :type subcategory: `FunPayAPI.types.SubCategory`
+
         :return: Объект лота.
         :rtype: `FunPayAPI.types.LotShortcut`
         """
         profile = self.funpay_account.get_user(self.funpay_account.id)
-        lots = profile.get_lots()
-        for lot in lots:
-            if not lot.title:
+        lots = profile.get_sorted_lots(2)
+        candidates = []
+        for lot_subcat, lot_data in lots.items():
+            if subcategory and lot_subcat.id != subcategory.id:
                 continue
-            if title in lot.title or lot.title in title or title == lot.title:
-                return lot
-        return None
+            for _, lot in lot_data.items():
+                if lot.title:
+                    score = difflib.SequenceMatcher(None, title.lower(), lot.title.lower()).ratio()
+                    candidates.append((score, lot))
+        if not candidates:
+            return None
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        best_score, best_lot = candidates[0]
+        return best_lot if best_score > 0.7 else None
     
     def raise_lots(self):
         """
@@ -347,15 +358,11 @@ class FunPayBot:
                 self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}📋  Новый заказ {Fore.LIGHTWHITE_EX}{event.order.id}{Fore.LIGHTYELLOW_EX} от {Fore.LIGHTWHITE_EX}{event.order.buyer_username}{Fore.LIGHTYELLOW_EX} на сумму {Fore.LIGHTWHITE_EX}{event.order.price} {fpbot.funpay_account.currency.name}")
                 if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_order"]:
                     fpbot.log_to_tg(log_text(f'📋 Новый заказ <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a>', f"<b>┏ Покупатель:</b> {event.order.buyer_username}\n<b>┣ Товар:</b> {event.order.description}\n<b>┣ Количество:</b> {event.order.amount}\n<b>┗ Сумма:</b> {event.order.price} {fpbot.funpay_account.currency.name}"))
-                try:
-                    if self.config["funpay"]["bot"]["auto_deliveries_enabled"]:
-                        order = self.funpay_account.get_order(event.order.id)
-                        lot = self.get_lot_by_order_title(order.title)
-                        if lot:
-                            if str(lot.id) in self.auto_deliveries.keys():
-                                self.funpay_account.send_message(this_chat.id, "\n".join(self.auto_deliveries[str(lot.id)]))
-                except Exception as e:
-                    self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке нового заказа для {event.order.buyer_username} произошла ошибка: {Fore.WHITE}{e}")
+                if self.config["funpay"]["bot"]["auto_deliveries_enabled"]:
+                    lot = self.get_lot_by_order_title(event.order.description, event.order.subcategory)
+                    if lot:
+                        if str(lot.id) in self.auto_deliveries.keys():
+                            self.funpay_account.send_message(this_chat.id, "\n".join(self.auto_deliveries[str(lot.id)]))
             except fpapi_exceptions.RequestFailedError as e:
                 if e.status_code == 429:
                     self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента новых заказов произошла ошибка 429 слишком частых запросов. Жду 10 секунд и пробую снова")
