@@ -377,7 +377,7 @@ class FunPayBot:
                 status = "Неизвестный"
                 if event.order.status is OrderStatuses.REFUNDED: status = "Возврат"
                 elif event.order.status is OrderStatuses.CLOSED: status = "Закрыт"
-                self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}🔄️📋  Статус заказа {Fore.LIGHTWHITE_EX}{event.order.id}{Fore.LIGHTYELLOW_EX} от {Fore.LIGHTWHITE_EX}{event.order.buyer_username}{Fore.LIGHTYELLOW_EX} изменился на: {Fore.LIGHTWHITE_EX}«{status}»")
+                self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}🔄️📋  Статус заказа {Fore.LIGHTWHITE_EX}{event.order.id}{Fore.LIGHTYELLOW_EX} от {Fore.LIGHTWHITE_EX}{event.order.buyer_username}{Fore.LIGHTYELLOW_EX} изменился на {Fore.LIGHTWHITE_EX}«{status}»")
                 if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["order_status_changed"]:
                     fpbot.log_to_tg(log_text(f'🔄️📋 Статус заказа <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a> изменился', f"<b>Новый статус:</b> {status}"))
                 try:

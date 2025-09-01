@@ -198,7 +198,7 @@ def restore_config(config: dict, default: dict):
     config = check_default(config, default)
     return config
     
-def get_json(path: str, default: dict) -> dict:
+def get_json(path: str, default: dict, need_restore: bool = True) -> dict:
     """
     Получает данные файла настроек.
     Создаёт файл настроек, если его нет.
@@ -209,6 +209,9 @@ def get_json(path: str, default: dict) -> dict:
 
     :param default: Стандартный шаблон файла.
     :type default: `dict`
+
+    :param need_restore: Нужно ли сделать проверку на целостность конфига.
+    :type need_restore: `bool`
     """
     folder_path = os.path.dirname(path)
     if not os.path.exists(folder_path):
@@ -216,12 +219,12 @@ def get_json(path: str, default: dict) -> dict:
     try:
         with open(path, 'r', encoding='utf-8') as f:
             config = json.load(f)
-
-        new_config = restore_config(config, default)
-        if config != new_config:
-            config = new_config
-            with open(path, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=4, ensure_ascii=False)
+        if need_restore:
+            new_config = restore_config(config, default)
+            if config != new_config:
+                config = new_config
+                with open(path, 'w', encoding='utf-8') as f:
+                    json.dump(config, f, indent=4, ensure_ascii=False)
     except:
         config = default
         with open(path, 'w', encoding='utf-8') as f:
