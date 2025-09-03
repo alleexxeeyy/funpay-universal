@@ -5,6 +5,7 @@ bot_settings/*.json
 bot_data/*.json
 
 .vscode
+.vs
 
 modules/
 modules1/

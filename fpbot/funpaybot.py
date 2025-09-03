@@ -46,7 +46,7 @@ class FunPayBot:
             self.funpay_account = Account(golden_key=self.config["funpay"]["api"]["golden_key"],
                                           user_agent=self.config["funpay"]["api"]["user_agent"],
                                           requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
-                                          proxy=self.config["funpay"]["api"]["proxy"]).get()
+                                          proxy={"https": "https://" + self.config["funpay"]["api"]["proxy"].replace("http", "https").replace("https://", "")} if self.config["funpay"]["api"]["proxy"] else None).get()
             """ Класс, содержащий данные и методы FunPay аккаунта. """
         except fpapi_exceptions.UnauthorizedError as e:
             self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось подключиться к вашему FunPay аккаунту. Ошибка: {Fore.WHITE}{e.short_str()}")
@@ -221,7 +221,7 @@ class FunPayBot:
                             self.funpay_account = Account(golden_key=self.config["funpay"]["api"]["golden_key"],
                                                           user_agent=self.config["funpay"]["api"]["user_agent"],
                                                           requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
-                                                          proxy=self.config["funpay"]["api"]["proxy"]).get()
+                                                          proxy={"https": "https://" + self.config["funpay"]["api"]["proxy"].replace("http", "https").replace("https://", "")} if self.config["funpay"]["api"]["proxy"] else None).get()
                             self.refresh_funpay_account_next_time = datetime.now() + timedelta(seconds=3600)
 
                         if fpbot.config["funpay"]["bot"]["auto_raising_lots_enabled"] and datetime.now() > fpbot.lots_raise_next_time:
@@ -334,7 +334,6 @@ class FunPayBot:
                         fpbot.log_to_tg(log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┣ Оставил:</b> {review.author}\n<b>┗ Текст отзыва:</b> {review.text}"))
                     if fpbot.config["funpay"]["bot"]["auto_reviews_replies_enabled"]:
                         try:
-                            order = fpbot.funpay_account.get_order(review_order_id)
                             fpbot.funpay_account.send_review(review_order_id, fpbot.msg("order_review_reply_text",
                                                                                         review_date=datetime.now().strftime("%d.%m.%Y"),
                                                                                         order_title=order.title,
