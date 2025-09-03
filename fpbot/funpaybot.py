@@ -46,7 +46,7 @@ class FunPayBot:
             self.funpay_account = Account(golden_key=self.config["funpay"]["api"]["golden_key"],
                                           user_agent=self.config["funpay"]["api"]["user_agent"],
                                           requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
-                                          proxy={"https": "https://" + self.config["funpay"]["api"]["proxy"].replace("http", "https").replace("https://", "")} if self.config["funpay"]["api"]["proxy"] else None).get()
+                                          proxy={"https": "https://" + self.config["funpay"]["api"]["proxy"].replace("https://", "").replace("http://", "")} if self.config["funpay"]["api"]["proxy"] else None).get()
             """ Класс, содержащий данные и методы FunPay аккаунта. """
         except fpapi_exceptions.UnauthorizedError as e:
             self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось подключиться к вашему FunPay аккаунту. Ошибка: {Fore.WHITE}{e.short_str()}")
@@ -221,7 +221,7 @@ class FunPayBot:
                             self.funpay_account = Account(golden_key=self.config["funpay"]["api"]["golden_key"],
                                                           user_agent=self.config["funpay"]["api"]["user_agent"],
                                                           requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
-                                                          proxy={"https": "https://" + self.config["funpay"]["api"]["proxy"].replace("http", "https").replace("https://", "")} if self.config["funpay"]["api"]["proxy"] else None).get()
+                                                          proxy={"https": "https://" + self.config["funpay"]["api"]["proxy"].replace("https://", "").replace("http://", "")} if self.config["funpay"]["api"]["proxy"] else None).get()
                             self.refresh_funpay_account_next_time = datetime.now() + timedelta(seconds=3600)
 
                         if fpbot.config["funpay"]["bot"]["auto_raising_lots_enabled"] and datetime.now() > fpbot.lots_raise_next_time:
@@ -316,12 +316,12 @@ class FunPayBot:
                         except Exception as e:
                             self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При вводе команды \"!команды\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
                             fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("command_error"))
-                    if str(event.message.text).lower() == "!продавец" or str(event.message.text).lower() == "!seller":
+                    elif str(event.message.text).lower() == "!продавец" or str(event.message.text).lower() == "!seller":
                         try:
                             asyncio.run_coroutine_threadsafe(get_telegram_bot().call_seller(event.message.author, this_chat.id), get_telegram_bot_loop())
                             fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("buyer_command_seller"))
                         except Exception as e:
-                            self.logger.log(f"{PREFIX} {Fore.LIGHTRED_EX}При вводе команды \"!продавец\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
+                            self.logger.log(f"{PREFIX} {Fore.LIGHTRED_EX}При вводе команды \"!продавец\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}") # ПРОЧЕКАТЬ, НЕ ДОХОДИТ ОПОВЕЩЕНИЕ В ТГ
                             fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("command_error"))
 
                 if event.message.type is MessageTypes.NEW_FEEDBACK:
