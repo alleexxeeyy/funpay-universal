@@ -105,7 +105,7 @@ class TelegramBot:
         for user_id in config["telegram"]["bot"]["signed_users"]:
             await self.bot.send_message(chat_id=user_id, 
                                         text=templ.call_seller_text(calling_name, f"https://funpay.com/chat/?node={chat_id}"),
-                                        kb=templ.destroy_kb(),
+                                        reply_markup=templ.destroy_kb(),
                                         parse_mode="HTML")
             
     async def log_event(self, text: str):

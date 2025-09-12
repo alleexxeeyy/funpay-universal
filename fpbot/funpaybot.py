@@ -43,10 +43,11 @@ class FunPayBot:
         self.logger = getLogger(f"universal.funpay")
 
         try:
+            proxy = {"https": "http://" + self.config["funpay"]["api"]["proxy"].replace("https://", "").replace("http://", ""), "http": "http://" + self.config["funpay"]["api"]["proxy"].replace("https://", "").replace("http://", "")} if self.config["funpay"]["api"]["proxy"] else None
             self.funpay_account = Account(golden_key=self.config["funpay"]["api"]["golden_key"],
                                           user_agent=self.config["funpay"]["api"]["user_agent"],
                                           requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
-                                          proxy={"https": "https://" + self.config["funpay"]["api"]["proxy"].replace("https://", "").replace("http://", "")} if self.config["funpay"]["api"]["proxy"] else None).get()
+                                          proxy=proxy or None).get()
             """ Класс, содержащий данные и методы FunPay аккаунта. """
         except fpapi_exceptions.UnauthorizedError as e:
             self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось подключиться к вашему FunPay аккаунту. Ошибка: {Fore.WHITE}{e.short_str()}")
@@ -72,6 +73,7 @@ class FunPayBot:
                     self.logger.info(f"{PREFIX} Вы отказались от очистки прокси. Перезагрузим бота и попробуем снова подключиться к вашему аккаунту...")
                     restart()
 
+        self.funpay_account.last_429_err_time
         self.initialized_users = data.get("initialized_users")
         """ Инициализированные в диалоге пользователи. """
         self.categories_raise_time = data.get("categories_raise_time")
@@ -218,10 +220,11 @@ class FunPayBot:
                         fpbot.auto_deliveries = sett.get("auto_deliveries") if fpbot.auto_deliveries != sett.get("auto_deliveries") else fpbot.auto_deliveries
 
                         if datetime.now() > self.refresh_funpay_account_next_time:
+                            proxy = {"https": "https://" + self.config["funpay"]["api"]["proxy"].replace("https://", "").replace("http://", ""), "http": "https://" + self.config["funpay"]["api"]["proxy"].replace("https://", "").replace("http://", "")} if self.config["funpay"]["api"]["proxy"] else None
                             self.funpay_account = Account(golden_key=self.config["funpay"]["api"]["golden_key"],
                                                           user_agent=self.config["funpay"]["api"]["user_agent"],
                                                           requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
-                                                          proxy={"https": "https://" + self.config["funpay"]["api"]["proxy"].replace("https://", "").replace("http://", "")} if self.config["funpay"]["api"]["proxy"] else None).get()
+                                                          proxy=proxy or None).get()
                             self.refresh_funpay_account_next_time = datetime.now() + timedelta(seconds=3600)
 
                         if fpbot.config["funpay"]["bot"]["auto_raising_lots_enabled"] and datetime.now() > fpbot.lots_raise_next_time:
@@ -423,6 +426,9 @@ class FunPayBot:
         handle_on_funpay_bot_init()
 
         self.logger.info(f"{PREFIX} FunPay бот запущен и активен на аккаунте {Fore.LIGHTWHITE_EX}{self.funpay_account.username}{Fore.WHITE}, баланс {Fore.LIGHTWHITE_EX}{self.funpay_account.total_balance} {self.funpay_account.currency.name}{Fore.WHITE}")
+        if self.config["funpay"]["api"]["proxy"]:
+            ip_port = self.config['funpay']['api']['proxy'].split("@")[1] if "@" in self.config['funpay']['api']['proxy'] else self.config['funpay']['api']['proxy']
+            self.logger.info(f"{PREFIX} FunPay бот подключен к прокси {Fore.LIGHTWHITE_EX}{ip_port}")
         runner = Runner(self.funpay_account)
         for event in runner.listen(requests_delay=self.config["funpay"]["api"]["runner_requests_delay"]):
             funpay_event_handlers = HandlersManager.get_funpay_event_handlers() # чтобы каждый раз брать свежие хендлеры, ибо модули могут отключаться/включаться
