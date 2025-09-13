@@ -1,7 +1,7 @@
 from core.modules_manager import ModulesManager
 from core.handlers_manager import HandlersManager
 
-from core.console import set_title, setup_logger
+from core.console import set_title, setup_logger, install_requirements
 import asyncio
 from threading import Thread
 from settings import Settings as sett
@@ -11,30 +11,27 @@ logger = getLogger("universal")
 from colorama import init, Fore, Style
 init()
 
-from fpbot.funpaybot import FunPayBot
 from services.updater import Updater
 from __init__ import ACCENT_COLOR, VERSION
 
 
 
 
-
-async def start_funpay_bot():
-    def run():
-        asyncio.new_event_loop().run_until_complete(FunPayBot().run_bot())
-
-    fpbot_thread = Thread(target=run, daemon=True)
-    fpbot_thread.start()
-
 async def start_telegram_bot():
     from tgbot.telegrambot import TelegramBot
-    config = sett.get("config")
     tgbot = TelegramBot(config["telegram"]["api"]["token"])
     await tgbot.run_bot()
+
+async def start_funpay_bot():
+    from fpbot.funpaybot import FunPayBot
+    def run():
+        asyncio.new_event_loop().run_until_complete(FunPayBot().run_bot())
+    Thread(target=run, daemon=True).start()
 
 
 if __name__ == "__main__":
     try:
+        install_requirements("requirements.txt") # установка недостающих зависимостей, если таковые есть
         setup_logger()
         set_title(f"FunPay Universal v{VERSION} by @alleexxeeyy")
         print(f"\n   {ACCENT_COLOR}FunPay Universal {Fore.WHITE}v{Fore.LIGHTWHITE_EX}{VERSION}"

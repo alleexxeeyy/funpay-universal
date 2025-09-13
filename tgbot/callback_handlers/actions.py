@@ -20,6 +20,37 @@ async def callback_back(callback: CallbackQuery):
     await callback.message.delete()
 
 
+@router.callback_query(F.data == "confirm_creating_support_tickets")
+async def callback_confirm_creating_support_tickets(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(None)
+    await throw_float_message(state=state, 
+                              message=callback.message, 
+                              text=templ.events_float_text(f"📞✔️ Подтвердите <b>создание тикетов на закрытие заказов</b> ↓"), 
+                              reply_markup=templ.confirm_kb(confirm_cb="create_support_tickets", cancel_cb=calls.MenuNavigation(to="events").pack()))
+
+@router.callback_query(F.data == "create_support_tickets")
+async def callback_create_support_tickets(callback: CallbackQuery, state: FSMContext):
+    try:
+        from fpbot import get_funpay_bot
+        await state.set_state(None)
+        await throw_float_message(state=state, 
+                                  message=callback.message, 
+                                  text=templ.events_float_text(f"📞 Идёт <b>создание тикетов на закрытие заказов</b>, ожидайте (см. консоль)..."), 
+                                  reply_markup=templ.back_kb(calls.MenuNavigation(to="events").pack()))
+        fpbot = get_funpay_bot()
+        fpbot.create_support_tickets()
+        await throw_float_message(state=state, 
+                                message=callback.message, 
+                                text=templ.events_float_text(f"📞✅ <b>Тикеты на закрытие заказов</b> были созданы"), 
+                                reply_markup=templ.back_kb(calls.MenuNavigation(to="events").pack()))
+    except Exception as e:
+        if e is not TelegramAPIError:
+            await throw_float_message(state=state, 
+                                      message=callback.message, 
+                                      text=templ.events_float_text(e), 
+                                      reply_markup=templ.back_kb(calls.MenuNavigation(to="events").pack()))
+
+
 @router.callback_query(F.data == "enter_golden_key")
 async def callback_enter_golden_key(callback: CallbackQuery, state: FSMContext):
     await state.set_state(states.SettingsStates.entering_golden_key)
@@ -508,12 +539,9 @@ async def callback_disable_module(callback: CallbackQuery, state: FSMContext):
         module_uuid = data.get("module_uuid")
         if not module_uuid:
             raise Exception("❌ UUID модуля не был найден, повторите процесс с самого начала")
-        if not modman.disable_module(module_uuid):
-            raise Exception("❌ Не удалось отключить модуль, попробуйте позже (см. консоль на наличие ошибок)")
 
         module = modman.get_module_by_uuid(module_uuid)
-        if module.enabled: modman.disable_module(module_uuid)
-        else: modman.enable_module(module_uuid)
+        modman.disable_module(module_uuid) if module.enabled else modman.enable_module(module_uuid)
         return await callback_module_page(callback, calls.ModulePage(uuid=module_uuid), state)
     except Exception as e:
         if e is not TelegramAPIError:

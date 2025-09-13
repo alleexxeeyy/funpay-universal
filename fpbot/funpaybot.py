@@ -5,7 +5,9 @@ import time
 import traceback
 from threading import Thread
 from colorama import Fore
-import difflib
+import queue
+from rapidfuzz import fuzz
+
 
 import settings
 from settings import Settings as sett
@@ -15,6 +17,7 @@ from fpbot.stats import get_stats, set_stats
 from . import set_funpay_bot
 from tgbot import get_telegram_bot, get_telegram_bot_loop
 from tgbot.templates import log_text
+from fpbot import get_funpay_bot
 
 from FunPayAPI import Account, Runner, exceptions as fpapi_exceptions, types as fpapi_types
 from FunPayAPI.common.enums import *
@@ -73,7 +76,6 @@ class FunPayBot:
                     self.logger.info(f"{PREFIX} Вы отказались от очистки прокси. Перезагрузим бота и попробуем снова подключиться к вашему аккаунту...")
                     restart()
 
-        self.funpay_account.last_429_err_time
         self.initialized_users = data.get("initialized_users")
         """ Инициализированные в диалоге пользователи. """
         self.categories_raise_time = data.get("categories_raise_time")
@@ -82,6 +84,8 @@ class FunPayBot:
         """ Данные об автоматическом написании тикетов в поддержку. """
         self.stats = get_stats()
         """ Словарь статистика бота с момента запуска. """
+        self.task_queue = queue.Queue()
+        """ Очередь задач на выполнение. """
 
         # Эти ивенты событий не записываются в словарь данных, так как их время вычисляется во время работы
         # бота и оно не требуется для дальнейшего отслеживания, пока бот не запущен
@@ -140,20 +144,24 @@ class FunPayBot:
                 continue
             for _, lot in lot_data.items():
                 if lot.title:
-                    score = difflib.SequenceMatcher(None, title.lower(), lot.title.lower()).ratio()
+                    # метрика по подстроке
+                    score = fuzz.partial_ratio(title, lot.title)
+                    # можно дополнительно
+                    token_score = fuzz.token_set_ratio(title, lot.title)
+                    score = max(score, token_score)
                     candidates.append((score, lot))
         if not candidates:
             return None
         candidates.sort(key=lambda x: x[0], reverse=True)
         best_score, best_lot = candidates[0]
-        return best_lot if best_score > 0.7 else None
+        return best_lot if best_score >= 70 else None
     
     def raise_lots(self):
         """
         Поднимает все лоты всех категорий профиля FunPay,
         изменяет время следующего поднятия на наименьшее возможное
         """
-        next_time = datetime.now() + timedelta(hours=4)
+        self.lots_raise_next_time = datetime.now() + timedelta(hours=4)
         raised_categories = []
         profile = self.funpay_account.get_user(self.funpay_account.id)
         for subcategory in list(profile.get_sorted_lots(2).keys()):
@@ -180,10 +188,8 @@ class FunPayBot:
             time.sleep(1)
 
         for category in self.categories_raise_time:
-            if datetime.fromisoformat(self.categories_raise_time[category]) < next_time:
-                next_time = datetime.fromisoformat(self.categories_raise_time[category])
-        self.lots_raise_next_time = next_time
-
+            if datetime.fromisoformat(self.categories_raise_time[category]) < self.lots_raise_next_time:
+                self.lots_raise_next_time = datetime.fromisoformat(self.categories_raise_time[category])
         if len(raised_categories) > 0:
             self.logger.info(f'{PREFIX} {Fore.LIGHTYELLOW_EX}↑ Подняты категории: {Fore.LIGHTWHITE_EX}{f"{Fore.WHITE}, {Fore.LIGHTWHITE_EX}".join(map(str, raised_categories))}')
 
@@ -196,16 +202,70 @@ class FunPayBot:
         """
         asyncio.run_coroutine_threadsafe(get_telegram_bot().log_event(text), get_telegram_bot_loop())
     
+    
+    def create_support_tickets(self):
+        try:
+            last_time = datetime.now()
+            self.auto_support_tickets["last_time"] = last_time.isoformat()
+            data.set("auto_support_tickets", self.auto_support_tickets)
+            fpbot = get_funpay_bot()
+            support_api = FunPaySupportAPI(fpbot.funpay_account).get()
+            self.logger.info(f"{PREFIX} 📞  Создаю тикеты в тех. поддержку на закрытие заказов...")
+
+            def calculate_orders(all_orders, orders_per_ticket=25):
+                return [all_orders[i:i+orders_per_ticket] for i in range(0, len(all_orders), orders_per_ticket)]
+
+            all_sales: list[fpapi_types.OrderShortcut] = []
+            start_from = self.auto_support_tickets["next_start_from"] if self.auto_support_tickets["next_start_from"] != None else None
+            while len(all_sales) < fpbot.funpay_account.active_sales:
+                sales = fpbot.funpay_account.get_sales(start_from=start_from, include_paid=True, include_closed=False, include_refunded=False)
+                for sale in sales[1]:
+                    all_sales.append(sale)
+                start_from = sales[0]
+                time.sleep(0.5)
+            
+            order_ids = calculate_orders([order.id for order in all_sales], self.config["funpay"]["bot"]["auto_support_tickets_orders_per_ticket"])
+            ticketed_orders = []
+            for order_ids_per_ticket in order_ids:
+                formatted_order_ids = ", ".join(order_ids_per_ticket)
+                resp: dict = support_api.create_ticket(formatted_order_ids, f"Здравствуйте! Прошу подтвердить заказы, ожидающие подтверждения: {formatted_order_ids}. С уважением, {fpbot.funpay_account.username}!")
+                if resp.get("error") or not resp.get("action") or resp["action"]["message"] != "Ваша заявка отправлена.":
+                    self.auto_support_tickets["next_start_from"] = order_ids_per_ticket[0]
+                    break
+                ticketed_orders.extend(order_ids_per_ticket)
+                self.logger.info(f"{PREFIX} {Fore.LIGHTWHITE_EX}{resp['action']['url']} (https://support.funpay.com{resp['action']['url']}) {Fore.WHITE}— тикет создан для {Fore.LIGHTYELLOW_EX}{len(order_ids_per_ticket)} заказов")
+            else:
+                self.auto_support_tickets["next_start_from"] = None
+            self.auto_support_tickets["last_time"] = (datetime.now() + timedelta(seconds=fpbot.config["funpay"]["bot"]["auto_support_tickets_create_interval"])).isoformat()
+            
+            if len(ticketed_orders) == 0 and self.auto_support_tickets["next_start_from"] is not None:
+                self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось создать тикеты в тех. поддержку по причине: {Fore.WHITE}{resp.get('error') if resp else 'Неизвестная ошибка.'}")
+            elif len(ticketed_orders) >= 0:
+                self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}📞✅  Создал {Fore.LIGHTWHITE_EX}{len(calculate_orders(ticketed_orders))} тикета(-ов) в тех. поддержку {Fore.LIGHTYELLOW_EX}на закрытие {Fore.LIGHTWHITE_EX}{len(ticketed_orders)} заказов")
+            next_time = last_time + timedelta(seconds=self.config["funpay"]["bot"]["auto_support_tickets_create_interval"])
+            self.logger.info(f"{PREFIX} Следующая попытка будет {Fore.LIGHTWHITE_EX}{next_time.strftime(f'%d.%m{Fore.WHITE} в {Fore.LIGHTWHITE_EX}%H:%M')}")
+        except Exception as e:
+            self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При отправке тикетов на закрытие произошла ошибка: {Fore.WHITE}")
+            traceback.print_exc()
+    
     async def run_bot(self):
+
+        self.logger.info(f"{PREFIX} FunPay бот запущен и активен на аккаунте {Fore.LIGHTWHITE_EX}{self.funpay_account.username}{Fore.WHITE}, баланс {Fore.LIGHTWHITE_EX}{self.funpay_account.total_balance} {self.funpay_account.currency.name}{Fore.WHITE}")
+        if self.config["funpay"]["api"]["proxy"]:
+            ip_port = self.config['funpay']['api']['proxy'].split("@")[1] if "@" in self.config['funpay']['api']['proxy'] else self.config['funpay']['api']['proxy']
+            self.logger.info(f"{PREFIX} FunPay бот подключен к прокси {Fore.LIGHTWHITE_EX}{ip_port}")
 
         def handler_on_funpay_bot_init(fpbot: FunPayBot):
             """ Начальный хендлер ON_INIT """
 
-            fpbot.stats.bot_launch_time = datetime.now()
-            set_stats(fpbot.stats)
+            def worker():
+                while True:
+                    func, args, kwargs = self.task_queue.get()
+                    func(*args, **kwargs)
+                    self.task_queue.task_done()
+            Thread(target=worker, daemon=True).start()
 
             def endless_loop(cycle_delay=5):
-                """ Действия, которые должны выполняться в другом потоке, вне цикла раннера """
                 while True:
                     try:
                         set_funpay_bot(fpbot)
@@ -213,7 +273,7 @@ class FunPayBot:
                         
                         if fpbot.initialized_users != data.get("initialized_users"): data.set("initialized_users", fpbot.initialized_users)
                         if fpbot.categories_raise_time != data.get("categories_raise_time"): data.set("categories_raise_time", fpbot.categories_raise_time)
-                        if fpbot.auto_support_tickets != data.get("auto_support_tickets"): data.set("auto_support_tickets", fpbot.auto_support_tickets)
+                        if fpbot.auto_support_tickets != data.get("auto_support_tickets"): fpbot.auto_support_tickets = data.get("auto_support_tickets")
                         fpbot.config = sett.get("config") if fpbot.config != sett.get("config") else fpbot.config
                         fpbot.messages = sett.get("messages") if fpbot.messages != sett.get("messages") else fpbot.messages
                         fpbot.custom_commands = sett.get("custom_commands") if fpbot.custom_commands != sett.get("custom_commands") else fpbot.custom_commands
@@ -227,55 +287,21 @@ class FunPayBot:
                                                           proxy=proxy or None).get()
                             self.refresh_funpay_account_next_time = datetime.now() + timedelta(seconds=3600)
 
+                        # --- Автоматическое поднятие лотов ---
                         if fpbot.config["funpay"]["bot"]["auto_raising_lots_enabled"] and datetime.now() > fpbot.lots_raise_next_time:
-                            fpbot.raise_lots()
+                            self.task_queue.put((fpbot.raise_lots, (), {}))
 
-                        if fpbot.config["funpay"]["bot"]["auto_support_tickets_enabled"] and datetime.now() > datetime.fromisoformat(self.auto_support_tickets["next_time"]):
-                            support_api = FunPaySupportAPI(fpbot.funpay_account).get()
-
-                            def calculate_orders(all_orders, orders_per_ticket=25):
-                                return [all_orders[i:i+orders_per_ticket] for i in range(0, len(all_orders), orders_per_ticket)]
-
-                            all_sales: list[fpapi_types.OrderShortcut] = []
-                            start_from = self.auto_support_tickets["next_start_from"] if self.auto_support_tickets["next_start_from"] != None else None
-                            while len(all_sales) < fpbot.funpay_account.active_sales:
-                                sales = fpbot.funpay_account.get_sales(start_from=start_from, include_paid=True, include_closed=False, include_refunded=False)
-                                for sale in sales[1]:
-                                    all_sales.append(sale)
-                                start_from = sales[0]
-                                time.sleep(0.5)
-                            
-                            order_ids = calculate_orders([order.id for order in all_sales])
-                            ticketed_orders = []
-                            for order_ids_per_ticket in order_ids:
-                                formatted_order_ids = ", ".join(order_ids_per_ticket)
-                                resp: dict = support_api.create_ticket(formatted_order_ids, f"Здравствуйте! Прошу подтвердить заказы, ожидающие подтверждения: {formatted_order_ids}. С уважением, {fpbot.funpay_account.username}!")
-                                if resp.get("error") or not resp.get("action") or resp["action"]["message"] != "Ваша заявка отправлена.":
-                                    self.auto_support_tickets["next_start_from"] = order_ids_per_ticket[0]
-                                    break
-                                ticketed_orders.extend(order_ids_per_ticket)
-                            else:
-                                self.auto_support_tickets["next_start_from"] = None
-                            self.auto_support_tickets["next_time"] = (datetime.now() + timedelta(seconds=fpbot.config["funpay"]["bot"]["auto_support_tickets_create_interval"])).isoformat()
-                            
-                            if len(ticketed_orders) == 0 and self.auto_support_tickets["next_start_from"] is not None:
-                                self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось создать тикеты в тех. поддержку по причине: {Fore.WHITE}{resp.get('error') if resp else 'Неизвестная ошибка.'}")
-                            elif len(ticketed_orders) >= 0:
-                                self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}📞  Создал {Fore.LIGHTWHITE_EX}{len(calculate_orders(ticketed_orders))} тикета(-ов) в тех. поддержку {Fore.LIGHTYELLOW_EX}на закрытие {Fore.LIGHTWHITE_EX}{len(ticketed_orders)} заказов")
-                            self.logger.info(f"{PREFIX} Следующая попытка будет {Fore.LIGHTWHITE_EX}{datetime.fromisoformat(self.auto_support_tickets['next_time']).strftime(f'%d.%m{Fore.WHITE} в {Fore.LIGHTWHITE_EX}%H:%M')}")
-                    except fpapi_exceptions.RequestFailedError as e:
-                        if e.status_code == 429:
-                            self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}В бесконечном цикле произошла ошибка 429 слишком частых запросов. Жду 10 секунд и пробую снова")
-                            time.sleep(10)
-                        else:
-                            self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}В бесконечном цикле произошла ошибка запроса {e.status_code}: {Fore.WHITE}\n{e}")
+                        # --- Автоматическое создание тикетов в поддержку на закрытие заказов ---
+                        if datetime.now() >= (datetime.fromisoformat(self.auto_support_tickets["last_time"]) + timedelta(seconds=self.config["funpay"]["bot"]["auto_support_tickets_create_interval"])) if self.auto_support_tickets["last_time"] else datetime.now():
+                            self.auto_support_tickets["last_time"] = datetime.now().isoformat()
+                            data.set("auto_support_tickets", self.auto_support_tickets)
+                            self.task_queue.put((fpbot.create_support_tickets, (), {}))
                     except Exception:
                         self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}В бесконечном цикле произошла ошибка: {Fore.WHITE}")
                         traceback.print_exc()
                     time.sleep(cycle_delay)
 
-            endless_loop_thread = Thread(target=endless_loop, daemon=True)
-            endless_loop_thread.start()
+            Thread(target=endless_loop, daemon=True).start()
         
         bot_event_handlers = HandlersManager.get_bot_event_handlers()
         bot_event_handlers["ON_FUNPAY_BOT_INIT"].insert(0, handler_on_funpay_bot_init)
@@ -344,12 +370,6 @@ class FunPayBot:
                                                                                         order_price=order.sum))
                         except Exception as e:
                             self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При оставлении ответа на отзыв заказа произошла ошибка: {Fore.WHITE}{e}")
-            except fpapi_exceptions.RequestFailedError as e:
-                if e.status_code == 429:
-                    self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента новых сообщений произошла ошибка 429 слишком частых запросов. Жду 10 секунд и пробую снова")
-                    time.sleep(10)
-                else:
-                    self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента новых сообщений произошла ошибка {e.status_code}: {Fore.WHITE}\n{e}")
             except Exception:
                 self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента новых сообщений произошла ошибка: {Fore.WHITE}")
                 traceback.print_exc()
@@ -365,12 +385,6 @@ class FunPayBot:
                     if lot:
                         if str(lot.id) in self.auto_deliveries.keys():
                             self.funpay_account.send_message(this_chat.id, "\n".join(self.auto_deliveries[str(lot.id)]))
-            except fpapi_exceptions.RequestFailedError as e:
-                if e.status_code == 429:
-                    self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента новых заказов произошла ошибка 429 слишком частых запросов. Жду 10 секунд и пробую снова")
-                    time.sleep(10)
-                else:
-                    self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента новых заказов произошла ошибка {e.status_code}: {Fore.WHITE}\n{e}")
             except Exception:
                 self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента новых заказов произошла ошибка: {Fore.WHITE}{traceback.print_exc()}")
             
@@ -396,12 +410,6 @@ class FunPayBot:
                     if event.order.status is OrderStatuses.CLOSED:
                         chat = fpbot.funpay_account.get_chat_by_name(event.order.buyer_username, True)
                         fpbot.funpay_account.send_message(chat.id, fpbot.msg("order_confirmed"))
-            except fpapi_exceptions.RequestFailedError as e:
-                if e.status_code == 429:
-                    self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента смены статуса заказа произошла ошибка 429 слишком частых запросов. Жду 10 секунд и пробую снова")
-                    time.sleep(10)
-                else:
-                    self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента смены статуса заказа произошла ошибка {e.status_code}: {Fore.WHITE}\n{e}")
             except Exception:
                 self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента смены статуса заказа произошла ошибка: {Fore.WHITE}{traceback.print_exc()}")
             
@@ -425,10 +433,9 @@ class FunPayBot:
                         self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Ошибка при обработке хендлера ивента ON_FUNPAY_BOT_INIT: {Fore.WHITE}{e}")
         handle_on_funpay_bot_init()
 
-        self.logger.info(f"{PREFIX} FunPay бот запущен и активен на аккаунте {Fore.LIGHTWHITE_EX}{self.funpay_account.username}{Fore.WHITE}, баланс {Fore.LIGHTWHITE_EX}{self.funpay_account.total_balance} {self.funpay_account.currency.name}{Fore.WHITE}")
-        if self.config["funpay"]["api"]["proxy"]:
-            ip_port = self.config['funpay']['api']['proxy'].split("@")[1] if "@" in self.config['funpay']['api']['proxy'] else self.config['funpay']['api']['proxy']
-            self.logger.info(f"{PREFIX} FunPay бот подключен к прокси {Fore.LIGHTWHITE_EX}{ip_port}")
+        self.stats.bot_launch_time = datetime.now()
+        set_stats(self.stats)
+        self.logger.info(f"{PREFIX} Слушатель событий запущен")
         runner = Runner(self.funpay_account)
         for event in runner.listen(requests_delay=self.config["funpay"]["api"]["runner_requests_delay"]):
             funpay_event_handlers = HandlersManager.get_funpay_event_handlers() # чтобы каждый раз брать свежие хендлеры, ибо модули могут отключаться/включаться
@@ -436,11 +443,5 @@ class FunPayBot:
                 for handler in funpay_event_handlers[event.type]:
                     try:
                         await handler(self, event)
-                    except fpapi_exceptions.RequestFailedError as e:
-                        if e.status_code == 429:
-                            self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Ошибка 429 слишком частых запросов при обработке хендлера {handler} в ивенте {event.type.name}. Жду 10 секунд и пробую снова")
-                            time.sleep(10)
-                        else:
-                            self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Ошибка {e.status_code} слишком частых запросов при обработке хендлера {handler} в ивенте {event.type.name}: {Fore.WHITE}\n{e}")
                     except Exception as e:
                         self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Ошибка при обработке хендлера {handler} в ивенте {event.type.name}: {Fore.WHITE}{e}")

@@ -4,6 +4,10 @@ import ctypes
 import logging
 from colorlog import ColoredFormatter
 from colorama import Fore
+import pkg_resources
+import subprocess
+
+
 
 def restart():
     """ 
@@ -59,3 +63,36 @@ def setup_logger():
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
     logger.addHandler(console_handler)
+    
+def is_package_installed(requirement_string: str) -> bool:
+    """ Проверяет, установлена ли библотека. """
+    try:
+        pkg_resources.require(requirement_string)
+        return True
+    except (pkg_resources.DistributionNotFound, pkg_resources.VersionConflict):
+        return False
+
+def install_requirements(requirements_path: str):
+    """
+    Устанавливает зависимости с файла requirements.txt,
+    если они не установлены.
+
+    :param requirements_path: Путь к файлу requirements.txt.
+    :type requirements_path: str
+    """
+    if not os.path.exists(requirements_path):
+        return
+    with open(requirements_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    missing_packages = []
+    for line in lines:
+        pkg = line.strip()
+        if not pkg or pkg.startswith("#"):
+            continue
+        if not is_package_installed(pkg):
+            missing_packages.append(pkg)
+
+    if missing_packages:
+        print(f"{Fore.WHITE}⚙️  Установка недостающих зависимостей: {Fore.LIGHTYELLOW_EX}{f'{Fore.WHITE}, {Fore.LIGHTYELLOW_EX}'.join(missing_packages)}{Fore.WHITE}")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", *missing_packages])

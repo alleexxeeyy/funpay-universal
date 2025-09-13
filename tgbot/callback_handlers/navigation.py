@@ -16,6 +16,8 @@ async def callback_menu_navigation(callback: CallbackQuery, callback_data: calls
     to = callback_data.to
     if to == "default":
         await throw_float_message(state, callback.message, templ.menu_text(), templ.menu_kb(), callback)
+    elif to == "events":
+        await throw_float_message(state, callback.message, templ.events_text(), templ.events_kb(), callback)
     elif to == "stats":
         await throw_float_message(state, callback.message, templ.stats_text(), templ.stats_kb(), callback)
     elif to == "profile":

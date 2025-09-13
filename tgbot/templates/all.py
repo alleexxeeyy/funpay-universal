@@ -4,10 +4,12 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 import math
 import textwrap
+from datetime import datetime, timedelta
 
 from .. import callback_datas as calls
 from fpbot import get_funpay_bot
 from settings import Settings as sett
+from data import Data as data
 from fpbot.stats import get_stats
 
 from uuid import UUID
@@ -77,6 +79,7 @@ def menu_kb():
         [
         InlineKeyboardButton(text="⚙️", callback_data=calls.SettingsNavigation(to="default").pack()), 
         InlineKeyboardButton(text="👤", callback_data=calls.MenuNavigation(to="profile").pack()), 
+        InlineKeyboardButton(text="🚩", callback_data=calls.MenuNavigation(to="events").pack()),
         InlineKeyboardButton(text="🔌", callback_data=calls.ModulesPagination(page=0).pack()),
         InlineKeyboardButton(text="📊", callback_data=calls.MenuNavigation(to="stats").pack())
         ],
@@ -117,6 +120,41 @@ def stats_kb():
     ]
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     return kb
+
+
+def events_text():
+    config = sett.get("config")
+    auto_support_tickets = data.get("auto_support_tickets")
+    last_auto_support_tickets_create = (datetime.fromisoformat(auto_support_tickets["last_time"]).strftime("%d.%m.%Y %H:%M")) if auto_support_tickets.get("last_time") else "❌ Не было"
+    next_auto_support_tickets_create = ((datetime.fromisoformat(auto_support_tickets["last_time"]) if auto_support_tickets.get("last_time") else datetime.now()) + timedelta(seconds=config["funpay"]["bot"]["auto_support_tickets_create_interval"])).strftime("%d.%m.%Y %H:%M")
+    txt = textwrap.dedent(f"""
+        🚩 <b>Ивенты</b>
+
+        📆📞 <b>Создание тикетов на закрытие заказов:</b>
+        ┣ <b>Последнее:</b> {last_auto_support_tickets_create}
+        ┗ <b>Следующее:</b> {next_auto_support_tickets_create}
+
+        Выберите действие ↓
+    """)
+    return txt
+
+def events_kb():
+    rows = [
+        [InlineKeyboardButton(text="📞 Создать тикеты на закрытие заказов", callback_data="confirm_creating_support_tickets")],
+        [
+        InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.MenuNavigation(to="default").pack()), 
+        InlineKeyboardButton(text="🔄️ Обновить", callback_data=calls.MenuNavigation(to="events").pack())
+        ]
+    ]
+    kb = InlineKeyboardMarkup(inline_keyboard=rows)
+    return kb
+
+def events_float_text(placeholder: str):
+    txt = textwrap.dedent(f"""
+        🚩 <b>Ивенты</b>
+        \n{placeholder}
+    """)
+    return txt
 
 
 def profile_text():
@@ -300,7 +338,7 @@ def settings_conn_kb():
         InlineKeyboardButton(text="🔄️ Обновить", callback_data=calls.SettingsNavigation(to="conn").pack())
         ]
     ]
-    if config["funpay"]["api"]["proxy"]: rows.insert(0, [InlineKeyboardButton(text=f"❌🌐 Убрать прокси", callback_data="remove_proxy")])
+    if config["funpay"]["api"]["proxy"]: rows[0].append(InlineKeyboardButton(text=f"❌🌐 Убрать прокси", callback_data="remove_proxy"))
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     return kb
 
@@ -775,7 +813,7 @@ def settings_other_kb():
         [InlineKeyboardButton(text=f"💬 Авто-ответы на отзывы: {auto_reviews_replies_enabled}", callback_data="switch_auto_reviews_replies_enabled")],
         [InlineKeyboardButton(text=f"👋 Приветственное сообщение: {first_message_enabled}", callback_data="switch_first_message_enabled")],
         [InlineKeyboardButton(text=f"🔧 Пользовательские команды: {custom_commands_enabled}", callback_data="switch_custom_commands_enabled")],
-        [InlineKeyboardButton(text=f"🚀 Авто-выдача: {auto_deliveries_enabled}", callback_data="switch_auto_delivery_enabled")],
+        [InlineKeyboardButton(text=f"🚀 Авто-выдача: {auto_deliveries_enabled}", callback_data="switch_auto_deliveries_enabled")],
         [InlineKeyboardButton(text=f"©️ Водяной знак под сообщениями: {messages_watermark_enabled}", callback_data="switch_messages_watermark_enabled")],
         [InlineKeyboardButton(text=f"✍️©️ Водяной знак: {messages_watermark}", callback_data="enter_messages_watermark")],
         [
@@ -866,7 +904,7 @@ def module_page_kb(module_uuid: UUID, page: int = 0):
     rows = [
         [InlineKeyboardButton(text="🔴 Отключить модуль" if module.enabled else "🟢 Подключить модуль", callback_data="switch_module_enabled")],
         [
-        InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.MenuNavigation(to="default").pack()),
+        InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.ModulesPagination(page=page).pack()),
         InlineKeyboardButton(text="🔄️ Обновить", callback_data=calls.ModulePage(uuid=module_uuid).pack())
         ]
     ]

@@ -1,16 +1,14 @@
 import os
 import sys
 import importlib
-import pkg_resources
 import uuid
 from uuid import UUID
-import subprocess
 from colorama import Fore
 from logging import getLogger
 logger = getLogger("universal")
 
 from core.handlers_manager import HandlersManager as handlers_m
-from tgbot import get_telegram_bot
+from core.console import install_requirements
 
 
 
@@ -261,38 +259,6 @@ class ModulesManager:
         modules_path = "modules"
         os.makedirs(modules_path, exist_ok=True)
 
-        def is_package_installed(requirement_string: str) -> bool:
-            """ Проверяет, установлена ли библотека. """
-            try:
-                pkg_resources.require(requirement_string)
-                return True
-            except (pkg_resources.DistributionNotFound, pkg_resources.VersionConflict):
-                return False
-
-        def install_requirements(requirements_path: str):
-            """
-            Устанавливает зависимости с файла requirements.txt,
-            если они не установлены.
-
-            :param requirements_path: Путь к файлу requirements.txt.
-            :type requirements_path: str
-            """
-            if not os.path.exists(requirements_path):
-                return
-            with open(requirements_path, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-
-            missing_packages = []
-            for line in lines:
-                pkg = line.strip()
-                if not pkg or pkg.startswith("#"):
-                    continue
-                if not is_package_installed(pkg):
-                    missing_packages.append(pkg)
-
-            if missing_packages:
-                subprocess.check_call([sys.executable, "-m", "pip", "install", *missing_packages])
-
         for name in os.listdir(modules_path):
             bot_event_handlers = {}
             funpay_event_handlers = {}
@@ -349,7 +315,7 @@ class ModulesManager:
             except Exception as e:
                 print(f"{Fore.LIGHTRED_EX}Ошибка при подключении модуля {module.meta.name}: {Fore.WHITE}{e}")
                 continue
-        print(f'{Fore.WHITE}🔌 Подключено {Fore.LIGHTWHITE_EX}{len(modules)} модуля(-ей): {f"{Fore.WHITE}, ".join(names)}')
+        print(f'{Fore.WHITE}🔌  Подключено {Fore.LIGHTWHITE_EX}{len(modules)} модуля(-ей): {f"{Fore.WHITE}, ".join(names)}')
         
         def handle_on_module_connected():
             """ 

@@ -14,7 +14,7 @@ DATA = {
     "auto_support_tickets": {
         "path": "bot_data/auto_support_tickets.json",
         "default": {
-            "next_time": datetime.now().isoformat(),
+            "last_time": None,
             "next_start_from": None
         }
     }
