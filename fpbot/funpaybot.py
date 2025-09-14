@@ -284,7 +284,7 @@ class FunPayBot:
                             self.funpay_account = Account(golden_key=self.config["funpay"]["api"]["golden_key"],
                                                           user_agent=self.config["funpay"]["api"]["user_agent"],
                                                           requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
-                                                          proxy=proxy or None).get()
+                                                          proxy=proxy or None).get(update_phpsessid=True)
                             self.refresh_funpay_account_next_time = datetime.now() + timedelta(seconds=3600)
 
                         # --- Автоматическое поднятие лотов ---
@@ -350,7 +350,7 @@ class FunPayBot:
                             asyncio.run_coroutine_threadsafe(get_telegram_bot().call_seller(event.message.author, this_chat.id), get_telegram_bot_loop())
                             fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("buyer_command_seller"))
                         except Exception as e:
-                            self.logger.log(f"{PREFIX} {Fore.LIGHTRED_EX}При вводе команды \"!продавец\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}") # ПРОЧЕКАТЬ, НЕ ДОХОДИТ ОПОВЕЩЕНИЕ В ТГ
+                            self.logger.log(f"{PREFIX} {Fore.LIGHTRED_EX}При вводе команды \"!продавец\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
                             fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("command_error"))
 
                 if event.message.type is MessageTypes.NEW_FEEDBACK:

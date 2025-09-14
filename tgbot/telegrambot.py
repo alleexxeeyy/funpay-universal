@@ -24,7 +24,10 @@ PREFIX = f"{Fore.LIGHTCYAN_EX}[TG]{Fore.WHITE}"
 
 class TelegramBot:
     """
-    Класс, описывающий Telegram бота
+    Класс, описывающий Telegram бота.
+
+    :param bot_token: Токен бота.
+    :type bot_token: `str`
     """
 
     def __init__(self, bot_token: str):
