@@ -144,9 +144,7 @@ class FunPayBot:
                 continue
             for _, lot in lot_data.items():
                 if lot.title:
-                    # метрика по подстроке
                     score = fuzz.partial_ratio(title, lot.title)
-                    # можно дополнительно
                     token_score = fuzz.token_set_ratio(title, lot.title)
                     score = max(score, token_score)
                     candidates.append((score, lot))
@@ -285,7 +283,7 @@ class FunPayBot:
                                                           user_agent=self.config["funpay"]["api"]["user_agent"],
                                                           requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
                                                           proxy=proxy or None).get(update_phpsessid=True)
-                            self.refresh_funpay_account_next_time = datetime.now() + timedelta(seconds=3600)
+                            self.refresh_funpay_account_next_time = datetime.now() + timedelta(seconds=2400)
 
                         # --- Автоматическое поднятие лотов ---
                         if fpbot.config["funpay"]["bot"]["auto_raising_lots_enabled"] and datetime.now() > fpbot.lots_raise_next_time:
