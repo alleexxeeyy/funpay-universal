@@ -244,8 +244,10 @@ class FunPayBot:
                                                         image_id, add_to_ignore_list, 
                                                         update_last_saved_message, leave_as_unread)
                 return mess
-            except:
+            except (fpapi_exceptions.MessageNotDeliveredError, fpapi_exceptions.RequestFailedError):
                 continue
+            except:
+                break
         self.logger.error(f"{PREFIX} Не удалось отправить сообщение {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}")
 
     def log_to_tg(self, text: str):
@@ -315,9 +317,12 @@ class FunPayBot:
 
             def worker():
                 while True:
-                    func, args, kwargs = self.task_queue.get()
-                    func(*args, **kwargs)
-                    self.task_queue.task_done()
+                    try:
+                        func, args, kwargs = self.task_queue.get()
+                        func(*args, **kwargs)
+                        self.task_queue.task_done()
+                    except Exception as e:
+                        self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Произошла ошибка при обработке задания в очереди: {Fore.WHITE}{e}")
             Thread(target=worker, daemon=True).start()
 
             def endless_loop(cycle_delay=5):
