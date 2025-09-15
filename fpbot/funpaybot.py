@@ -1,6 +1,7 @@
 import asyncio
 import time
 from datetime import datetime, timedelta
+from typing import  Optional
 import time
 import traceback
 from threading import Thread
@@ -123,7 +124,8 @@ class FunPayBot:
                 pass
         return "Не удалось получить сообщение"
     
-    def get_lot_by_order_title(self, title: str, subcategory: types.SubCategory) -> types.LotShortcut:
+    def get_lot_by_order_title(self, title: str, subcategory: types.SubCategory,
+                               max_attempts: int = 3) -> types.LotShortcut:
         """
         Получает лот по названию заказа.
 
@@ -136,23 +138,34 @@ class FunPayBot:
         :return: Объект лота.
         :rtype: `FunPayAPI.types.LotShortcut`
         """
-        profile = self.funpay_account.get_user(self.funpay_account.id)
-        lots = profile.get_sorted_lots(2)
-        candidates = []
-        for lot_subcat, lot_data in lots.items():
-            if subcategory and lot_subcat.id != subcategory.id:
+        for _ in range(max_attempts-1):
+            try:
+                profile = self.funpay_account.get_user(self.funpay_account.id)
+                lots = profile.get_sorted_lots(2)
+                candidates = []
+                for lot_subcat, lot_data in lots.items():
+                    if subcategory and lot_subcat.id != subcategory.id:
+                        continue
+                    for _, lot in lot_data.items():
+                        if not lot.title:
+                            continue
+                        if lot.title.strip() == title.strip():
+                            return lot
+                        score = fuzz.partial_ratio(title, lot.title)
+                        token_score = fuzz.token_set_ratio(title, lot.title)
+                        score = max(score, token_score)
+                        candidates.append((score, lot))
+                if not candidates:
+                    return None
+                candidates.sort(key=lambda x: x[0], reverse=True)
+                best_score, best_lot = candidates[0]
+                result = best_lot if best_score >= 70 else None
+                if not result:
+                    continue
+                return result
+            except:
                 continue
-            for _, lot in lot_data.items():
-                if lot.title:
-                    score = fuzz.partial_ratio(title, lot.title)
-                    token_score = fuzz.token_set_ratio(title, lot.title)
-                    score = max(score, token_score)
-                    candidates.append((score, lot))
-        if not candidates:
-            return None
-        candidates.sort(key=lambda x: x[0], reverse=True)
-        best_score, best_lot = candidates[0]
-        return best_lot if best_score >= 70 else None
+        self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось получить лот по названию заказа {Fore.LIGHTWHITE_EX}«{title}»")
     
     def raise_lots(self):
         """
@@ -190,6 +203,50 @@ class FunPayBot:
                 self.lots_raise_next_time = datetime.fromisoformat(self.categories_raise_time[category])
         if len(raised_categories) > 0:
             self.logger.info(f'{PREFIX} {Fore.LIGHTYELLOW_EX}↑ Подняты категории: {Fore.LIGHTWHITE_EX}{f"{Fore.WHITE}, {Fore.LIGHTWHITE_EX}".join(map(str, raised_categories))}')
+
+    def send_message(self, chat_id: int | str, text: Optional[str] = None, chat_name: Optional[str] = None,
+                     interlocutor_id: Optional[int] = None, image_id: Optional[int] = None, add_to_ignore_list: bool = True,
+                     update_last_saved_message: bool = False, leave_as_unread: bool = False, max_attempts: int = 3) -> types.Message:
+        """
+        Кастомный метод отправки сообщения в чат FunPay.
+        Пытается отправить за 3 попытки, если не удаётся.
+        
+        :param chat_id: ID чата.
+        :type chat_id: :obj:`int` or :obj:`str`
+
+        :param text: текст сообщения.
+        :type text: :obj:`str` or :obj:`None`, опционально
+
+        :param chat_name: название чата (для возвращаемого объекта сообщения) (не нужно для отправки сообщения в публичный чат).
+        :type chat_name: :obj:`str` or :obj:`None`, опционально
+
+        :param interlocutor_id: ID собеседника (не нужно для отправки сообщения в публичный чат).
+        :type interlocutor_id: :obj:`int` or :obj:`None`, опционально
+
+        :param image_id: ID изображения. Доступно только для личных чатов.
+        :type image_id: :obj:`int` or :obj:`None`, опционально
+
+        :param add_to_ignore_list: добавлять ли ID отправленного сообщения в игнорируемый список Runner'а?
+        :type add_to_ignore_list: :obj:`bool`, опционально
+
+        :param update_last_saved_message: обновлять ли последнее сохраненное сообщение на отправленное в Runner'е?
+        :type update_last_saved_message: :obj:`bool`, опционально.
+
+        :param leave_as_unread: оставлять ли сообщение непрочитанным при отправке?
+        :type leave_as_unread: :obj:`bool`, опционально
+
+        :return: экземпляр отправленного сообщения.
+        :rtype: :class:`FunPayAPI.types.Message`
+        """
+        for _ in range(max_attempts-1):
+            try:
+                mess = self.funpay_account.send_message(chat_id, text, chat_name, interlocutor_id, 
+                                                        image_id, add_to_ignore_list, 
+                                                        update_last_saved_message, leave_as_unread)
+                return mess
+            except:
+                continue
+        self.logger.error(f"{PREFIX} Не удалось отправить сообщение {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}")
 
     def log_to_tg(self, text: str):
         """
@@ -231,7 +288,7 @@ class FunPayBot:
                     self.auto_support_tickets["next_start_from"] = order_ids_per_ticket[0]
                     break
                 ticketed_orders.extend(order_ids_per_ticket)
-                self.logger.info(f"{PREFIX} {Fore.LIGHTWHITE_EX}{resp['action']['url']} (https://support.funpay.com{resp['action']['url']}) {Fore.WHITE}— тикет создан для {Fore.LIGHTYELLOW_EX}{len(order_ids_per_ticket)} заказов")
+                self.logger.info(f"{PREFIX} {Fore.LIGHTWHITE_EX}{resp['action']['url'].split('/')[-1]} (https://support.funpay.com{resp['action']['url']}) {Fore.WHITE}— тикет создан для {Fore.LIGHTYELLOW_EX}{len(order_ids_per_ticket)} заказов")
             else:
                 self.auto_support_tickets["next_start_from"] = None
             self.auto_support_tickets["last_time"] = (datetime.now() + timedelta(seconds=fpbot.config["funpay"]["bot"]["auto_support_tickets_create_interval"])).isoformat()
@@ -323,7 +380,7 @@ class FunPayBot:
                     try:
                         if self.config["funpay"]["bot"]["first_message_enabled"]:
                             if event.message.type is MessageTypes.NON_SYSTEM and event.message.author == this_chat.name:
-                                fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("user_not_initialized", username=event.message.author))
+                                fpbot.send_message(this_chat.id, fpbot.msg("user_not_initialized", username=event.message.author))
                         fpbot.initialized_users.append(this_chat.name)
                     except Exception as e:
                         self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При отправке приветственного сообщения для {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
@@ -333,23 +390,23 @@ class FunPayBot:
                         if event.message.text in self.custom_commands.keys():
                             try:
                                 message = "\n".join(self.custom_commands[event.message.text])
-                                fpbot.funpay_account.send_message(this_chat.id, message)
+                                fpbot.send_message(this_chat.id, message)
                             except Exception as e:
                                 self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При вводе пользовательской команды \"{event.message.text}\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
-                                fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("command_error"))
+                                fpbot.send_message(this_chat.id, fpbot.msg("command_error"))
                     if str(event.message.text).lower() == "!команды" or str(event.message.text).lower() == "!commands":
                         try:
-                            fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("buyer_command_commands"))
+                            fpbot.send_message(this_chat.id, fpbot.msg("buyer_command_commands"))
                         except Exception as e:
                             self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При вводе команды \"!команды\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
-                            fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("command_error"))
+                            fpbot.send_message(this_chat.id, fpbot.msg("command_error"))
                     elif str(event.message.text).lower() == "!продавец" or str(event.message.text).lower() == "!seller":
                         try:
                             asyncio.run_coroutine_threadsafe(get_telegram_bot().call_seller(event.message.author, this_chat.id), get_telegram_bot_loop())
-                            fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("buyer_command_seller"))
+                            fpbot.send_message(this_chat.id, fpbot.msg("buyer_command_seller"))
                         except Exception as e:
                             self.logger.log(f"{PREFIX} {Fore.LIGHTRED_EX}При вводе команды \"!продавец\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
-                            fpbot.funpay_account.send_message(this_chat.id, fpbot.msg("command_error"))
+                            fpbot.send_message(this_chat.id, fpbot.msg("command_error"))
 
                 if event.message.type is MessageTypes.NEW_FEEDBACK:
                     review_author = event.message.text.split(' ')[1]
@@ -382,7 +439,7 @@ class FunPayBot:
                     lot = self.get_lot_by_order_title(event.order.description, event.order.subcategory)
                     if lot:
                         if str(lot.id) in self.auto_deliveries.keys():
-                            self.funpay_account.send_message(this_chat.id, "\n".join(self.auto_deliveries[str(lot.id)]))
+                            fpbot.send_message(this_chat.id, "\n".join(self.auto_deliveries[str(lot.id)]))
             except Exception:
                 self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента новых заказов произошла ошибка: {Fore.WHITE}{traceback.print_exc()}")
             
@@ -407,7 +464,7 @@ class FunPayBot:
                 if event.order.status is OrderStatuses.CLOSED or event.order.status is OrderStatuses.REFUNDED:
                     if event.order.status is OrderStatuses.CLOSED:
                         chat = fpbot.funpay_account.get_chat_by_name(event.order.buyer_username, True)
-                        fpbot.funpay_account.send_message(chat.id, fpbot.msg("order_confirmed"))
+                        fpbot.send_message(chat.id, fpbot.msg("order_confirmed"))
             except Exception:
                 self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента смены статуса заказа произошла ошибка: {Fore.WHITE}{traceback.print_exc()}")
             
