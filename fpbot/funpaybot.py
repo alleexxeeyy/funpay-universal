@@ -246,9 +246,12 @@ class FunPayBot:
                 return mess
             except (fpapi_exceptions.MessageNotDeliveredError, fpapi_exceptions.RequestFailedError):
                 continue
-            except:
-                break
-        self.logger.error(f"{PREFIX} Не удалось отправить сообщение {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}")
+            except Exception as e:
+                text = text.replace('\n', '').strip()
+                self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Ошибка при отправке сообщения {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}: {Fore.WHITE}{e}")
+                return
+        text = text.replace('\n', '').strip()
+        self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось отправить сообщение {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}")
 
     def log_to_tg(self, text: str):
         """
@@ -315,12 +318,19 @@ class FunPayBot:
         def handler_on_funpay_bot_init(fpbot: FunPayBot):
             """ Начальный хендлер ON_INIT """
 
-            def worker():
+            def worker(time_to_sleep=10, global_attempt=0):
                 while True:
                     try:
                         func, args, kwargs = self.task_queue.get()
                         func(*args, **kwargs)
                         self.task_queue.task_done()
+                    except fpapi_exceptions.RequestFailedError as e:
+                        if e.status_code == 429:
+                            time_to_sleep = time_to_sleep + global_attempt * 2
+                            self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Произошла ошибка 429 частых запросов при обработке хендлера {func.__name__} в очереди. Жду {time_to_sleep} секунд и пробую снова.")
+                            time.sleep(time_to_sleep)
+                            global_attempt += 1
+                            self.task_queue.put(func, args, kwargs)
                     except Exception as e:
                         self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Произошла ошибка при обработке задания в очереди: {Fore.WHITE}{e}")
             Thread(target=worker, daemon=True).start()
