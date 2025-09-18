@@ -6,6 +6,9 @@ from colorlog import ColoredFormatter
 from colorama import Fore
 import pkg_resources
 import subprocess
+import requests
+import random
+import time
 
 
 
@@ -96,3 +99,31 @@ def install_requirements(requirements_path: str):
     if missing_packages:
         print(f"{Fore.WHITE}⚙️  Установка недостающих зависимостей: {Fore.LIGHTYELLOW_EX}{f'{Fore.WHITE}, {Fore.LIGHTYELLOW_EX}'.join(missing_packages)}{Fore.WHITE}")
         subprocess.check_call([sys.executable, "-m", "pip", "install", *missing_packages])
+
+def patch_requests_429_backoff():
+    """
+    Патчит запросы requests на кастомные, с обработкой
+    429 Too Many Requests и повторной отправкой запроса при этой ошибке.
+    """
+    _orig_request = requests.Session.request
+
+    def _request(self, method, url, **kwargs):  # type: ignore
+        for attempt in range(6):
+            resp = _orig_request(self, method, url, **kwargs)
+            try:
+                text_head = (resp.text or "")[:1200]
+            except Exception:
+                text_head = ""
+            is_429 = getattr(resp, "status_code", None) == 429 or "Too Many Requests" in text_head
+            if not is_429:
+                return resp
+
+            retry_hdr = resp.headers.get("Retry-After")
+            try:
+                delay = float(retry_hdr) if retry_hdr else min(120.0, 5.0 * (2 ** attempt))
+            except Exception:
+                delay = min(120.0, 5.0 * (2 ** attempt))
+            delay += random.uniform(0.2, 0.8)  # небольшой джиттер
+            time.sleep(delay)
+        return resp
+    requests.Session.request = _request  # type: ignore

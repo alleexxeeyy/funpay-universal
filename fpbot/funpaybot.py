@@ -318,20 +318,12 @@ class FunPayBot:
         def handler_on_funpay_bot_init(fpbot: FunPayBot):
             """ Начальный хендлер ON_INIT """
 
-            def worker(time_to_sleep=10, global_attempt=0):
+            def worker():
                 while True:
                     try:
                         func, args, kwargs = self.task_queue.get()
                         func(*args, **kwargs)
                         self.task_queue.task_done()
-                        global_attempt = 0
-                    except fpapi_exceptions.RequestFailedError as e:
-                        if e.status_code == 429:
-                            time_to_sleep = time_to_sleep + global_attempt * 2
-                            self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Произошла ошибка 429 частых запросов при обработке хендлера {func.__name__} в очереди. Жду {time_to_sleep} секунд и пробую снова ({global_attempt+1})")
-                            time.sleep(time_to_sleep)
-                            global_attempt += 1
-                            self.task_queue.put((func, args, kwargs))
                     except Exception as e:
                         self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Произошла ошибка при обработке задания в очереди: {Fore.WHITE}{e}")
             Thread(target=worker, daemon=True).start()

@@ -1,7 +1,7 @@
 from core.modules_manager import ModulesManager
 from core.handlers_manager import HandlersManager
 
-from core.console import set_title, setup_logger, install_requirements
+from core.console import set_title, setup_logger, install_requirements, patch_requests_429_backoff
 import asyncio
 from threading import Thread
 from settings import Settings as sett
@@ -31,6 +31,7 @@ async def start_funpay_bot():
 if __name__ == "__main__":
     try:
         install_requirements("requirements.txt") # установка недостающих зависимостей, если таковые есть
+        patch_requests_429_backoff()
         setup_logger()
         set_title(f"FunPay Universal v{VERSION} by @alleexxeeyy")
         print(f"\n   {ACCENT_COLOR}FunPay Universal {Fore.WHITE}v{Fore.LIGHTWHITE_EX}{VERSION}"
