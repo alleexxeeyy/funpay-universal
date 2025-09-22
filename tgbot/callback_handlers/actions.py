@@ -71,6 +71,7 @@ async def callback_enter_user_agent(callback: CallbackQuery, state: FSMContext):
                               text=templ.settings_auth_float_text(f"🎩 Введите новый <b>user_agent</b> вашего браузера ↓\n┗ Текущее: <code>{user_agent}</code>"), 
                               reply_markup=templ.back_kb(calls.SettingsNavigation(to="auth").pack()))
 
+
 @router.callback_query(F.data == "remove_proxy")
 async def callback_remove_proxy(callback: CallbackQuery, state: FSMContext):
     await state.set_state(None)
@@ -108,6 +109,7 @@ async def callback_enter_funpayapi_runner_requests_delay(callback: CallbackQuery
                                 message=callback.message, 
                                 text=templ.settings_conn_float_text(f"⏱️ Введите новую <b>периодичность запросов</b> (в секундах) ↓\n┗ Текущее: <code>{requests_timeout}</code>"), 
                                 reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack()))
+
 
 @router.callback_query(F.data == "switch_auto_raising_lots_enabled")
 async def callback_switch_auto_raising_lots_enabled(callback: CallbackQuery, state: FSMContext):
@@ -160,8 +162,7 @@ async def callback_enter_messages_watermark(callback: CallbackQuery, state: FSMC
                               message=callback.message, 
                               text=templ.settings_other_float_text(f"✍️©️ Введите новый <b>водяной знак</b> под сообщениями ↓\n┗ Текущее: <code>{messages_watermark}</code>"), 
                               reply_markup=templ.back_kb(calls.SettingsNavigation(to="other").pack()))
-
-
+    
 
 
 @router.callback_query(F.data == "enter_custom_commands_page")
@@ -181,7 +182,7 @@ async def callback_enter_new_custom_command(callback: CallbackQuery, state: FSMC
     await state.set_state(states.CustomCommandsStates.entering_new_custom_command)
     await throw_float_message(state=state, 
                               message=callback.message, 
-                              text=templ.enter_new_deliv_float_text(f"⌨️ Введите <b>новую команду</b> (например, <code>!тест</code>) ↓"), 
+                              text=templ.settings_new_comm_float_text(f"⌨️ Введите <b>новую команду</b> (например, <code>!тест</code>) ↓"), 
                               reply_markup=templ.back_kb(calls.CustomCommandsPagination(page=last_page).pack()))
 
 @router.callback_query(F.data == "add_new_custom_command")
@@ -226,7 +227,7 @@ async def callback_enter_custom_command_answer(callback: CallbackQuery, state: F
         custom_command_answer = "\n".join(custom_commands[custom_command]) or "❌ Не задано"
         await throw_float_message(state=state, 
                                   message=callback.message, 
-                                  text=templ.settings_comm_page_float_text(f"✍️ Введите новый <b>текст ответа</b> команды <code>{custom_command}</code> ↓\n┗ Текущее: <blockquote>{custom_command_answer}</blockquote>"), 
+                                  text=templ.settings_comm_page_float_text(f"💬 Введите новый <b>текст ответа</b> команды <code>{custom_command}</code> ↓\n┗ Текущее: <blockquote>{custom_command_answer}</blockquote>"), 
                                   reply_markup=templ.back_kb(calls.CustomCommandPage(command=custom_command).pack()))
     except Exception as e:
         if e is not TelegramAPIError:
@@ -284,8 +285,6 @@ async def callback_delete_custom_command(callback: CallbackQuery, state: FSMCont
                                       reply_markup=templ.back_kb(calls.CustomCommandsPagination(page=last_page).pack()))
 
 
-
-
 @router.callback_query(F.data == "enter_auto_deliveries_page")
 async def callback_enter_auto_deliveries_page(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -309,6 +308,7 @@ async def callback_enter_new_auto_delivery_lot_id(callback: CallbackQuery, state
 @router.callback_query(F.data == "add_new_auto_delivery")
 async def callback_add_new_auto_delivery(callback: CallbackQuery, state: FSMContext):
     try:
+        await state.set_state(None)
         data = await state.get_data()
         last_page = data.get("last_page") or 0
         auto_deliveries = sett.get("auto_deliveries")
@@ -325,7 +325,6 @@ async def callback_add_new_auto_delivery(callback: CallbackQuery, state: FSMCont
                                   message=callback.message, 
                                   text=templ.settings_deliv_float_text(f"✅ <b>Авто-выдача</b> на лот <code>{new_auto_delivery_lot_id}</code> была добавлена"), 
                                   reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=last_page).pack()))
-        await state.set_state(None)
     except Exception as e:
         if e is not TelegramAPIError:
             data = await state.get_data()

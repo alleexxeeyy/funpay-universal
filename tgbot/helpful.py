@@ -4,10 +4,17 @@ from aiogram.exceptions import TelegramAPIError
 from . import templates as templ
 
 
+async def do_auth(message: Message, state: FSMContext):
+    from . import states
+    await state.set_state(states.SystemStates.entering_password)
+    return await throw_float_message(state=state,
+                                     message=message,
+                                     text=templ.sign_text('🔑 Введите ключ-пароль, указанный вами в конфиге бота ↓\n\n<span class="tg-spoiler">Если вы забыли, его можно посмотреть напрямую в конфиге по пути bot_settings/config.json, параметр password в разделе telegram.bot</span>'),
+                                     reply_markup=templ.destroy_kb())
 
 async def throw_float_message(state: FSMContext, message: Message, text: str, 
                               reply_markup: InlineKeyboardMarkup = None,
-                              callback: CallbackQuery = None):
+                              callback: CallbackQuery = None) -> Message | None:
     """
     Изменяет плавающее сообщение (изменяет текст акцентированного сообщения) или родительское сообщение бота, переданное в аргумент `message`.\n
     Если не удалось найти акцентированное сообщение, или это сообщения - команда, отправит новое акцентированное сообщение.
@@ -65,3 +72,4 @@ async def throw_float_message(state: FSMContext, message: Message, text: str,
                                           text=templ.error_text(e), parse_mode="HTML")
     finally:
         if mess: await state.update_data(accent_message_id=mess.message_id)
+    return mess

@@ -9,7 +9,6 @@ from colorama import Fore
 import queue
 from rapidfuzz import fuzz
 
-
 import settings
 from settings import Settings as sett
 from data import Data as data
@@ -209,7 +208,7 @@ class FunPayBot:
                      update_last_saved_message: bool = False, leave_as_unread: bool = False, max_attempts: int = 3) -> types.Message:
         """
         Кастомный метод отправки сообщения в чат FunPay.
-        Пытается отправить за 3 попытки, если не удаётся.
+        Пытается отправить за 3 попытки, если не удалось - выдаёт ошибку в консоль.
         
         :param chat_id: ID чата.
         :type chat_id: :obj:`int` or :obj:`str`
@@ -238,7 +237,7 @@ class FunPayBot:
         :return: экземпляр отправленного сообщения.
         :rtype: :class:`FunPayAPI.types.Message`
         """
-        for _ in range(max_attempts-1):
+        for _ in range(max_attempts):
             try:
                 mess = self.funpay_account.send_message(chat_id, text, chat_name, interlocutor_id, 
                                                         image_id, add_to_ignore_list, 
@@ -248,10 +247,10 @@ class FunPayBot:
                 continue
             except Exception as e:
                 text = text.replace('\n', '').strip()
-                self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Ошибка при отправке сообщения {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}: {Fore.WHITE}{e}")
+                self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Ошибка при отправке сообщения {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.LIGHTWHITE_EX}{chat_id} {Fore.LIGHTRED_EX}: {Fore.WHITE}{e}")
                 return
         text = text.replace('\n', '').strip()
-        self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось отправить сообщение {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}")
+        self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось отправить сообщение {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.LIGHTWHITE_EX}{chat_id} {Fore.LIGHTRED_EX}")
 
     def log_to_tg(self, text: str):
         """
@@ -318,6 +317,8 @@ class FunPayBot:
         def handler_on_funpay_bot_init(fpbot: FunPayBot):
             """ Начальный хендлер ON_INIT """
 
+            self.stats.bot_launch_time = datetime.now()
+
             def worker():
                 while True:
                     try:
@@ -337,6 +338,7 @@ class FunPayBot:
                         if fpbot.initialized_users != data.get("initialized_users"): data.set("initialized_users", fpbot.initialized_users)
                         if fpbot.categories_raise_time != data.get("categories_raise_time"): data.set("categories_raise_time", fpbot.categories_raise_time)
                         if fpbot.auto_support_tickets != data.get("auto_support_tickets"): fpbot.auto_support_tickets = data.get("auto_support_tickets")
+                        if fpbot.stats != get_stats(): set_stats(fpbot.stats)
                         fpbot.config = sett.get("config") if fpbot.config != sett.get("config") else fpbot.config
                         fpbot.messages = sett.get("messages") if fpbot.messages != sett.get("messages") else fpbot.messages
                         fpbot.custom_commands = sett.get("custom_commands") if fpbot.custom_commands != sett.get("custom_commands") else fpbot.custom_commands
@@ -384,14 +386,14 @@ class FunPayBot:
                                 text += f' <b><a href="{event.message.image_link}">{event.message.image_name}</a></b>'
                             fpbot.log_to_tg(log_text(f'💬 Новое сообщение в <a href="https://funpay.com/chat/?node={event.message.chat_id}">чате</a>', text.strip()))
 
-                if this_chat.name not in fpbot.initialized_users:
-                    try:
-                        if self.config["funpay"]["bot"]["first_message_enabled"]:
+                if self.config["funpay"]["bot"]["first_message_enabled"]:
+                    if this_chat.name not in fpbot.initialized_users:
+                        try:
                             if event.message.type is MessageTypes.NON_SYSTEM and event.message.author == this_chat.name:
                                 fpbot.send_message(this_chat.id, fpbot.msg("user_not_initialized", username=event.message.author))
-                        fpbot.initialized_users.append(this_chat.name)
-                    except Exception as e:
-                        self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При отправке приветственного сообщения для {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
+                            fpbot.initialized_users.append(this_chat.name)
+                        except Exception as e:
+                            self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При отправке приветственного сообщения для {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
 
                 if event.message.author == this_chat.name:
                     if self.config["funpay"]["bot"]["custom_commands_enabled"]:
@@ -466,8 +468,6 @@ class FunPayBot:
                         fpbot.stats.orders_refunded = fpbot.stats.orders_refunded + 1
                 except Exception as e:
                     self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При подсчёте статистики произошла ошибка: {Fore.WHITE}{e}")
-                finally:
-                    set_stats(fpbot.stats)
 
                 if event.order.status is OrderStatuses.CLOSED or event.order.status is OrderStatuses.REFUNDED:
                     if event.order.status is OrderStatuses.CLOSED:
@@ -496,8 +496,6 @@ class FunPayBot:
                         self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Ошибка при обработке хендлера ивента ON_FUNPAY_BOT_INIT: {Fore.WHITE}{e}")
         handle_on_funpay_bot_init()
 
-        self.stats.bot_launch_time = datetime.now()
-        set_stats(self.stats)
         self.logger.info(f"{PREFIX} Слушатель событий запущен")
         runner = Runner(self.funpay_account)
         for event in runner.listen(requests_delay=self.config["funpay"]["api"]["runner_requests_delay"]):

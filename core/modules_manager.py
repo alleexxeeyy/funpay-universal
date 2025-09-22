@@ -10,8 +10,6 @@ logger = getLogger("universal")
 from core.handlers_manager import HandlersManager as handlers_m
 from core.console import install_requirements
 
-
-
 class ModuleMeta:
     """
     Подкласс, содержащий метаданные модуля.

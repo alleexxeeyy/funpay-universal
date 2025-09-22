@@ -2,13 +2,13 @@ import re
 from aiogram import types, Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramAPIError
-import tgbot.callback_datas.all as calls
 
 from .. import templates as templ
-from .. import states as states
+from .. import states
+from .. import callback_datas as calls
+from ..helpful import throw_float_message
 
 from settings import Settings as sett
-from ..helpful import throw_float_message
 
 router = Router()
 
@@ -180,6 +180,29 @@ async def handler_entering_requests_timeout(message: types.Message, state: FSMCo
                                       text=templ.settings_conn_float_text(e), 
                                       reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack()))
 
+@router.message(states.SettingsStates.entering_runner_requests_delay, F.text)
+async def handler_entering_runner_requests_delay(message: types.Message, state: FSMContext):
+    try:
+        await state.set_state(None)
+        if not is_int(message.text.strip()):
+            raise Exception("❌ Вы должны ввести числовое значение")
+        if int(message.text.strip()) < 0:
+            raise Exception("❌ Слишком низкое значение")
+
+        config = sett.get("config")
+        config["funpay"]["api"]["runner_requests_delay"] = int(message.text.strip())
+        sett.set("config", config)
+        await throw_float_message(state=state,
+                                  message=message,
+                                  text=templ.settings_conn_float_text(f"✅ <b>Периодичность запросов</b> была успешна изменена на <b>{message.text.strip()}</b>"),
+                                  reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack()))
+    except Exception as e:
+        if e is not TelegramAPIError:
+            await throw_float_message(state=state,
+                                      message=message,
+                                      text=templ.settings_conn_float_text(e), 
+                                      reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack()))
+            
 
 @router.message(states.SettingsStates.entering_tg_logging_chat_id, F.text)
 async def handler_entering_tg_logging_chat_id(message: types.Message, state: FSMContext):
@@ -252,50 +275,6 @@ async def handler_entering_auto_support_tickets_create_interval(message: types.M
                                       text=templ.settings_tickets_float_text(e), 
                                       reply_markup=templ.back_kb(calls.SettingsNavigation(to="tickets").pack()))
 
-@router.message(states.SettingsStates.entering_runner_requests_delay, F.text)
-async def handler_entering_runner_requests_delay(message: types.Message, state: FSMContext):
-    try:
-        await state.set_state(None)
-        if not is_int(message.text.strip()):
-            raise Exception("❌ Вы должны ввести числовое значение")
-        if int(message.text.strip()) < 0:
-            raise Exception("❌ Слишком низкое значение")
-
-        config = sett.get("config")
-        config["funpay"]["api"]["runner_requests_delay"] = int(message.text.strip())
-        sett.set("config", config)
-        await throw_float_message(state=state,
-                                  message=message,
-                                  text=templ.settings_conn_float_text(f"✅ <b>Периодичность запросов</b> была успешна изменена на <b>{message.text.strip()}</b>"),
-                                  reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack()))
-    except Exception as e:
-        if e is not TelegramAPIError:
-            await throw_float_message(state=state,
-                                      message=message,
-                                      text=templ.settings_conn_float_text(e), 
-                                      reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack()))
-
-@router.message(states.SettingsStates.entering_messages_watermark, F.text)
-async def handler_entering_messages_watermark(message: types.Message, state: FSMContext):
-    try:
-        await state.set_state(None)
-        data = await state.get_data()
-        if len(message.text.strip()) <= 0 or len(message.text.strip()) >= 150:
-            raise Exception("❌ Слишком короткое или длинное значение")
-
-        config = sett.get("config")
-        config["funpay"]["bot"]["messages_watermark"] = message.text.strip()
-        sett.set("config", config)
-        await throw_float_message(state=state,
-                                  message=message,
-                                  text=templ.settings_other_float_text(f"✅ <b>Водяной знак сообщений</b> был успешно изменён на <b>{message.text.strip()}</b>"),
-                                  reply_markup=templ.back_kb(calls.SettingsNavigation(to="other").pack()))
-    except Exception as e:
-        if e is not TelegramAPIError:
-            await throw_float_message(state=state,
-                                      message=message,
-                                      text=templ.settings_other_float_text(e), 
-                                      reply_markup=templ.back_kb(calls.SettingsNavigation(to="other").pack()))
 
 @router.message(states.CustomCommandsStates.entering_page, F.text)
 async def handler_entering_custom_commands_page(message: types.Message, state: FSMContext):
@@ -329,14 +308,14 @@ async def handler_entering_custom_command(message: types.Message, state: FSMCont
         await state.set_state(states.CustomCommandsStates.entering_new_custom_command_answer)
         await throw_float_message(state=state,
                                   message=message,
-                                  text=templ.enter_new_deliv_float_text(f"💬 Введите <b>ответ для команды</b> <code>{message.text.strip()}</code> ↓"),
+                                  text=templ.settings_new_comm_float_text(f"💬 Введите <b>ответ для команды</b> <code>{message.text.strip()}</code> ↓"),
                                   reply_markup=templ.back_kb(calls.CustomCommandsPagination(page=data.get("last_page") or 0).pack()))
     except Exception as e:
         if e is not TelegramAPIError:
             data = await state.get_data()
             await throw_float_message(state=state,
                                       message=message,
-                                      text=templ.enter_new_deliv_float_text(e), 
+                                      text=templ.settings_new_comm_float_text(e), 
                                       reply_markup=templ.back_kb(calls.CustomCommandsPagination(page=data.get("last_page") or 0).pack()))
         
 @router.message(states.CustomCommandsStates.entering_new_custom_command_answer, F.text)
@@ -350,14 +329,14 @@ async def handler_entering_new_custom_command_answer(message: types.Message, sta
         await state.update_data(new_custom_command_answer=message.text.strip())
         await throw_float_message(state=state,
                                   message=message,
-                                  text=templ.enter_new_deliv_float_text(f"➕ Подтвердите <b>добавление новой команды</b> <code>{data['new_custom_command']}</code> ↓"),
+                                  text=templ.settings_new_comm_float_text(f"➕ Подтвердите <b>добавление новой команды</b> <code>{data['new_custom_command']}</code> ↓"),
                                   reply_markup=templ.confirm_kb(confirm_cb="add_new_custom_command", cancel_cb=calls.CustomCommandsPagination(page=data.get("last_page") or 0).pack()))
     except Exception as e:
         if e is not TelegramAPIError:
             data = await state.get_data()
             await throw_float_message(state=state,
                                       message=message,
-                                      text=templ.enter_new_deliv_float_text(e), 
+                                      text=templ.settings_new_comm_float_text(e), 
                                       reply_markup=templ.back_kb(calls.CustomCommandsPagination(page=data.get("last_page") or 0).pack()))
 
 @router.message(states.CustomCommandPageStates.entering_custom_command_answer, F.text)
@@ -471,3 +450,26 @@ async def handler_entering_auto_delivery_message(message: types.Message, state: 
                                       message=message,
                                       text=templ.settings_deliv_page_float_text(e), 
                                       reply_markup=templ.back_kb(calls.AutoDeliveryPage(lot_id=data.get("auto_delivery_lot_id")).pack()))
+            
+        
+@router.message(states.SettingsStates.entering_messages_watermark, F.text)
+async def handler_entering_messages_watermark(message: types.Message, state: FSMContext):
+    try:
+        await state.set_state(None)
+        data = await state.get_data()
+        if len(message.text.strip()) <= 0 or len(message.text.strip()) >= 150:
+            raise Exception("❌ Слишком короткое или длинное значение")
+
+        config = sett.get("config")
+        config["funpay"]["bot"]["messages_watermark"] = message.text.strip()
+        sett.set("config", config)
+        await throw_float_message(state=state,
+                                  message=message,
+                                  text=templ.settings_other_float_text(f"✅ <b>Водяной знак сообщений</b> был успешно изменён на <b>{message.text.strip()}</b>"),
+                                  reply_markup=templ.back_kb(calls.SettingsNavigation(to="other").pack()))
+    except Exception as e:
+        if e is not TelegramAPIError:
+            await throw_float_message(state=state,
+                                      message=message,
+                                      text=templ.settings_other_float_text(e), 
+                                      reply_markup=templ.back_kb(calls.SettingsNavigation(to="other").pack()))

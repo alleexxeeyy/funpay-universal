@@ -49,7 +49,6 @@ def log_text(title: str, text: str, by: str = "funpayuniversal"):
 
 
 
-
 def sign_text(placeholder: str):
     txt = textwrap.dedent(f"""
         🔐 <b>Авторизация</b>
@@ -356,7 +355,7 @@ def settings_lots_text():
     txt = textwrap.dedent(f"""
         ⚙️ <b>Настройки → 🎫 Лоты</b>
 
-        ⬆️ Авто-поднятие лотов: <b>{auto_raising_lots_enabled}</b>
+        ⬆️ <b>Авто-поднятие лотов:</b> {auto_raising_lots_enabled}
 
         Выберите параметр для изменения ↓
     """)
@@ -438,7 +437,7 @@ def settings_comm_float_text(placeholder: str):
     """)
     return txt
 
-def enter_new_deliv_float_text(placeholder: str):
+def settings_new_comm_float_text(placeholder: str):
     txt = textwrap.dedent(f"""
         ⚙️ <b>Добавление пользовательской команды</b>
         \n{placeholder}
@@ -553,7 +552,7 @@ def settings_deliv_page_text(lot_id: int):
         ✏️ <b>Редактирование авто-выдачи</b>
 
         🆔 <b>ID лота:</b> {lot_id}
-        ✍️ <b>Сообщение после покупки:</b> 
+        💬 <b>Сообщение:</b> 
         <blockquote>{auto_delivery_message}</blockquote>
 
         Выберите параметр для изменения ↓
@@ -564,7 +563,7 @@ def settings_deliv_page_kb(lot_id: int, page: int = 0):
     auto_deliveries = sett.get("auto_deliveries")
     auto_delivery_message = "\n".join(auto_deliveries[str(lot_id)]) or "❌ Не задано"
     rows = [
-        [InlineKeyboardButton(text=f"✍️ Сообщение после покупки: {auto_delivery_message}", callback_data="enter_auto_delivery_message")],
+        [InlineKeyboardButton(text=f"💬 Сообщение: {auto_delivery_message}", callback_data="enter_auto_delivery_message")],
         [InlineKeyboardButton(text="🗑️ Удалить авто-выдачу", callback_data="confirm_deleting_auto_delivery")],
         [
         InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.AutoDeliveriesPagination(page=page).pack()), 
@@ -573,7 +572,6 @@ def settings_deliv_page_kb(lot_id: int, page: int = 0):
     ]
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     return kb
-
 
 def settings_deliv_page_float_text(placeholder: str):
     txt = textwrap.dedent(f"""
@@ -680,7 +678,7 @@ def settings_logger_text():
         ⚙️ <b>Настройки → 👀 Логгер</b>
 
         👀 <b>Логгирование ивентов FunPay в Telegram:</b> {tg_logging_enabled}
-        💬 <b>ID чата для логов:</b> <code>{tg_logging_chat_id}</code>
+        💬 <b>ID чата для логов:</b> <b>{tg_logging_chat_id}</b>
         📢 <b>Ивенты логгирования:</b>
         ┣ {event_new_user_message} <b>💬👤 Новое сообщение от пользователя</b>
         ┣ {event_new_system_message} <b>💬⚙️ Новое системное сообщение</b>

@@ -2,8 +2,8 @@ from aiogram import Router
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
-import tgbot.templates as templ
-import tgbot.callback_datas as calls
+from .. import templates as templ
+from .. import callback_datas as calls
 from ..helpful import throw_float_message
 
 router = Router()
