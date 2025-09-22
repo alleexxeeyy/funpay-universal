@@ -103,7 +103,7 @@ def install_requirements(requirements_path: str):
 def patch_requests():
     """
     Патчит запросы requests на кастомные, с обработкой
-    429 Too Many Requests, 520 Bat Gateway и повторной отправкой запроса при этих ошибках.
+    429 Too Many Requests, 502 Bad Gateway и повторной отправкой запроса при этих ошибках.
     """
     _orig_request = requests.Session.request
 
@@ -115,8 +115,8 @@ def patch_requests():
             except Exception:
                 text_head = ""
             is_429 = getattr(resp, "status_code", None) == 429 or "Too Many Requests" in text_head
-            is_520 = getattr(resp, "status_code", None) == 520 or "Bad Gateway" in text_head
-            if not is_429 and not is_520:
+            is_502 = getattr(resp, "status_code", None) == 502 or "Bad Gateway" in text_head
+            if not is_429 and not is_502:
                 return resp
 
             retry_hdr = resp.headers.get("Retry-After")
