@@ -423,18 +423,19 @@ class FunPayBot:
                     review_order_id = event.message.text.split(' ')[-1].replace('#', '').replace('.', '')
                     order = fpbot.funpay_account.get_order(review_order_id)
                     review = order.review
-                    self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}✨💬 Новый {'⭐' * review.stars} отзыв на заказ {Fore.LIGHTWHITE_EX}{order.id}{Fore.LIGHTYELLOW_EX} от {Fore.LIGHTWHITE_EX}{order.buyer_username}{Fore.LIGHTYELLOW_EX}")
-                    if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_review"]:
-                        fpbot.log_to_tg(log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┣ Оставил:</b> {review.author}\n<b>┗ Текст отзыва:</b> {review.text}"))
-                    if fpbot.config["funpay"]["bot"]["auto_reviews_replies_enabled"]:
-                        try:
-                            fpbot.funpay_account.send_review(review_order_id, fpbot.msg("order_review_reply_text",
-                                                                                        review_date=datetime.now().strftime("%d.%m.%Y"),
-                                                                                        order_title=order.title,
-                                                                                        order_amount=order.amount,
-                                                                                        order_price=order.sum))
-                        except Exception as e:
-                            self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При оставлении ответа на отзыв заказа произошла ошибка: {Fore.WHITE}{e}")
+                    if review.author != fpbot.funpay_account.username:
+                        self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}✨💬 Новый {'⭐' * review.stars} отзыв на заказ {Fore.LIGHTWHITE_EX}{order.id}{Fore.LIGHTYELLOW_EX} от {Fore.LIGHTWHITE_EX}{order.buyer_username}{Fore.LIGHTYELLOW_EX}")
+                        if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_review"]:
+                            fpbot.log_to_tg(log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┣ Оставил:</b> {review.author}\n<b>┗ Текст отзыва:</b> {review.text}"))
+                        if fpbot.config["funpay"]["bot"]["auto_reviews_replies_enabled"]:
+                            try:
+                                fpbot.funpay_account.send_review(review_order_id, fpbot.msg("order_review_reply_text",
+                                                                                            review_date=datetime.now().strftime("%d.%m.%Y"),
+                                                                                            order_title=order.title,
+                                                                                            order_amount=order.amount,
+                                                                                            order_price=order.sum))
+                            except Exception as e:
+                                self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При оставлении ответа на отзыв заказа произошла ошибка: {Fore.WHITE}{e}")
             except Exception:
                 self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}При обработке ивента новых сообщений произошла ошибка: {Fore.WHITE}")
                 traceback.print_exc()
