@@ -354,7 +354,7 @@ class FunPayBot:
 
                         # --- Автоматическое поднятие лотов ---
                         if fpbot.config["funpay"]["bot"]["auto_raising_lots_enabled"] and datetime.now() > fpbot.lots_raise_next_time:
-                            self.task_queue.put((fpbot.raise_lots, (), {}))
+                            fpbot.raise_lots()
 
                         # --- Автоматическое создание тикетов в поддержку на закрытие заказов ---
                         if datetime.now() >= (datetime.fromisoformat(self.auto_support_tickets["last_time"]) + timedelta(seconds=self.config["funpay"]["bot"]["auto_support_tickets_create_interval"])) if self.auto_support_tickets["last_time"] else datetime.now():
