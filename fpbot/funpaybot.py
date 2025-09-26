@@ -360,7 +360,7 @@ class FunPayBot:
                         if datetime.now() >= (datetime.fromisoformat(self.auto_support_tickets["last_time"]) + timedelta(seconds=self.config["funpay"]["bot"]["auto_support_tickets_create_interval"])) if self.auto_support_tickets["last_time"] else datetime.now():
                             self.auto_support_tickets["last_time"] = datetime.now().isoformat()
                             data.set("auto_support_tickets", self.auto_support_tickets)
-                            self.task_queue.put((fpbot.create_support_tickets, (), {}))
+                            fpbot.create_support_tickets()
                     except Exception:
                         self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}В бесконечном цикле произошла ошибка: {Fore.WHITE}")
                         traceback.print_exc()
