@@ -18,6 +18,7 @@ from __init__ import ACCENT_COLOR, VERSION
 
 async def start_telegram_bot():
     from tgbot.telegrambot import TelegramBot
+    config = sett.get("config")
     tgbot = TelegramBot(config["telegram"]["api"]["token"])
     await tgbot.run_bot()
 
