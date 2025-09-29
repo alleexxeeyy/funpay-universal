@@ -11,6 +11,8 @@ from .. import states as states
 from ..helpful import throw_float_message
 from .navigation import *
 
+from fpbot import get_funpay_bot
+
 router = Router()
 
 
@@ -18,6 +20,56 @@ router = Router()
 @router.callback_query(F.data == "destroy")
 async def callback_back(callback: CallbackQuery):
     await callback.message.delete()
+
+
+@router.callback_query(calls.RememberChatName.filter())
+async def callback_remember_chat_name(callback: CallbackQuery, callback_data: calls.RememberChatName, state: FSMContext):
+    await state.set_state(None)
+    chat_name = callback_data.name
+    do = callback_data.do
+    await state.update_data(chat_name=chat_name)
+    if do == "send_mess":
+        await state.set_state(states.ActionsStates.entering_message_text)
+        await throw_float_message(state=state, 
+                                    message=callback.message, 
+                                    text=templ.do_action_text(f"💬 Введите <b>сообщение</b> для отправки <b>{chat_name}</b> ↓"), 
+                                    reply_markup=templ.destroy_kb(),
+                                    callback=callback,
+                                    send=True)
+
+@router.callback_query(calls.RememberOrderId.filter())
+async def callback_remember_order_id(callback: CallbackQuery, callback_data: calls.RememberOrderId, state: FSMContext):
+    await state.set_state(None)
+    order_id = callback_data.or_id
+    do = callback_data.do
+    await state.update_data(order_id=order_id)
+    if do == "refund":
+        await throw_float_message(state=state, 
+                                  message=callback.message, 
+                                  text=templ.do_action_text(f"📦✔️ Подтвердите <b>возврат</b> заказа <b>#{order_id}</b> ↓"), 
+                                  reply_markup=templ.confirm_kb(confirm_cb="refund_order", cancel_cb="destroy"),
+                                  callback=callback,
+                                  send=True)
+    elif do == "answer_rev":
+        await state.set_state(states.ActionsStates.entering_review_answer_text)
+        await throw_float_message(state=state, 
+                                  message=callback.message, 
+                                  text=templ.do_action_text(f"💬🌟 Введите <b>ответ</b> на отзыв по заказу <b>#{order_id}</b> ↓"), 
+                                  reply_markup=templ.destroy_kb(),
+                                  callback=callback,
+                                  send=True)
+        
+@router.callback_query(F.data == "refund_order")
+async def callback_refund_order(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(None)
+    fpbot = get_funpay_bot()
+    data = await state.get_data()
+    order_id = data.get("order_id")
+    fpbot.funpay_account.refund(order_id)
+    await throw_float_message(state=state, 
+                              message=callback.message, 
+                              text=templ.do_action_text(f"✅ По заказу <code>#{order_id}</code> был оформлен возврат"), 
+                              reply_markup=templ.destroy_kb())
 
 
 @router.callback_query(F.data == "confirm_creating_support_tickets")

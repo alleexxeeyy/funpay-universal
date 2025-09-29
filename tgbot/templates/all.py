@@ -1,6 +1,5 @@
 from __init__ import VERSION
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 import math
 import textwrap
@@ -39,6 +38,14 @@ def destroy_kb():
     rows = [[InlineKeyboardButton(text="❌ Закрыть", callback_data="destroy")]]
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
+
+def do_action_text(placeholder: str):
+    txt = textwrap.dedent(f"""
+        🧩 <b>Действие</b>
+        \n{placeholder}
+    """)
+    return txt
+
 def log_text(title: str, text: str, by: str = "funpayuniversal"):
     txt = textwrap.dedent(f"""
         <b>{title}</b>
@@ -47,6 +54,30 @@ def log_text(title: str, text: str, by: str = "funpayuniversal"):
     """)
     return txt
 
+def log_new_mess_kb(chat_name: str):
+    rows = [[InlineKeyboardButton(text="💬 Написать", callback_data=calls.RememberChatName(name=chat_name, do="send_mess").pack())]]
+    kb = InlineKeyboardMarkup(inline_keyboard=rows)
+    return kb
+
+def log_new_order_kb(chat_name: str, order_id: str):
+    rows = [
+        [
+        InlineKeyboardButton(text="💬 Написать", callback_data=calls.RememberChatName(name=chat_name, do="send_mess").pack()),
+        InlineKeyboardButton(text="📦 Возврат", callback_data=calls.RememberOrderId(or_id=order_id, do="refund").pack())
+        ]
+    ]
+    kb = InlineKeyboardMarkup(inline_keyboard=rows)
+    return kb
+
+def log_new_review_kb(chat_name: str, order_id: str):
+    rows = [
+        [
+        InlineKeyboardButton(text="💬🌟 Ответить на отзыв", callback_data=calls.RememberOrderId(or_id=order_id, do="answer_rev").pack()),
+        InlineKeyboardButton(text="💬 Написать", callback_data=calls.RememberChatName(name=chat_name, do="send_mess").pack())
+        ]
+    ]
+    kb = InlineKeyboardMarkup(inline_keyboard=rows)
+    return kb
 
 
 def sign_text(placeholder: str):

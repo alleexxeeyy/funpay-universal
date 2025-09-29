@@ -8,6 +8,7 @@ from threading import Thread
 from colorama import Fore
 import queue
 from rapidfuzz import fuzz
+from aiogram.types import InlineKeyboardMarkup
 
 import settings
 from settings import Settings as sett
@@ -16,7 +17,7 @@ from logging import getLogger
 from fpbot.stats import get_stats, set_stats
 from . import set_funpay_bot
 from tgbot import get_telegram_bot, get_telegram_bot_loop
-from tgbot.templates import log_text
+from tgbot.templates import log_text, log_new_mess_kb, log_new_order_kb, log_new_review_kb
 from fpbot import get_funpay_bot
 
 from FunPayAPI import Account, Runner, exceptions as fpapi_exceptions, types as fpapi_types
@@ -252,14 +253,14 @@ class FunPayBot:
         text = text.replace('\n', '').strip()
         self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось отправить сообщение {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.LIGHTWHITE_EX}{chat_id} {Fore.LIGHTRED_EX}")
 
-    def log_to_tg(self, text: str):
+    def log_to_tg(self, text: str, kb: InlineKeyboardMarkup | None = None):
         """
         Логгирует ивент в Telegram бота.
 
         :param text: Текст лога.
         :type text: `str`
         """
-        asyncio.run_coroutine_threadsafe(get_telegram_bot().log_event(text), get_telegram_bot_loop())
+        asyncio.run_coroutine_threadsafe(get_telegram_bot().log_event(text, kb), get_telegram_bot_loop())
     
     
     def create_support_tickets(self):
@@ -384,7 +385,8 @@ class FunPayBot:
                             text = f"<b>{event.message.author}:</b> {event.message.text or ''}"
                             if event.message.image_link:
                                 text += f' <b><a href="{event.message.image_link}">{event.message.image_name}</a></b>'
-                            fpbot.log_to_tg(log_text(f'💬 Новое сообщение в <a href="https://funpay.com/chat/?node={event.message.chat_id}">чате</a>', text.strip()))
+                            fpbot.log_to_tg(text=log_text('💬 Новое сообщение в <a href="https://funpay.com/chat/?node={event.message.chat_id}">чате</a>', text.strip()),
+                                            kb=log_new_mess_kb(event.message.chat_name))
 
                 if self.config["funpay"]["bot"]["first_message_enabled"]:
                     if this_chat.name not in fpbot.initialized_users:
@@ -426,7 +428,8 @@ class FunPayBot:
                     if order.buyer_username != fpbot.funpay_account.username:
                         self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}✨💬 Новый {'⭐' * review.stars} отзыв на заказ {Fore.LIGHTWHITE_EX}{order.id}{Fore.LIGHTYELLOW_EX} от {Fore.LIGHTWHITE_EX}{order.buyer_username}{Fore.LIGHTYELLOW_EX}")
                         if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_review"]:
-                            fpbot.log_to_tg(log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┣ Оставил:</b> {review.author}\n<b>┗ Текст отзыва:</b> {review.text}"))
+                            fpbot.log_to_tg(text=log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┣ Оставил:</b> {review.author}\n<b>┗ Текст отзыва:</b> {review.text}"),
+                                            kb=log_new_review_kb(event.message.chat_name, review_order_id))
                         if fpbot.config["funpay"]["bot"]["auto_reviews_replies_enabled"]:
                             try:
                                 fpbot.funpay_account.send_review(review_order_id, fpbot.msg("order_review_reply_text",
@@ -445,7 +448,8 @@ class FunPayBot:
                 this_chat = fpbot.funpay_account.get_chat_by_name(event.order.buyer_username, True)
                 self.logger.info(f"{PREFIX} {Fore.LIGHTYELLOW_EX}📋  Новый заказ {Fore.LIGHTWHITE_EX}{event.order.id}{Fore.LIGHTYELLOW_EX} от {Fore.LIGHTWHITE_EX}{event.order.buyer_username}{Fore.LIGHTYELLOW_EX} на сумму {Fore.LIGHTWHITE_EX}{event.order.price} {fpbot.funpay_account.currency.name}")
                 if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_order"]:
-                    fpbot.log_to_tg(log_text(f'📋 Новый заказ <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a>', f"<b>┏ Покупатель:</b> {event.order.buyer_username}\n<b>┣ Товар:</b> {event.order.description}\n<b>┣ Количество:</b> {event.order.amount}\n<b>┗ Сумма:</b> {event.order.price} {fpbot.funpay_account.currency.name}"))
+                    fpbot.log_to_tg(text=log_text(f'📋 Новый заказ <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a>', f"<b>┏ Покупатель:</b> {event.order.buyer_username}\n<b>┣ Товар:</b> {event.order.description}\n<b>┣ Количество:</b> {event.order.amount}\n<b>┗ Сумма:</b> {event.order.price} {fpbot.funpay_account.currency.name}"),
+                                    kb=log_new_order_kb(this_chat.name, event.order.id))
                 if self.config["funpay"]["bot"]["auto_deliveries_enabled"]:
                     lot = self.get_lot_by_order_title(event.order.description, event.order.subcategory)
                     if lot:

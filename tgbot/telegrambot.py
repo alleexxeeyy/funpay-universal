@@ -3,7 +3,7 @@ from colorama import Fore
 import textwrap
 
 from aiogram import Bot, Dispatcher
-from aiogram.types import BotCommand
+from aiogram.types import BotCommand, InlineKeyboardMarkup
 from aiogram.exceptions import TelegramUnauthorizedError
 
 from . import router as main_router
@@ -111,20 +111,23 @@ class TelegramBot:
                                         reply_markup=templ.destroy_kb(),
                                         parse_mode="HTML")
             
-    async def log_event(self, text: str):
+    async def log_event(self, text: str, kb: InlineKeyboardMarkup | None = None):
         """
         Логирует событие в чат TG бота.
                 
         :param text: Текст лога.
         :type text: `str`
+                
+        :param kb: Клавиатура с кнопками.
+        :type kb: `aiogram.types.InlineKeyboardMarkup` or `None`
         """
         config = sett.get("config")
         chat_id = config["funpay"]["bot"]["tg_logging_chat_id"]
         if not chat_id:
             for user_id in config["telegram"]["bot"]["signed_users"]:
-                await self.bot.send_message(chat_id=user_id, text=text, parse_mode="HTML")
+                await self.bot.send_message(chat_id=user_id, text=text, reply_markup=kb, parse_mode="HTML")
         else:
-            await self.bot.send_message(chat_id=chat_id, text=text, parse_mode="HTML")
+            await self.bot.send_message(chat_id=chat_id, text=f'{text}\n<span class="tg-spoiler">Переключите чат логов на чат с ботом, чтобы отображалась меню с действиями</span>', reply_markup=None, parse_mode="HTML")
 
 if __name__ == "__main__":
     config = sett.get("config")
