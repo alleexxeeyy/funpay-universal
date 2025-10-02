@@ -85,8 +85,6 @@ class FunPayBot:
         """ Данные об автоматическом написании тикетов в поддержку. """
         self.stats = get_stats()
         """ Словарь статистика бота с момента запуска. """
-        self.task_queue = queue.Queue()
-        """ Очередь задач на выполнение. """
 
         # Эти ивенты событий не записываются в словарь данных, так как их время вычисляется во время работы
         # бота и оно не требуется для дальнейшего отслеживания, пока бот не запущен
@@ -319,16 +317,6 @@ class FunPayBot:
             """ Начальный хендлер ON_INIT """
 
             self.stats.bot_launch_time = datetime.now()
-
-            def worker():
-                while True:
-                    try:
-                        func, args, kwargs = self.task_queue.get()
-                        func(*args, **kwargs)
-                        self.task_queue.task_done()
-                    except Exception as e:
-                        self.logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Произошла ошибка при обработке задания в очереди: {Fore.WHITE}{e}")
-            Thread(target=worker, daemon=True).start()
 
             def endless_loop(cycle_delay=5):
                 while True:
