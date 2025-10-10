@@ -39,13 +39,13 @@ def check_and_configure_config():
         pattern = r'^[a-z0-9]{32}$'
         return bool(re.match(pattern, s))
     
-    def is_fp_account_working(s: str) -> bool:
+    def is_fp_account_working() -> bool:
         try:
-            proxy = {"https": config["funpay"]["api"]["proxy"], "http": config["funpay"]["api"]["proxy"]} if config["funpay"]["api"]["proxy"] else None
+            proxy = {"https": "http://" + config["funpay"]["api"]["proxy"], "http": "http://" + config["funpay"]["api"]["proxy"]} if config["funpay"]["api"]["proxy"] else None
             Account(golden_key=config["funpay"]["api"]["golden_key"],
                     user_agent=config["funpay"]["api"]["user_agent"],
                     requests_timeout=config["funpay"]["api"]["requests_timeout"],
-                    proxy=proxy or None).get()
+                    proxy=proxy).get()
             return True
         except UnauthorizedError as e:
             return False
@@ -90,9 +90,9 @@ def check_and_configure_config():
         pattern = r'^\d{7,12}:[A-Za-z0-9_-]{35}$'
         return bool(re.match(pattern, token))
     
-    def is_tg_bot_exists(token: str) -> bool:
+    def is_tg_bot_exists() -> bool:
         try:
-            response = requests.get(f"https://api.telegram.org/bot{token}/getMe", timeout=5)
+            response = requests.get(f"https://api.telegram.org/bot{config['telegram']['api']['token']}/getMe", timeout=5)
             data = response.json()
             return data.get("ok", False) is True and data.get("result", {}).get("is_bot", False) is True
         except Exception:
@@ -180,7 +180,7 @@ def check_and_configure_config():
     else:
         logger.info(f"{Fore.WHITE}Прокси успешно работает.")
 
-    if not is_fp_account_working(config["funpay"]["api"]["golden_key"]):
+    if not is_fp_account_working():
         print(f"\n{Fore.LIGHTRED_EX}Не удалось подключиться к вашему FunPay аккаунту. Пожалуйста, убедитесь, что у вас указан верный golden_key и введите его снова.")
         config["funpay"]["api"]["golden_key"] = ""
         sett.set("config", config)
@@ -188,7 +188,7 @@ def check_and_configure_config():
     else:
         logger.info(f"{Fore.WHITE}FunPay аккаунт успешно авторизован.")
 
-    if not is_tg_bot_exists(config["telegram"]["api"]["token"]):
+    if not is_tg_bot_exists():
         print(f"\n{Fore.LIGHTRED_EX}Не удалось подключиться к вашему Telegram боту. Пожалуйста, убедитесь, что у вас указан верный токен и введите его снова.")
         config["telegram"]["api"]["token"] = ""
         sett.set("config", config)

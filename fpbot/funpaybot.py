@@ -45,14 +45,11 @@ class FunPayBot:
         self.custom_commands = sett.get("custom_commands")
         self.auto_deliveries = sett.get("auto_deliveries")
         self.logger = getLogger(f"universal.funpay")
-        proxy = {
-            "https": self.config["funpay"]["api"]["proxy"], 
-            "http": self.config["funpay"]["api"]["proxy"]
-        } if self.config["funpay"]["api"]["proxy"] else None
+        proxy = {"https": "http://" + self.config["funpay"]["api"]["proxy"], "http": "http://" + self.config["funpay"]["api"]["proxy"]} if self.config["funpay"]["api"]["proxy"] else None
         self.funpay_account = Account(golden_key=self.config["funpay"]["api"]["golden_key"],
-                                        user_agent=self.config["funpay"]["api"]["user_agent"],
-                                        requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
-                                        proxy=proxy or None).get()
+                                      user_agent=self.config["funpay"]["api"]["user_agent"],
+                                      requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
+                                      proxy=proxy or None).get()
 
         self.initialized_users = data.get("initialized_users")
         self.categories_raise_time = data.get("categories_raise_time")
@@ -379,7 +376,7 @@ class FunPayBot:
             def refresh_funpay_account_loop():
                 while True:
                     try:
-                        proxy = {"https": "http://" + self.config["funpay"]["api"]["proxy"].replace("https://", "").replace("http://", ""), "http": "http://" + self.config["funpay"]["api"]["proxy"].replace("https://", "").replace("http://", "")} if self.config["funpay"]["api"]["proxy"] else None
+                        proxy = {"https": "http://" + self.config["funpay"]["api"]["proxy"], "http": "http://" + self.config["funpay"]["api"]["proxy"]} if self.config["funpay"]["api"]["proxy"] else None
                         self.funpay_account = Account(golden_key=self.config["funpay"]["api"]["golden_key"],
                                                       user_agent=self.config["funpay"]["api"]["user_agent"],
                                                       requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
