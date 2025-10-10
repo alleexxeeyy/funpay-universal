@@ -451,14 +451,13 @@ class FunPayBot:
                             fpbot.log_to_tg(text=log_text('💬 Новое сообщение в <a href="https://funpay.com/chat/?node={event.message.chat_id}">чате</a>', text.strip()),
                                             kb=log_new_mess_kb(event.message.chat_name))
 
-                if self.config["funpay"]["bot"]["first_message_enabled"]:
-                    if this_chat.name not in fpbot.initialized_users:
-                        try:
-                            if event.message.type is MessageTypes.NON_SYSTEM and event.message.author == this_chat.name:
-                                fpbot.send_message(this_chat.id, fpbot.msg("first_message", username=event.message.author))
-                            fpbot.initialized_users.append(this_chat.name)
-                        except Exception as e:
-                            self.logger.error(f"{Fore.LIGHTRED_EX}При отправке приветственного сообщения для {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
+                if this_chat.name not in fpbot.initialized_users:
+                    try:
+                        if event.message.type is MessageTypes.NON_SYSTEM and event.message.author == this_chat.name:
+                            fpbot.send_message(this_chat.id, fpbot.msg("first_message", username=event.message.author))
+                        fpbot.initialized_users.append(this_chat.name)
+                    except Exception as e:
+                        self.logger.error(f"{Fore.LIGHTRED_EX}При отправке приветственного сообщения для {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
                 if event.message.author == this_chat.name:
                     if self.config["funpay"]["bot"]["custom_commands_enabled"]:
                         if event.message.text in self.custom_commands.keys():

@@ -47,7 +47,7 @@ def check_and_configure_config():
                     requests_timeout=config["funpay"]["api"]["requests_timeout"],
                     proxy=proxy).get()
             return True
-        except UnauthorizedError as e:
+        except UnauthorizedError:
             return False
 
     def is_user_agent_valid(ua: str) -> bool:
