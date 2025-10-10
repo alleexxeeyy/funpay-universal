@@ -34,6 +34,7 @@ def setup_logger(log_file: str = "logs/latest.log"):
             record.shortLevel = record.levelname[0]
             return super().format(record)
 
+    os.makedirs("logs", exist_ok=True)
     LOG_FORMAT = "%(light_black)s%(asctime)s · %(log_color)s%(shortLevel)s: %(reset)s%(white)s%(message)s"
     formatter = ShortLevelFormatter(
         LOG_FORMAT,
