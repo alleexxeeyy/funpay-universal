@@ -11,8 +11,6 @@ from .. import states as states
 from ..helpful import throw_float_message
 from .navigation import *
 
-from fpbot import get_funpay_bot
-
 router = Router()
 
 
@@ -62,10 +60,10 @@ async def callback_remember_order_id(callback: CallbackQuery, callback_data: cal
 @router.callback_query(F.data == "refund_order")
 async def callback_refund_order(callback: CallbackQuery, state: FSMContext):
     await state.set_state(None)
-    fpbot = get_funpay_bot()
+    from fpbot.funpaybot import get_funpay_bot
     data = await state.get_data()
     order_id = data.get("order_id")
-    fpbot.funpay_account.refund(order_id)
+    get_funpay_bot().funpay_account.refund(order_id)
     await throw_float_message(state=state, 
                               message=callback.message, 
                               text=templ.do_action_text(f"✅ По заказу <code>#{order_id}</code> был оформлен возврат"), 
@@ -83,14 +81,13 @@ async def callback_confirm_creating_support_tickets(callback: CallbackQuery, sta
 @router.callback_query(F.data == "create_support_tickets")
 async def callback_create_support_tickets(callback: CallbackQuery, state: FSMContext):
     try:
-        from fpbot import get_funpay_bot
+        from fpbot.funpaybot import get_funpay_bot
         await state.set_state(None)
         await throw_float_message(state=state, 
                                   message=callback.message, 
                                   text=templ.events_float_text(f"📞 Идёт <b>создание тикетов на закрытие заказов</b>, ожидайте (см. консоль)..."), 
                                   reply_markup=templ.back_kb(calls.MenuNavigation(to="events").pack()))
-        fpbot = get_funpay_bot()
-        fpbot.create_support_tickets()
+        get_funpay_bot().create_support_tickets()
         await throw_float_message(state=state, 
                                 message=callback.message, 
                                 text=templ.events_float_text(f"📞✅ <b>Тикеты на закрытие заказов</b> были созданы"), 
@@ -174,13 +171,6 @@ async def callback_switch_auto_raising_lots_enabled(callback: CallbackQuery, sta
 async def callback_switch_auto_reviews_replies_enabled(callback: CallbackQuery, state: FSMContext):
     config = sett.get("config")
     config["funpay"]["bot"]["auto_reviews_replies_enabled"] = False if config["funpay"]["bot"]["auto_reviews_replies_enabled"] else True
-    sett.set("config", config)
-    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="other"), state)
-
-@router.callback_query(F.data == "switch_first_message_enabled")
-async def callback_switch_first_message_enabled(callback: CallbackQuery, state: FSMContext):
-    config = sett.get("config")
-    config["funpay"]["bot"]["first_message_enabled"] = False if config["funpay"]["bot"]["first_message_enabled"] else True
     sett.set("config", config)
     return await callback_settings_navigation(callback, calls.SettingsNavigation(to="other"), state)
 
@@ -467,6 +457,28 @@ async def callback_enter_messages_page(callback: CallbackQuery, state: FSMContex
                               text=templ.settings_mess_float_text(f"📃 Введите номер страницы для перехода ↓"), 
                               reply_markup=templ.back_kb(calls.MessagesPagination(page=last_page).pack()))
 
+@router.callback_query(F.data == "switch_message_enabled")
+async def callback_switch_message_enabled(callback: CallbackQuery, state: FSMContext):
+    try:
+        data = await state.get_data()
+        last_page = data.get("last_page") or 0
+        message_id = data.get("message_id")
+        if not message_id:
+            raise Exception("❌ ID сообщения не был найден, повторите процесс с самого начала")
+        
+        messages = sett.get("messages")
+        messages[message_id]["enabled"] = not messages[message_id]["enabled"]
+        sett.set("messages", messages)
+        return await callback_message_page(callback, calls.MessagePage(message_id=message_id), state)
+    except Exception as e:
+        if e is not TelegramAPIError:
+            data = await state.get_data()
+            last_page = data.get("last_page") or 0
+            await throw_float_message(state=state, 
+                                      message=callback.message, 
+                                      text=templ.settings_mess_float_text(e), 
+                                      reply_markup=templ.back_kb(calls.MessagesPagination(page=last_page).pack()))
+
 @router.callback_query(F.data == "enter_message_text")
 async def callback_enter_message_text(callback: CallbackQuery, state: FSMContext):
     try:
@@ -478,7 +490,7 @@ async def callback_enter_message_text(callback: CallbackQuery, state: FSMContext
         
         await state.set_state(states.MessagePageStates.entering_message_text)
         messages = sett.get("messages")
-        mess_text = "\n".join(messages[message_id]) or "❌ Не задано"
+        mess_text = "\n".join(messages[message_id]["text"]) or "❌ Не задано"
         await throw_float_message(state=state, 
                                   message=callback.message, 
                                   text=templ.settings_mess_float_text(f"💬 Введите новый <b>текст сообщения</b> <code>{message_id}</code> ↓\n┗ Текущее: <blockquote>{mess_text}</blockquote>"), 

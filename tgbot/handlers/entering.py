@@ -9,7 +9,6 @@ from .. import callback_datas as calls
 from ..helpful import throw_float_message
 
 from settings import Settings as sett
-from fpbot import get_funpay_bot
 
 router = Router()
 
@@ -35,6 +34,7 @@ async def handler_entering_password(message: types.Message, state: FSMContext):
             raise Exception("❌ Слишком короткий текст")
 
         data = await state.get_data()
+        from fpbot.funpaybot import get_funpay_bot
         fpbot = get_funpay_bot()
         chat_name = data.get("chat_name")
         chat = fpbot.funpay_account.get_chat_by_name(chat_name, True)
@@ -59,9 +59,9 @@ async def handler_entering_password(message: types.Message, state: FSMContext):
             raise Exception("❌ Слишком короткий текст")
 
         data = await state.get_data()
-        fpbot = get_funpay_bot()
+        from fpbot.funpaybot import get_funpay_bot
         order_id = data.get("order_id")
-        fpbot.funpay_account.send_review(order_id=order_id, text=message.text.strip())
+        get_funpay_bot().funpay_account.send_review(order_id=order_id, text=message.text.strip())
 
         await throw_float_message(state=state,
                                   message=message,
@@ -127,7 +127,7 @@ async def handler_entering_message_text(message: types.Message, state: FSMContex
         data = await state.get_data()
         messages = sett.get("messages")
         message_split_lines = message.text.strip().split('\n')
-        messages[data["message_id"]] = message_split_lines
+        messages[data["message_id"]]["text"] = message_split_lines
         sett.set("messages", messages)
         await throw_float_message(state=state,
                                   message=message,

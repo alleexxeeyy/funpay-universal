@@ -6,7 +6,6 @@ import textwrap
 from datetime import datetime, timedelta
 
 from .. import callback_datas as calls
-from fpbot import get_funpay_bot
 from settings import Settings as sett
 from data import Data as data
 from fpbot.stats import get_stats
@@ -125,6 +124,7 @@ def menu_kb():
 
 
 def stats_text():
+    from fpbot.funpaybot import get_funpay_bot
     stats = get_stats()
     txt = textwrap.dedent(f"""
         📊 <b>Статистика FunPay бота</b>
@@ -188,20 +188,20 @@ def events_float_text(placeholder: str):
 
 
 def profile_text():
-    funpaybot = get_funpay_bot()
-    account = funpaybot.funpay_account
+    from fpbot.funpaybot import get_funpay_bot
+    account = get_funpay_bot().funpay_account
     profile = account.get_user(account.id)
     txt = textwrap.dedent(f"""
         👤 <b>Мой профиль</b>
 
-        ID: <b>{profile.id}</b>
-        Никнейм: <b>{profile.username}</b>
-        Баланс: <b>{account.total_balance} {account.currency.name}</b>
+        🆔 <b>ID:</b> {profile.id}
+        🏷️ <b>Никнейм:</b> {profile.username}
+        💰 <b>Баланс:</b> {account.total_balance} {account.currency.name}
 
-        Статистика:
-        ┣ Активные лоты: <b>{len(profile.get_lots())}</b>
-        ┣ Активные покупки: <b>{account.active_purchases}</b>
-        ┗ Активные продажи: <b>{account.active_sales}</b>
+        📊 <b>Статистика:</b>
+          ┣ 📄 <b>Активные лоты:</b> {len(profile.get_lots())}
+          ┣ 🛍️ <b>Активные покупки:</b> {account.active_purchases}
+          ┗ 🛒 <b>Активные продажи:</b> {account.active_sales}
 
         Выберите действие ↓
     """)
@@ -635,9 +635,10 @@ def settings_mess_kb(page: int = 0):
     start_offset = page * items_per_page
     end_offset = start_offset + items_per_page
 
-    for mess_id, mess_text in list(messages.items())[start_offset:end_offset]:
-        mess_text_joined = "\n".join(mess_text)
-        rows.append([InlineKeyboardButton(text=f"{mess_id} | {mess_text_joined}", callback_data=calls.MessagePage(message_id=mess_id).pack())])
+    for mess_id, info in list(messages.items())[start_offset:end_offset]:
+        enabled = "🟢" if info["enabled"] else "🔴"
+        text_joined = "\n".join(info["text"])
+        rows.append([InlineKeyboardButton(text=f"{enabled} {mess_id} | {text_joined}", callback_data=calls.MessagePage(message_id=mess_id).pack())])
 
     buttons_row = []
     btn_back = InlineKeyboardButton(text="←", callback_data=calls.MessagesPagination(page=page-1).pack()) if page > 0 else InlineKeyboardButton(text="🛑", callback_data="123")
@@ -663,11 +664,13 @@ def settings_mess_float_text(placeholder: str):
 
 def settings_mess_page_text(message_id: int):
     messages = sett.get("messages")
-    message_text = "\n".join(messages[message_id]) or "❌ Не задано"
+    enabled = "🟢 Включено" if messages[message_id]["enabled"] else "🔴Выключено"
+    message_text = "\n".join(messages[message_id]["text"]) or "❌ Не задано"
     txt = textwrap.dedent(f"""
         ✒️ <b>Редактирование сообщения</b>
 
         🆔 <b>ID сообщения:</b> {message_id}
+        💡 <b>Состояние:</b> {enabled}
         💬 <b>Текст сообщения:</b> <blockquote>{message_text}</blockquote>
 
         Выберите параметр для изменения ↓
@@ -676,8 +679,10 @@ def settings_mess_page_text(message_id: int):
 
 def settings_mess_page_kb(message_id: int, page: int = 0):
     messages = sett.get("messages")
-    message_text = "\n".join(messages[message_id]) or "❌ Не задано"
+    enabled = "🟢 Включено" if messages[message_id]["enabled"] else "🔴Выключено"
+    message_text = "\n".join(messages[message_id]["text"]) or "❌ Не задано"
     rows = [
+        [InlineKeyboardButton(text=f"💡 Состояние: {enabled}", callback_data="switch_message_enabled")],
         [InlineKeyboardButton(text=f"💬 Текст сообщения: {message_text}", callback_data="enter_message_text")],
         [
         InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.MessagesPagination(page=page).pack()),
@@ -808,7 +813,6 @@ def settings_tickets_float_text(placeholder: str):
 def settings_other_text():
     config = sett.get("config")
     auto_reviews_replies_enabled = "🟢 Включено" if config["funpay"]["bot"]["auto_reviews_replies_enabled"] else "🔴 Выключено"
-    first_message_enabled = "🟢 Включено" if config["funpay"]["bot"]["first_message_enabled"] else "🔴 Выключено"
     custom_commands_enabled = "🟢 Включено" if config["funpay"]["bot"]["custom_commands_enabled"] else "🔴 Выключено"
     auto_deliveries_enabled = "🟢 Включено" if config["funpay"]["bot"]["auto_deliveries_enabled"] else "🔴 Выключено"
     messages_watermark_enabled = "🟢 Включено" if config["funpay"]["bot"]["messages_watermark_enabled"] else "🔴 Выключено"
@@ -817,7 +821,6 @@ def settings_other_text():
         ⚙️ <b>Настройки → 🔧 Прочее</b>
 
         💬 <b>Авто-ответы на отзывы:</b> {auto_reviews_replies_enabled}
-        👋 <b>Приветственное сообщение:</b> {first_message_enabled}
         🔧 <b>Пользовательские команды:</b> {custom_commands_enabled}
         🚀 <b>Авто-выдача:</b> {auto_deliveries_enabled}
         ©️ <b>Водяной знак под сообщениями:</b> {messages_watermark_enabled}
@@ -833,14 +836,12 @@ def settings_other_text():
 def settings_other_kb():
     config = sett.get("config")
     auto_reviews_replies_enabled = "🟢 Включено" if config["funpay"]["bot"]["auto_reviews_replies_enabled"] else "🔴 Выключено"
-    first_message_enabled = "🟢 Включено" if config["funpay"]["bot"]["first_message_enabled"] else "🔴 Выключено"
     custom_commands_enabled = "🟢 Включено" if config["funpay"]["bot"]["custom_commands_enabled"] else "🔴 Выключено"
     auto_deliveries_enabled = "🟢 Включено" if config["funpay"]["bot"]["auto_deliveries_enabled"] else "🔴 Выключено"
     messages_watermark_enabled = "🟢 Включено" if config["funpay"]["bot"]["messages_watermark_enabled"] else "🔴 Выключено"
     messages_watermark = config["funpay"]["bot"]["messages_watermark"] or "❌ Не задано"
     rows = [
         [InlineKeyboardButton(text=f"💬 Авто-ответы на отзывы: {auto_reviews_replies_enabled}", callback_data="switch_auto_reviews_replies_enabled")],
-        [InlineKeyboardButton(text=f"👋 Приветственное сообщение: {first_message_enabled}", callback_data="switch_first_message_enabled")],
         [InlineKeyboardButton(text=f"🔧 Пользовательские команды: {custom_commands_enabled}", callback_data="switch_custom_commands_enabled")],
         [InlineKeyboardButton(text=f"🚀 Авто-выдача: {auto_deliveries_enabled}", callback_data="switch_auto_deliveries_enabled")],
         [InlineKeyboardButton(text=f"©️ Водяной знак под сообщениями: {messages_watermark_enabled}", callback_data="switch_messages_watermark_enabled")],

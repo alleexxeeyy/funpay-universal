@@ -9,3 +9,6 @@ bot_data/*.json
 
 modules/
 modules1/
+logs/
+
+.gitignore

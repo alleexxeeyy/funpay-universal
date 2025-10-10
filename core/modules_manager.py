@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import os
 import sys
 import importlib
@@ -5,98 +6,38 @@ import uuid
 from uuid import UUID
 from colorama import Fore
 from logging import getLogger
-logger = getLogger("universal")
+logger = getLogger(f"universal.modules")
 
 from core.handlers_manager import HandlersManager as handlers_m
 from core.console import install_requirements
 
+
+@dataclass
 class ModuleMeta:
-    """
-    Подкласс, содержащий метаданные модуля.
+    prefix: str
+    version: str
+    name: str
+    description: str
+    authors: str
+    links: str
 
-    :param prefix: Префикс модуля.
-    :type prefix: `str`
-
-    :param version: Версия модуля.
-    :type version: `str`
-
-    :param name: Название модуля.
-    :type name: `str`
-
-    :param description: Описание модуля.
-    :type description: `str`
-
-    :param authors: Авторы модуля.
-    :type authors: `str`
-
-    :param links: Ссылки на авторов модуля.
-    :type links: `str`
-    """
-    def __init__(self, prefix: str, version: str, name: str,
-                 description: str, authors: str, links: str):
-        self.prefix = prefix
-        """ Префикс модуля. """
-        self.version = version
-        """ Версия модуля. """
-        self.name = name
-        """ Название модуля. """
-        self.description = description
-        """ Описание модуля. """
-        self.authors = authors
-        """ Авторы модуля. """
-        self.links = links
-        """ Ссылки на авторов модуля. """
-
+@dataclass
 class Module:
-    """
-    Объект модуля.
-
-    :param uuid: UUID модуля (генерируется при инициализации).
-    :type uuid: `uuid.UUID`
-
-    :param enabled: Включен ли модуль.
-    :type enabled: `bool`
-
-    :param meta: Метаданные модуля.
-    :type meta: `ModuleMeta`
-
-    :param bot_event_handlers: Хендлеры ивентов бота.
-    :type bot_event_handlers: `dict`
-
-    :param funpay_event_handlers: Хендлеры ивентов FunPay.
-    :type funpay_event_handlers: `dict`
-
-    :param telegram_bot_routers: Роутеры Telegram бота.
-    :type telegram_bot_routers: `list` of `aiogram.types.Router`
-
-    :param _dir_name: Имя директории бота в папке модулей.
-    :type _dir_name: `str`
-    """
-    def __init__(self, enabled: bool, meta: ModuleMeta, bot_event_handlers: dict, 
-                 funpay_event_handlers: dict, telegram_bot_routers: list, _dir_name: str):
-        self.uuid: UUID = uuid.uuid4()
-        """ UUID модуля (генерируется при инициализации). """
-        self.enabled: bool = enabled
-        """ Включен ли модуль. """
-        self.meta: ModuleMeta = meta
-        """ Метаданные модуля. """
-        self.bot_event_handlers: dict = bot_event_handlers
-        """ Хендлеры ивентов бота. """
-        self.funpay_event_handlers: dict = funpay_event_handlers
-        """ Хендлеры ивентов FunPay. """
-        self.telegram_bot_routers: list = telegram_bot_routers
-        """ Роутеры Telegram бота. """
-        self._dir_name: str = _dir_name
-        """ Имя директории модуля в папке modules. """
+    uuid: UUID
+    enabled: bool
+    meta: ModuleMeta
+    bot_event_handlers: dict
+    funpay_event_handlers: dict
+    telegram_bot_routers: list
+    _dir_name: str
 
 
 _loaded_modules: list[Module] = []
-""" Загруженные модули. """
+"""Загруженные модули."""
 
 class ModulesManager:
-    """
-    Класс, описывающий взаимодействие с модулями бота.
-    """    
+    """Класс, описывающий взаимодействие с модулями бота."""    
+    
     @staticmethod
     def set_modules(data: list[Module]):
         global _loaded_modules
@@ -104,7 +45,6 @@ class ModulesManager:
 
     @staticmethod
     def get_modules() -> list[Module]:
-        global _loaded_modules
         return _loaded_modules
 
     @staticmethod
@@ -118,6 +58,7 @@ class ModulesManager:
         :return: Объект модуля.
         :rtype: `Module`
         """
+
         global _loaded_modules
         for module in _loaded_modules:
             if module.uuid == module_uuid:
@@ -135,6 +76,7 @@ class ModulesManager:
         :return: True, если модуль был включен. False, если не был включен
         :rtype: `bool`
         """
+
         global _loaded_modules
         try:
             module = ModulesManager.get_module_by_uuid(module_uuid)
@@ -146,7 +88,7 @@ class ModulesManager:
             i = _loaded_modules.index(module)
             module.enabled = True
             _loaded_modules[i] = module
-            print(f"{Fore.WHITE}🔌 Модуль {Fore.LIGHTWHITE_EX}{module.meta.name} {Fore.WHITE}подключен")
+            logger.info(f"Модуль {Fore.LIGHTWHITE_EX}{module.meta.name} {Fore.WHITE}подключен")
 
             def handle_on_module_enabled():
                 """ 
@@ -164,7 +106,7 @@ class ModulesManager:
             handle_on_module_enabled()
             return True
         except Exception as e:
-            print(f"{Fore.LIGHTRED_EX}Ошибка при подключении модуля {module_uuid}: {Fore.WHITE}{e}")
+            logger.error(f"{Fore.LIGHTRED_EX}Ошибка при подключении модуля {module_uuid}: {Fore.WHITE}{e}")
             return False
 
     @staticmethod
@@ -178,6 +120,7 @@ class ModulesManager:
         :return: True, если модуль был выключен. False, если не был выключен
         :rtype: `bool`
         """
+
         global _loaded_modules
         try:
             module = ModulesManager.get_module_by_uuid(module_uuid)
@@ -188,7 +131,7 @@ class ModulesManager:
             i = _loaded_modules.index(module)
             module.enabled = False
             _loaded_modules[i] = module
-            print(f"{Fore.LIGHTRED_EX}🚫 Модуль {module.meta.name} отключен")
+            logger.info(f"Модуль {Fore.LIGHTWHITE_EX}{module.meta.name} {Fore.WHITE}отключен")
             
             def handle_on_module_disabled():
                 """ 
@@ -206,7 +149,7 @@ class ModulesManager:
             handle_on_module_disabled()
             return True
         except Exception as e:
-            print(f"{Fore.LIGHTRED_EX}Ошибка при отключении модуля {module_uuid}: {Fore.WHITE}{e}")
+            logger.error(f"{Fore.LIGHTRED_EX}Ошибка при отключении модуля {module_uuid}: {Fore.WHITE}{e}")
             return False
 
     @staticmethod
@@ -220,6 +163,7 @@ class ModulesManager:
         :return: True, если модуль был перезагружен. False, если не был перезагружен
         :rtype: `bool`
         """
+
         try:
             module = ModulesManager.get_module_by_uuid(module_uuid)
             if not module:
@@ -229,7 +173,7 @@ class ModulesManager:
                 del sys.modules[f"modules.{module._dir_name}"]
             mod = importlib.import_module(f"modules.{module._dir_name}")
                 
-            print(f"{Fore.WHITE}🔄  Модуль {Fore.LIGHTWHITE_EX}{module.meta.name} {Fore.WHITE}был перезагружен")
+            logger.info(f"Модуль {Fore.LIGHTWHITE_EX}{module.meta.name} {Fore.WHITE}перезагружен")
 
             def handle_on_module_reloaded():
                 """ 
@@ -247,16 +191,16 @@ class ModulesManager:
             handle_on_module_reloaded()
             return mod
         except Exception as e:
-            print(f"{Fore.LIGHTRED_EX}Ошибка при перезагрузке модуля {module_uuid}: {Fore.WHITE}{e}")
+            logger.error(f"{Fore.LIGHTRED_EX}Ошибка при перезагрузке модуля {module_uuid}: {Fore.WHITE}{e}")
             return False
 
     @staticmethod
     def load_modules() -> list[Module]:
-        """ Загружает все модули из папки modules. """
+        """Загружает все модули из папки modules."""
+
         modules = []
         modules_path = "modules"
         os.makedirs(modules_path, exist_ok=True)
-
         for name in os.listdir(modules_path):
             bot_event_handlers = {}
             funpay_event_handlers = {}
@@ -266,7 +210,6 @@ class ModulesManager:
             if os.path.isdir(module_path) and "__init__.py" in os.listdir(module_path):
                 try:
                     install_requirements(os.path.join(module_path, "requirements.txt"))
-
                     module = importlib.import_module(f"modules.{name}")
                     if hasattr(module, "BOT_EVENT_HANDLERS"):
                         for key, funcs in module.BOT_EVENT_HANDLERS.items():
@@ -278,6 +221,7 @@ class ModulesManager:
                         telegram_bot_routers.extend(module.TELEGRAM_BOT_ROUTERS)
                     
                     module_data = Module(
+                        uuid.uuid4(),
                         enabled=False,
                         meta=ModuleMeta(
                             module.PREFIX,
@@ -294,12 +238,13 @@ class ModulesManager:
                     )
                     modules.append(module_data)
                 except Exception as e:
-                    print(f"{Fore.LIGHTRED_EX}Ошибка при загрузке модуля {name}: {Fore.WHITE}{e}")
+                    logger.error(f"{Fore.LIGHTRED_EX}Ошибка при загрузке модуля {name}: {Fore.WHITE}{e}")
+                    import traceback
+                    traceback.print_exc()
         return modules
 
     @staticmethod
     def connect_modules(modules: list[Module]):
-        """ Подключает (включает) переданные в массиве модули. """
         global _loaded_modules
         names = []
         for module in modules:
@@ -309,17 +254,15 @@ class ModulesManager:
                 i = _loaded_modules.index(module)
                 module.enabled = True
                 _loaded_modules[i] = module
-                names.append(f"{Fore.LIGHTYELLOW_EX}{module.meta.name} {Fore.LIGHTWHITE_EX}{module.meta.version}")
+                names.append(f"{Fore.YELLOW}{module.meta.name} {Fore.LIGHTWHITE_EX}{module.meta.version}")
             except Exception as e:
-                print(f"{Fore.LIGHTRED_EX}Ошибка при подключении модуля {module.meta.name}: {Fore.WHITE}{e}")
+                logger.error(f"{Fore.LIGHTRED_EX}Ошибка при подключении модуля {module.meta.name}: {Fore.WHITE}{e}")
                 continue
-        print(f'{Fore.WHITE}🔌  Подключено {Fore.LIGHTWHITE_EX}{len(modules)} модуля(-ей): {f"{Fore.WHITE}, ".join(names)}')
+        logger.info(f'{Fore.CYAN}Подключено {Fore.LIGHTCYAN_EX}{len(modules)} модуля(-ей): {f"{Fore.WHITE}, ".join(names)}')
         
-        def handle_on_module_connected():
-            """ 
-            Запускается при первом подключении модуля.
-            Запускает за собой все хендлеры ON_INIT
-            """
+        def on_module_connected():
+            """Запускается при первом подключении модуля. Запускает за собой все хендлеры ON_INIT"""
+
             for module in modules:
                 if "ON_MODULE_CONNECTED" in module.bot_event_handlers and module.enabled:
                     event_handlers = module.bot_event_handlers.get("ON_MODULE_CONNECTED")
@@ -329,4 +272,4 @@ class ModulesManager:
                                 handler(module)
                             except Exception as e:
                                 logger.error(f"{Fore.LIGHTRED_EX}Ошибка при обработке хендлера ивента ON_MODULE_CONNECTED: {Fore.WHITE}{e}")
-        handle_on_module_connected()
+        on_module_connected()

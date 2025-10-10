@@ -9,25 +9,16 @@ import subprocess
 import requests
 import random
 import time
+from logging import getLogger
+logger = getLogger(f"universal.core")
 
 
 
 def restart():
-    """ 
-    Перезагружает бота. 
-    """
-    print(f"{Fore.WHITE}Перезапуск бота...\n")
-    os.execv(sys.executable, [sys.executable] + sys.argv)
-    exit()
+    subprocess.Popen([sys.executable] + sys.argv)
+    sys.exit()
 
 def set_title(title):
-    """
-    Устанавливает заголовок консоли (кросс-платформенно).
-    Работает на Windows, Linux и macOS.
-
-    :param title: Заголовок консоли.
-    :type title: `str`
-    """
     if sys.platform == "win32":
         ctypes.windll.kernel32.SetConsoleTitleW(title)
     elif sys.platform.startswith("linux"):
@@ -36,39 +27,46 @@ def set_title(title):
     elif sys.platform == "darwin":
         sys.stdout.write(f"\x1b]0;{title}\x07")
         sys.stdout.flush()
-    else:
-        print(f"Заголовок консоли не поддерживается на {sys.platform}")
 
-def setup_logger():
-    """ 
-    Настраивает глобальный логгер. 
-    """
-    LOG_FORMAT = "%(light_black)s[%(asctime)s] %(log_color)s%(levelname)-8s %(message)s"
-    formatter = ColoredFormatter(
+def setup_logger(log_file: str = "logs/latest.log"):
+    class ShortLevelFormatter(ColoredFormatter):
+        def format(self, record):
+            record.shortLevel = record.levelname[0]
+            return super().format(record)
+
+    LOG_FORMAT = "%(light_black)s%(asctime)s · %(log_color)s%(shortLevel)s: %(reset)s%(white)s%(message)s"
+    formatter = ShortLevelFormatter(
         LOG_FORMAT,
         datefmt="%d.%m.%Y %H:%M:%S",
         reset=True,
         log_colors={
-            'DEBUG': 'cyan',
-            'INFO': 'white',
-            'WARNING': 'lightyellow',
-            'ERROR': 'red',
-            'CRITICAL': 'red,bg_white',
+            'DEBUG': 'light_blue',
+            'INFO': 'light_green',
+            'WARNING': 'yellow',
+            'ERROR': 'bold_red',
+            'CRITICAL': 'red',
         },
-        secondary_log_colors={},
         style='%'
     )
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
+    console_handler.setLevel(logging.INFO)
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    file_handler.setLevel(logging.DEBUG)
+    file_formatter = logging.Formatter(
+        "[%(asctime)s] %(levelname)-1s · %(name)-20s %(message)s",
+        datefmt="%d.%m.%Y %H:%M:%S",
+    )
+    file_handler.setFormatter(file_formatter)
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
     logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    return logger
     
 def is_package_installed(requirement_string: str) -> bool:
-    """ Проверяет, установлена ли библотека. """
     try:
         pkg_resources.require(requirement_string)
         return True
@@ -76,13 +74,6 @@ def is_package_installed(requirement_string: str) -> bool:
         return False
 
 def install_requirements(requirements_path: str):
-    """
-    Устанавливает зависимости с файла requirements.txt,
-    если они не установлены.
-
-    :param requirements_path: Путь к файлу requirements.txt.
-    :type requirements_path: str
-    """
     if not os.path.exists(requirements_path):
         return
     with open(requirements_path, "r", encoding="utf-8") as f:
@@ -97,16 +88,11 @@ def install_requirements(requirements_path: str):
             missing_packages.append(pkg)
 
     if missing_packages:
-        print(f"{Fore.WHITE}⚙️  Установка недостающих зависимостей: {Fore.LIGHTYELLOW_EX}{f'{Fore.WHITE}, {Fore.LIGHTYELLOW_EX}'.join(missing_packages)}{Fore.WHITE}")
+        print(f"{Fore.WHITE}⚙️  Установка недостающих зависимостей: {Fore.YELLOW}{f'{Fore.WHITE}, {Fore.YELLOW}'.join(missing_packages)}{Fore.WHITE}")
         subprocess.check_call([sys.executable, "-m", "pip", "install", *missing_packages])
 
 def patch_requests():
-    """
-    Патчит запросы requests на кастомные, с обработкой
-    429 Too Many Requests, 520 Bat Gateway и повторной отправкой запроса при этих ошибках.
-    """
     _orig_request = requests.Session.request
-
     def _request(self, method, url, **kwargs):  # type: ignore
         for attempt in range(6):
             resp = _orig_request(self, method, url, **kwargs)

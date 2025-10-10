@@ -1,5 +1,3 @@
-from aiogram import Router
-from tgbot import get_telegram_bot, set_telegram_bot
 from FunPayAPI.updater.events import EventTypes
 
 _bot_event_handlers: dict = {

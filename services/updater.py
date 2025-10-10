@@ -1,46 +1,50 @@
+from __init__ import ACCENT_COLOR, VERSION, SKIP_UPDATES
 import os
 import requests
 import zipfile
 import io
 import shutil
-import sys
 from colorama import Fore
-from __init__ import VERSION, SKIP_UPDATES
 from core.console import restart
+from logging import getLogger
+logger = getLogger(f"universal.updater")
 
 
 class Updater:
     REPO = "alleexxeeyy/funpay-universal"
-    API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 
     @staticmethod
     def check_for_updates():
         try:
-            response = requests.get(Updater.API_URL)
+            response = requests.get(f"https://api.github.com/repos/{Updater.REPO}/releases")
             if response.status_code != 200:
                 raise Exception(f"Ошибка запроса к GitHub API: {response.status_code}")
             
-            latest_release = response.json()
-            latest_version = latest_release["tag_name"]
-            if latest_version == VERSION:
-                print(f"{Fore.WHITE}У вас установлена последняя версия: {Fore.LIGHTWHITE_EX}{VERSION}\n")
+            releases = response.json()
+            latest_release = releases[0]
+            versions = [release["tag_name"] for release in releases]
+            if VERSION not in versions:
+                logger.info(f"Вашей версии {Fore.LIGHTWHITE_EX}{VERSION} {Fore.WHITE}нету в релизах репозитория. Последняя версия: {Fore.LIGHTWHITE_EX}{latest_release['tag_name']}")
                 return
-            print(f"\n{Fore.LIGHTYELLOW_EX}Доступна новая версия: {Fore.LIGHTWHITE_EX}{latest_version}")
+            elif VERSION == latest_release["tag_name"]:
+                logger.info(f"У вас установлена последняя версия: {Fore.LIGHTWHITE_EX}{VERSION}")
+                return
+            logger.info(f"{Fore.YELLOW}Доступна новая версия: {Fore.LIGHTWHITE_EX}{latest_release['tag_name']}")
             if SKIP_UPDATES:
-                print(f"{Fore.WHITE}Пропускаем установку обновления. Если вы хотите автоматически скачивать обновления, измените значение "
-                      f"{Fore.LIGHTWHITE_EX}SKIP_UPDATES{Fore.WHITE} на {Fore.LIGHTYELLOW_EX}False {Fore.WHITE}в файле инициализации {Fore.LIGHTWHITE_EX}(__init__.py)\n")
+                logger.info(f"Пропускаю установку обновления. Если вы хотите автоматически скачивать обновления, измените значение "
+                            f"{Fore.LIGHTWHITE_EX}SKIP_UPDATES{Fore.WHITE} на {Fore.YELLOW}False {Fore.WHITE}в файле инициализации {Fore.LIGHTWHITE_EX}(__init__.py)")
                 return
             
-            print(f"{Fore.WHITE}Скачиваем: {Fore.LIGHTWHITE_EX}{latest_release['html_url']}\n")
-            print(f"{Fore.WHITE}Загружаю обновление...")
+            logger.info(f"Скачиваю обновление: {Fore.LIGHTWHITE_EX}{latest_release['html_url']}")
+            logger.info(f"Загружаю обновление...")
             bytes = Updater.download_update(latest_release)
             if bytes:
-                print(f"{Fore.WHITE}Устанавливаю обновление...")
+                logger.info(f"Устанавливаю обновление...")
                 if Updater.install_update(bytes):
-                    print(f"\n{Fore.LIGHTYELLOW_EX}✅ Обновление {Fore.LIGHTWHITE_EX}{latest_version} {Fore.LIGHTYELLOW_EX}было успешно установлено.")
+                    logger.info(f"✅ Обновление {Fore.LIGHTWHITE_EX}{latest_release['tag_name']} {Fore.YELLOW}было успешно установлено.")
                     restart()
         except Exception as e:
-            print(f"{Fore.LIGHTRED_EX}При проверке на наличие обновлений произошла ошибка: {Fore.WHITE}{e}")
+            logger.error(f"{Fore.LIGHTRED_EX}При проверке на наличие обновлений произошла ошибка: {Fore.WHITE}{e}")
 
     @staticmethod
     def download_update(release_info: str):
@@ -48,10 +52,10 @@ class Updater:
             zip_url = release_info['zipball_url']
             zip_response = requests.get(zip_url)
             if zip_response.status_code != 200:
-                raise Exception(f"{Fore.LIGHTRED_EX}При скачивании архива обновления произошла ошибка: {zip_response.status_code}")
+                raise Exception(f"При скачивании архива обновления произошла ошибка: {zip_response.status_code}")
             return zip_response.content
         except Exception as e:
-            print(f"{Fore.LIGHTRED_EX}При скачивании обновления произошла ошибка: {Fore.WHITE}{e}")
+            logger.error(f"{Fore.LIGHTRED_EX}При скачивании обновления произошла ошибка: {Fore.WHITE}{e}")
             return False
     
     @staticmethod
@@ -78,7 +82,7 @@ class Updater:
                 
                 return True
         except Exception as e:
-            print(f"{Fore.LIGHTRED_EX}При установке обновления произошла ошибка: {Fore.WHITE}{e}")
+            logger.error(f"{Fore.LIGHTRED_EX}При установке обновления произошла ошибка: {Fore.WHITE}{e}")
             return False
         finally:
             if os.path.exists(temp_dir):

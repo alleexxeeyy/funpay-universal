@@ -72,7 +72,7 @@
 <details>
   <summary><strong>📁 Строение модуля</strong></summary>  
   
-  </br>Модуль - это папка, внутри которой находятся важные компоненты. Вы можете изучить строение модуля, опираясь на [шаблонный модуль](templates/test_module), но стоит понимать, что это лишь пример, сделанный нами.
+  </br>Модуль - это папка, внутри которой находятся важные компоненты. Вы можете изучить строение модуля, опираясь на [шаблонный модуль](.templates/forms_module), но стоит понимать, что это лишь пример, сделанный нами.
 
   Строение модуля может быть абсолютно любым на ваше усмотрение, но всё же в каждом модуля должен быть обязательный файл инициализации **`__init__.py`**, в котором задаются все основные параметры для корректной
   работы модуля.
@@ -105,43 +105,47 @@
   from colorama import Fore, Style
 
   PREFIX = f"{Fore.LIGHTCYAN_EX}[test module]{Fore.WHITE}"
-  VERSION = "0.1"
+  VERSION = "1.0"
   NAME = "test_module"
-  DESCRIPTION = "Тестовый модуль. /test_module в Telegram боте для управления"
+  DESCRIPTION = "Тестовый модуль. /test_module в Telegram боте для управле!мояанкетания"
   AUTHORS = "@alleexxeeyy"
   LINKS = "https://t.me/alleexxeeyy, https://t.me/alexeyproduction"
   ```
 
   `__init__.py`:
   ```python
-  from .fpbot.funpaybot_handlers import FunPayBotHandlers
-  from .tgbot.telegrambot_handlers import TelegramBotHandlers
+  from .fpbot.handlers import on_funpay_bot_init, on_new_message, on_new_order
+  from .tgbot._handlers import on_telegram_bot_init
   from .tgbot import router
   from .meta import *
   from FunPayAPI.updater.events import EventTypes
   from core.modules_manager import disable_module, Module
   
+
   _module: Module = None
-  def get_module(module: Module):
+
+  def set_module(new: Module):
       global _module
-      _module = module
+      _module = new
+
+  def get_module():
+      return _module
   
-  def handler_on_init():
+  def on_module_connected():
       try:
-          # ...
-          print(f"{PREFIX} Модуль инициализирован")
+          set_module(module)
+          print(f"{PREFIX} Модуль подключен и активен")
       except:
           disable_module(_module.uuid)
   
   BOT_EVENT_HANDLERS = {
-      "ON_MODULE_CONNECTED": [handle_on_module_connected],
-      "ON_INIT": [handler_on_init],
-      "ON_FUNPAY_BOT_INIT": [FunPayBotHandlers.handler_on_funpay_bot_init],
-      "ON_TELEGRAM_BOT_INIT": [TelegramBotHandlers.handler_on_telegram_bot_init]
+      "ON_MODULE_CONNECTED": [on_module_connected],
+      "ON_FUNPAY_BOT_INIT": [on_funpay_bot_init],
+      "ON_TELEGRAM_BOT_INIT": [on_telegram_bot_init]
   }
   FUNPAY_EVENT_HANDLERS = {
-      EventTypes.NEW_MESSAGE: [FunPayBotHandlers.handler_new_message],
-      EventTypes.NEW_ORDER: [FunPayBotHandlers.handler_new_order]
+      EventTypes.NEW_MESSAGE: [on_new_message],
+      EventTypes.NEW_ORDER: [on_new_order]
   }
   TELEGRAM_BOT_ROUTERS = [router]
   ```

@@ -38,7 +38,7 @@ async def throw_float_message(state: FSMContext, message: Message, text: str,
     :param send: Отправить ли новое акцентированное сообщение, _опционально_.
     :type send: `bool`
     """
-    from . import get_telegram_bot
+    from .telegrambot import get_telegram_bot
     try:
         bot = get_telegram_bot().bot
         data = await state.get_data()

@@ -1,6 +1,5 @@
 import json
 import os
-from datetime import datetime
 
 DATA = {
     "initialized_users": {
@@ -58,7 +57,7 @@ def set_json(path: str, new: dict):
         json.dump(new, f, indent=4, ensure_ascii=False)
 
 class Data:
-
+    
     @staticmethod
     def get(name, data: dict | None = None) -> dict:
         data = data if data is not None else DATA

@@ -299,11 +299,11 @@ class Runner:
             except exceptions.RequestFailedError as e:
                 logger.error(e)
             except:
-                logger.error(f"Не удалось получить истории чатов {list(chats_data.keys())}.")
+                logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось получить истории чатов {list(chats_data.keys())}.")
                 logger.debug("TRACEBACK", exc_info=True)
             time.sleep(1)
         else:
-            logger.error(f"Не удалось получить истории чатов {list(chats_data.keys())}: превышено кол-во попыток.")
+            logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось получить истории чатов {list(chats_data.keys())}: превышено кол-во попыток.")
             return {}
 
         result = {}
@@ -373,11 +373,11 @@ class Runner:
             except exceptions.RequestFailedError as e:
                 logger.error(e)
             except:
-                logger.error("Не удалось обновить список заказов.")
+                logger.error(f"{Fore.LIGHTRED_EX}{Fore.LIGHTRED_EX}Не удалось обновить список заказов.")
                 logger.debug("TRACEBACK", exc_info=True)
             time.sleep(1)
         else:
-            logger.error("Не удалось обновить список продаж: превышено кол-во попыток.")
+            logger.error(f"{Fore.LIGHTRED_EX}{Fore.LIGHTRED_EX}Не удалось обновить список продаж: превышено кол-во попыток.")
             return events
 
         saved_orders = {}
@@ -473,7 +473,7 @@ class Runner:
                 if not ignore_exceptions:
                     raise e
                 else:
-                    logger.error("Произошла ошибка при получении событий. "
+                    logger.error(f"{Fore.LIGHTRED_EX}{Fore.LIGHTRED_EX}Произошла ошибка при получении событий. "
                                  "(ничего страшного, если это сообщение появляется нечасто).")
                     logger.debug("TRACEBACK", exc_info=True)
             time.sleep(requests_delay)

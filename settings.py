@@ -1,8 +1,6 @@
 import os
 import json
 import copy
-from colorama import Fore, Style
-from colorama.ansi import AnsiFore
 
 DATA = {
     "config": {
@@ -19,7 +17,6 @@ DATA = {
                 "bot": {
                     "messages_watermark_enabled": True,
                     "messages_watermark": "©️ 𝗙𝘂𝗻𝗣𝗮𝘆 𝗨𝗻𝗶𝘃𝗲𝗿𝘀𝗮𝗹",
-                    "first_message_enabled": True,
                     "custom_commands_enabled": True,
                     "auto_deliveries_enabled": True,
                     "auto_raising_lots_enabled": True,
@@ -103,37 +100,66 @@ DATA = {
     "messages": {
         "path": "bot_settings/messages.json",
         "default": {
-            "user_not_initialized": [
-                "👋 Привет, {username}, я бот-помощник.",
-                "",
-                "🗨️ Если вы хотите поговорить с продавцом, напишите команду !продавец, чтобы я пригласил его в этот диалог.",
-                "",
-                "🕹️ А вообще, чтобы узнать все мои команды, напишите !команды"
-            ],
-            "command_error": [
-                "❌ При вводе команды произошла непредвиденная ошибка"
-            ],
-            "command_incorrect_use_error": [
-                "❌ Неверное использование команды. Используйте {correct_use}"
-            ],
-            "buyer_command_commands": [
-                "🕹️ Основные команды:",
-                "┗ !продавец — уведомить и позвать продавца в этот чат"
-            ],
-            "buyer_command_seller": [
-                "💬 Продавец был вызван в этот чат. Ожидайте, пока он подключиться к диалогу..."
-            ],
-            "order_confirmed": [
-                "🌟 Спасибо за успешную сделку. Буду рад, если оставите отзыв. Жду вас в своём магазине в следующий раз, удачи!"
-            ],
-            "order_review_reply_text": [
-                "📅 Дата отзыва: {review_date}",
-                "",
-                "🛍️ Товар: {order_title}",
-                "",
-                "🔢 Количество: {order_amount} шт."
-            ]
-        },
+            "first_message": {
+                "enabled": True,
+                "text": [
+                    "👋 Привет, {username}, я бот-помощник 𝗙𝘂𝗻𝗣𝗮𝘆 𝗨𝗻𝗶𝘃𝗲𝗿𝘀𝗮𝗹",
+                    "",
+                    "💡 Если вы хотите поговорить с продавцом, напишите команду !продавец, чтобы я пригласил его в этот диалог",
+                    "",
+                    "Чтобы узнать все мои команды, напишите !команды"
+                ]
+            },
+            "cmd_error": {
+                "enabled": True,
+                "text": [
+                    "❌ При вводе команды произошла ошибка: {error}"
+                ]
+            },
+            "cmd_commands": {
+                "enabled": True,
+                "text": [
+                    "🕹️ Основные команды:",
+                    "・ !продавец — уведомить и позвать продавца в этот чат"
+                ]
+            },
+            "cmd_seller": {
+                "enabled": True,
+                "text": [
+                    "💬 Продавец был вызван в этот чат. Ожидайте, пока он подключиться к диалогу..."
+                ]
+            },
+            "new_order": {
+                "enabled": False,
+                "text": [
+                    "📋 Спасибо за покупку «{order_title}» в количестве {order_amount} шт.",
+                    ""
+                    "Продавца сейчас может не быть на месте, чтобы позвать его, используйте команду !продавец."
+                ]
+            },
+            "order_confirmed": {
+                "enabled": False,
+                "text": [
+                    "🌟 Спасибо за успешную сделку. Буду рад, если оставите отзыв. Жду вас в своём магазине в следующий раз, удачи!"
+                ]
+            },
+            "order_refunded": {
+                "enabled": False,
+                "text": [
+                    "📦 Заказ был возвращён. Надеюсь эта сделка не принесла вам неудобств. Жду вас в своём магазине в следующий раз, удачи!"
+                ]
+            },
+            "order_review_reply": {
+                "enabled": True,
+                "text": [
+                    "📅 Дата отзыва: {review_date}",
+                    "",
+                    "🛍️ Товар: {order_title}",
+                    "",
+                    "🔢 Количество: {order_amount} шт."
+                ]
+            }
+        }
     },
     "custom_commands": {
         "path": "bot_settings/custom_commands.json",
@@ -245,99 +271,6 @@ def set_json(path: str, new: dict):
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(new, f, indent=4, ensure_ascii=False)
 
-def configure_json(name: str, params: dict, accent_color: AnsiFore, 
-                   data: dict | None = None):
-    """
-    Начинает настройку файла настроек для пользователя.
-
-    :param path: Путь к json файлу.
-    :type path: `str`
-
-    :param default: Стандартная структура файла.
-    :type default: `dict`
-
-    :param accent_color: Цвет акцента.
-    :type accent_color: `colorama.Fore`
-
-    :param params: Параметры, которые нужно настроить.
-    :type params: `dict`
-    """
-    answers = {}
-    config = Settings.get(name, data)
-
-    def configure(params, default, config, prefix=""):
-        for key, value in params.items():
-            full_key = f"{accent_color}{prefix}{key}"
-            if isinstance(value, dict) and "type" not in value:
-                if key not in config:
-                    config[key] = default[key]
-                configure(value, default[key], config[key], prefix=full_key + f"{Fore.LIGHTWHITE_EX}.{accent_color}")
-            else:
-                full_key = full_key.replace(key, f"{Fore.LIGHTYELLOW_EX}{key}")
-                not_stated_placeholder = "Не задано"
-                default_value = default.get(key, "")
-                desc = "· " + "\n· ".join(value.get("desc", []))
-                while True:
-                    print(f"\n{Fore.LIGHTWHITE_EX}⚙️ Введите значение параметра {full_key}{Fore.LIGHTWHITE_EX}."
-                          f"\n{Fore.WHITE}Значение по умолчанию: {accent_color}{default_value if default_value else not_stated_placeholder}"
-                          f"\n{Fore.WHITE}Описание параметра: \n{accent_color}{desc}"
-                          f'\n{Fore.WHITE}Ввод {"обязательный" if value.get("required") else "необязательный"}')
-                    if not value.get("required"):
-                        print(f"{Fore.LIGHTWHITE_EX}Нажмите Enter, чтобы пропустить и использовать значение по умолчанию: {accent_color}{default_value if default_value else not_stated_placeholder}")
-                    a = input(f"{Fore.WHITE}→ {Fore.LIGHTWHITE_EX}")
-
-                    param_type = value.get("type")
-                    if param_type is int:
-                        if a:
-                            try:
-                                answers[key] = int(a)
-                                config[key] = int(a)
-                                print(f"{Fore.WHITE}Значение параметра {Fore.LIGHTWHITE_EX}{full_key} {Fore.WHITE}было изменено на {accent_color}{a}")
-                                break
-                            except ValueError:
-                                print(f"{Fore.LIGHTRED_EX}✗ Ошибка ввода: значение должно быть числовым. Попробуйте снова.")
-                        elif value.get("required"):
-                            print(f"{Fore.LIGHTRED_EX}✗ Ошибка ввода: это значение обязательное. Попробуйте снова.")
-                        else:
-                            answers[key] = default_value
-                            config[key] = default_value
-                            print(f"Будет использоваться значение по умолчанию: {accent_color}{default_value if default_value else not_stated_placeholder}")
-                            break
-                    elif param_type is str:
-                        if a:
-                            answers[key] = str(a)
-                            config[key] = str(a)
-                            print(f"{Fore.WHITE}Значение параметра {Fore.LIGHTWHITE_EX}{full_key} {Fore.WHITE}было изменено на {accent_color}{a}")
-                            break
-                        elif value.get("required"):
-                            print(f"{Fore.LIGHTRED_EX}✗ Ошибка ввода: это значение обязательное. Попробуйте снова.")
-                        else:
-                            answers[key] = default_value
-                            config[key] = default_value
-                            print(f"{Fore.WHITE}Будет использоваться значение по умолчанию: {accent_color}{default_value if default_value else not_stated_placeholder}")
-                            break
-        return config
-
-    print(f"\n{Fore.LIGHTWHITE_EX}↓ Всего {accent_color}{len(params.keys())} {Fore.LIGHTWHITE_EX}раздела(-ов) для настройки.")
-    new_config = configure(params, data[name]["default"], config)
-
-    print(f"\n{Fore.LIGHTWHITE_EX}✓ Отлично, настройка была завершена."
-          f"\n{Fore.WHITE}Ваши ответы:"
-          f"\n{Fore.WHITE}Параметр: {accent_color}*ваш ответ*{Fore.WHITE} | {accent_color}*значение по умолчанию*")
-    print(f"{Fore.LIGHTWHITE_EX}——————")
-    for answer_param in answers.keys():
-        print(f"{Fore.WHITE}{answer_param}: {accent_color}{answers[answer_param]}{Fore.WHITE}")
-
-    print(f"\n{Fore.WHITE}💾 Применяем и сохраняем конфиг с текущими, указанными вами значениями? +/-")
-    a = input(f"{Fore.WHITE}→ {Fore.LIGHTWHITE_EX}")
-    if a == "+":
-        Settings.set(name, new_config, data)
-        print(f"{Fore.LIGHTWHITE_EX}✅ Настройки были применены и сохранены в конфиг\n")
-        return True
-    else:
-        print(f"\n{Fore.WHITE}Вы отказались от сохранения введённых вами значений в конфиг. Давайте настроим их с начала...")
-        return configure_json(name, params, accent_color, data)
-
 class Settings:
     
     @staticmethod
@@ -353,11 +286,3 @@ class Settings:
         if name not in data:
             return None
         set_json(data[name]["path"], new)
-
-    @staticmethod
-    def configure(name, accent_color, params: dict | None = None, 
-                  data: dict | None = None) -> dict:
-        data = data if data is not None else DATA
-        if name not in data:
-            return None
-        return configure_json(name, params if params else data[name]["params"], accent_color, data)
