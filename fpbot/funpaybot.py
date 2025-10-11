@@ -289,7 +289,7 @@ class FunPayBot:
     def log_new_review(self, review: types.Review):
         self.logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
         self.logger.info(f"{Fore.YELLOW}Новый отзыв по заказу #{review.order_id}:")
-        self.logger.info(f" · Оценка: {Fore.LIGHTWHITE_EX}{'★' * review.stars or 5} ({review.stars or 5})")
+        self.logger.info(f" · Оценка: {Fore.LIGHTYELLOW_EX}{'★' * review.stars or 5} ({review.stars or 5})")
         self.logger.info(f" · Текст: {Fore.LIGHTWHITE_EX}{review.text}")
         self.logger.info(f" · Оставил: {Fore.LIGHTWHITE_EX}{review.author}")
         self.logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
