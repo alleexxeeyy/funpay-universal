@@ -9,7 +9,6 @@ from ..helpful import throw_float_message
 router = Router()
 
 
-
 @router.callback_query(calls.MenuNavigation.filter())
 async def callback_menu_navigation(callback: CallbackQuery, callback_data: calls.MenuNavigation, state: FSMContext):
     await state.set_state(None)

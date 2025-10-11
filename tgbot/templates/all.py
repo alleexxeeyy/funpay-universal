@@ -1,17 +1,14 @@
-from __init__ import VERSION
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
 import math
 import textwrap
 from datetime import datetime, timedelta
+from uuid import UUID
 
+from __init__ import VERSION
 from .. import callback_datas as calls
 from settings import Settings as sett
 from data import Data as data
 from fpbot.stats import get_stats
-
-from uuid import UUID
-
 
 
 def error_text(placeholder: str):
@@ -863,7 +860,7 @@ def settings_other_float_text(placeholder: str):
 
 
 def modules_text():
-    from core.modules_manager import ModulesManager
+    from core.modules import ModulesManager
     modules = ModulesManager.get_modules()
     txt = textwrap.dedent(f"""
         🔌 <b>Модули</b>
@@ -874,7 +871,7 @@ def modules_text():
     return txt
 
 def modules_kb(page: int = 0):
-    from core.modules_manager import ModulesManager
+    from core.modules import ModulesManager
     modules = ModulesManager.get_modules()
     rows = []
     items_per_page = 7
@@ -908,7 +905,7 @@ def modules_kb(page: int = 0):
 
 
 def module_page_text(module_uuid: UUID):
-    from core.modules_manager import ModulesManager, Module
+    from core.modules import ModulesManager, Module
     module: Module = ModulesManager.get_module_by_uuid(module_uuid)
     if not module: raise Exception("Не удалось найти модуль")
     txt = textwrap.dedent(f"""
@@ -928,7 +925,7 @@ def module_page_text(module_uuid: UUID):
     return txt
 
 def module_page_kb(module_uuid: UUID, page: int = 0):
-    from core.modules_manager import ModulesManager, Module
+    from core.modules import ModulesManager, Module
     module: Module = ModulesManager.get_module_by_uuid(module_uuid)
     if not module: raise Exception("Не удалось найти модуль")
     rows = [

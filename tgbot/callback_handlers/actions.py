@@ -7,12 +7,10 @@ from settings import Settings as sett
 from .. import templates as templ
 from .. import callback_datas as calls
 from .. import states as states
-
 from ..helpful import throw_float_message
 from .navigation import *
 
 router = Router()
-
 
 
 @router.callback_query(F.data == "destroy")
@@ -595,7 +593,7 @@ async def callback_enter_enter_auto_support_tickets_create_interval(callback: Ca
 
 @router.callback_query(F.data == "switch_module_enabled")
 async def callback_disable_module(callback: CallbackQuery, state: FSMContext):
-    from core.modules_manager import ModulesManager as modman
+    from core.modules import get_module_by_uuid, disable_module, enable_module
     try:
         data = await state.get_data()
         last_page = data.get("last_page") or 0
@@ -603,8 +601,8 @@ async def callback_disable_module(callback: CallbackQuery, state: FSMContext):
         if not module_uuid:
             raise Exception("❌ UUID модуля не был найден, повторите процесс с самого начала")
 
-        module = modman.get_module_by_uuid(module_uuid)
-        modman.disable_module(module_uuid) if module.enabled else modman.enable_module(module_uuid)
+        module = get_module_by_uuid(module_uuid)
+        disable_module(module_uuid) if module.enabled else enable_module(module_uuid)
         return await callback_module_page(callback, calls.ModulePage(uuid=module_uuid), state)
     except Exception as e:
         if e is not TelegramAPIError:

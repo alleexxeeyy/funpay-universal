@@ -1,14 +1,8 @@
-from __init__ import ACCENT_COLOR, VERSION
-from core.modules_manager import ModulesManager
-from core.handlers_manager import HandlersManager
-
-from core.console import restart, set_title, setup_logger, install_requirements, patch_requests
 import asyncio
 import re
 import string
 import requests
 from threading import Thread
-from settings import Settings as sett
 import traceback
 from colorama import init, Fore, Style
 init()
@@ -17,7 +11,13 @@ logger = getLogger(f"universal")
 
 from FunPayAPI.account import Account
 from FunPayAPI.common.exceptions import UnauthorizedError
-from services.updater import Updater
+
+from __init__ import ACCENT_COLOR, VERSION
+from settings import Settings as sett
+from core.utils import set_title, setup_logger, install_requirements, patch_requests
+from core.modules import load_modules, set_modules, connect_modules
+from core.handlers import get_bot_event_handlers
+from services.updater import check_for_updates
 
 
 async def start_telegram_bot():
@@ -206,27 +206,26 @@ if __name__ == "__main__":
               f"\n   ↳ {Fore.LIGHTWHITE_EX}https://t.me/alleexxeeyy"
               f"\n   ↳ {Fore.LIGHTWHITE_EX}https://t.me/alexeyproduction\n\n")
         
-        Updater.check_for_updates()
+        check_for_updates()
         check_and_configure_config()
         
-        modules = ModulesManager.load_modules()
-        ModulesManager.set_modules(modules)
+        modules = load_modules()
+        set_modules(modules)
         
         if len(modules) > 0:
-            ModulesManager.connect_modules(modules)
+            connect_modules(modules)
 
-        bot_event_handlers = HandlersManager.get_bot_event_handlers()
+        bot_event_handlers = get_bot_event_handlers()
         def handle_on_init():
             """ 
             Запускается при инициализации софта.
-            Запускает за собой все хендлеры ON_INIT
+            Запускает за собой все хендлеры ON_INIT.
             """
-            if "ON_INIT" in bot_event_handlers:
-                for handler in bot_event_handlers["ON_INIT"]:
-                    try:
-                        handler()
-                    except Exception as e:
-                        logger.error(f"{Fore.LIGHTRED_EX}Ошибка при обработке хендлера ивента ON_INIT: {Fore.WHITE}{e}")
+            for handler in bot_event_handlers.get("ON_INIT", []):
+                try:
+                    handler()
+                except Exception as e:
+                    logger.error(f"{Fore.LIGHTRED_EX}Ошибка при обработке хендлера ивента ON_INIT: {Fore.WHITE}{e}")
         handle_on_init()
         
         asyncio.run(start_funpay_bot())

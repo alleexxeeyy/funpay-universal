@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 import json
 import logging
 from bs4 import BeautifulSoup
+from colorama import Fore
 
 from ..common import exceptions
 from .events import *

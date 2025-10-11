@@ -1,22 +1,17 @@
 from __future__ import annotations
-from __init__ import ACCENT_COLOR
 import asyncio
 from colorama import Fore
 import textwrap
-
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, InlineKeyboardMarkup
-from aiogram.exceptions import TelegramUnauthorizedError
-
-from . import router as main_router
-from . import templates as templ
-
-from settings import Settings as sett
 import logging
 logger = logging.getLogger(f"universal.telegram")
 
-from core.modules_manager import ModulesManager as modules_m
-from core.handlers_manager import HandlersManager as handlers_m
+from . import router as main_router
+from . import templates as templ
+from settings import Settings as sett
+from core.modules import get_modules
+from core.handlers import get_bot_event_handlers
 
 
 def get_telegram_bot_loop() -> None | asyncio.AbstractEventLoop:
@@ -38,11 +33,10 @@ class TelegramBot:
         self.bot_token = bot_token
         logging.getLogger("aiogram").setLevel(logging.ERROR)
         logging.getLogger("aiogram.event").setLevel(logging.ERROR)
-
         self.bot = Bot(token=self.bot_token)
         self.dp = Dispatcher()
-        
-        for module in modules_m.get_modules():
+
+        for module in get_modules():
             for router in module.telegram_bot_routers:
                 main_router.include_router(router)
         self.dp.include_router(main_router)
@@ -93,23 +87,23 @@ class TelegramBot:
         await self.set_short_description()
         await self.set_description()
         
-        bot_event_handlers = handlers_m.get_bot_event_handlers()
+        bot_event_handlers = get_bot_event_handlers()
         async def handle_on_telegram_bot_init():
             """ 
             Запускается преред инициализацией Telegram бота. 
             Запускает за собой все хендлеры ON_TELEGRAM_BOT_INIT.
             """
-            if "ON_TELEGRAM_BOT_INIT" in bot_event_handlers:
-                for handler in bot_event_handlers["ON_TELEGRAM_BOT_INIT"]:
-                    try:
-                        await handler(self)
-                    except Exception as e:
-                        logger.error(f"{Fore.LIGHTRED_EX}{Fore.LIGHTRED_EX}Ошибка при обработке хендлера в ивента ON_TELEGRAM_BOT_INIT: {Fore.WHITE}{e}")
+            for handler in bot_event_handlers.get("ON_TELEGRAM_BOT_INIT", []):
+                try:
+                    await handler(self)
+                except Exception as e:
+                    logger.error(f"{Fore.LIGHTRED_EX}{Fore.LIGHTRED_EX}Ошибка при обработке хендлера ивента ON_TELEGRAM_BOT_INIT: {Fore.WHITE}{e}")
         await handle_on_telegram_bot_init()
         
         me = await self.bot.get_me()
         logger.info(f"{Fore.CYAN}Telegram бот {Fore.LIGHTCYAN_EX}@{me.username} {Fore.CYAN}запущен и активен")
         await self.dp.start_polling(self.bot, skip_updates=True, handle_signals=False)
+        
         
     async def call_seller(self, calling_name: str, chat_id: int | str):
         """
@@ -145,6 +139,7 @@ class TelegramBot:
                 await self.bot.send_message(chat_id=user_id, text=text, reply_markup=kb, parse_mode="HTML")
         else:
             await self.bot.send_message(chat_id=chat_id, text=f'{text}\n<span class="tg-spoiler">Переключите чат логов на чат с ботом, чтобы отображалась меню с действиями</span>', reply_markup=None, parse_mode="HTML")
+
 
 if __name__ == "__main__":
     config = sett.get("config")

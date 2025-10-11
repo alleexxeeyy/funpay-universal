@@ -26,7 +26,6 @@ _stats = Stats(
 )
 
 def get_stats() -> Stats:
-    global _stats
     return _stats
 
 def set_stats(new):

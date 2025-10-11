@@ -4,7 +4,6 @@ from aiogram.fsm.context import FSMContext
 
 from .. import templates as templ
 from ..helpful import throw_float_message, do_auth
-
 from settings import Settings as sett
 
 router = Router()

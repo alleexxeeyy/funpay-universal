@@ -1,5 +1,5 @@
 from __future__ import annotations
-from __init__ import VERSION, ACCENT_COLOR
+from __init__ import VERSION
 import asyncio
 import time
 from datetime import datetime, timedelta
@@ -23,8 +23,8 @@ from .stats import get_stats, set_stats
 from FunPayAPI import Account, Runner, exceptions as fpapi_exceptions, types as fpapi_types
 from FunPayAPI.common.enums import *
 from FunPayAPI.updater.events import *
-from core.console import set_title, restart
-from core.handlers_manager import HandlersManager
+from core.utils import set_title, restart
+from core.handlers import get_bot_event_handlers, set_bot_event_handlers, get_funpay_event_handlers, set_funpay_event_handlers
 
 from services.fp_support import FunPaySupportAPI
 
@@ -101,16 +101,19 @@ class FunPayBot:
                 pass
         return "Не удалось получить сообщение"
     
-    def get_lot_by_order_title(self, title: str, subcategory: types.SubCategory,
-                               max_attempts: int = 3) -> types.LotShortcut:
+    def get_lot_by_title(self, title: str, subcategory: types.SubCategory | None = None,
+                         subcategory_id: int | None = None, max_attempts: int = 3) -> types.LotShortcut:
         """
         Получает лот по названию заказа.
 
         :param title: Краткое описание заказа.
         :type title: `str`
 
-        :param subcategory: Подкатегория товара заказа.
+        :param subcategory: Подкатегория товара, _опционально_.
         :type subcategory: `FunPayAPI.types.SubCategory`
+
+        :param subcategory_id: ID подкатегории товара, _опционально_.
+        :type subcategory_id: `FunPayAPI.types.SubCategory`
 
         :return: Объект лота.
         :rtype: `FunPayAPI.types.LotShortcut`
@@ -120,8 +123,9 @@ class FunPayBot:
                 profile = self.funpay_account.get_user(self.funpay_account.id)
                 lots = profile.get_sorted_lots(2)
                 candidates = []
+                subcat_id = subcategory.id if subcategory else subcategory_id
                 for lot_subcat, lot_data in lots.items():
-                    if subcategory and lot_subcat.id != subcategory.id:
+                    if subcat_id and lot_subcat.id != subcat_id:
                         continue
                     for _, lot in lot_data.items():
                         if not lot.title:
@@ -144,6 +148,10 @@ class FunPayBot:
                 continue
         self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось получить лот по названию заказа {Fore.LIGHTWHITE_EX}«{title}»")
     
+    def get_lot_by_order_title(self, title: str, subcategory: types.SubCategory | None = None,
+                               subcategory_id: int | None = None) -> types.LotShortcut:
+        return self.get_lot_by_title(title, subcategory, subcategory_id)
+
     def raise_lots(self):
         """
         Поднимает все лоты всех категорий профиля FunPay,
@@ -414,9 +422,9 @@ class FunPayBot:
             Thread(target=auto_raising_lots_loop, daemon=True).start()
             Thread(target=auto_tickets_loop, daemon=True).start()
         
-        bot_event_handlers = HandlersManager.get_bot_event_handlers()
+        bot_event_handlers = get_bot_event_handlers()
         bot_event_handlers["ON_FUNPAY_BOT_INIT"].insert(0, on_funpay_bot_init)
-        HandlersManager.set_bot_event_handlers(bot_event_handlers)
+        set_bot_event_handlers(bot_event_handlers)
 
         async def on_new_review(fpbot: FunPayBot, event: NewMessageEvent):
             try:
@@ -482,7 +490,7 @@ class FunPayBot:
                             fpbot.send_message(this_chat.id, fpbot.msg("cmd_error", reason="Непредвиденная ошибка"))
 
                 if event.message.type is MessageTypes.NEW_FEEDBACK:
-                    on_new_review(fpbot, event)
+                    await on_new_review(fpbot, event)
             except Exception:
                 self.logger.error(f"{Fore.LIGHTRED_EX}При обработке ивента новых сообщений произошла ошибка: {Fore.WHITE}")
                 traceback.print_exc()
@@ -525,30 +533,29 @@ class FunPayBot:
                 self.logger.error(f"{Fore.LIGHTRED_EX}При обработке ивента смены статуса заказа произошла ошибка: {Fore.WHITE}")
                 traceback.print_exc()
             
-        funpay_event_handlers = HandlersManager.get_funpay_event_handlers()
+        funpay_event_handlers = get_funpay_event_handlers()
         funpay_event_handlers[EventTypes.NEW_MESSAGE].insert(0, on_new_message)
         funpay_event_handlers[EventTypes.NEW_ORDER].insert(0, on_new_order)
         funpay_event_handlers[EventTypes.ORDER_STATUS_CHANGED].insert(0, on_order_status_changed)
-        HandlersManager.set_funpay_event_handlers(funpay_event_handlers)
+        set_funpay_event_handlers(funpay_event_handlers)
 
-        bot_event_handlers = HandlersManager.get_bot_event_handlers()
+        bot_event_handlers = get_bot_event_handlers()
         def handle_on_funpay_bot_init():
             """ 
             Запускается при инициализации FunPay бота.
             Запускает за собой все хендлеры ON_FUNPAY_BOT_INIT 
             """
-            if "ON_FUNPAY_BOT_INIT" in bot_event_handlers:
-                for handler in bot_event_handlers["ON_FUNPAY_BOT_INIT"]:
-                    try:
-                        handler(self)
-                    except Exception as e:
-                        self.logger.error(f"{Fore.LIGHTRED_EX}Ошибка при обработке хендлера ивента ON_FUNPAY_BOT_INIT: {Fore.WHITE}{e}")
+            for handler in bot_event_handlers.get("ON_FUNPAY_BOT_INIT", []):
+                try:
+                    handler(self)
+                except Exception as e:
+                    self.logger.error(f"{Fore.LIGHTRED_EX}Ошибка при обработке хендлера ивента ON_FUNPAY_BOT_INIT: {Fore.WHITE}{e}")
         handle_on_funpay_bot_init()
 
         self.logger.info(f"Слушатель событий запущен")
         runner = Runner(self.funpay_account)
         for event in runner.listen(requests_delay=self.config["funpay"]["api"]["runner_requests_delay"]):
-            funpay_event_handlers = HandlersManager.get_funpay_event_handlers() # чтобы каждый раз брать свежие хендлеры, ибо модули могут отключаться/включаться
+            funpay_event_handlers = get_funpay_event_handlers() # чтобы каждый раз брать свежие хендлеры, ибо модули могут отключаться/включаться
             if event.type in funpay_event_handlers:
                 for handler in funpay_event_handlers[event.type]:
                     try:

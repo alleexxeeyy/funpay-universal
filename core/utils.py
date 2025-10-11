@@ -15,10 +15,18 @@ logger = getLogger(f"universal.core")
 
 
 def restart():
+    """Перезагружает консоль."""
     subprocess.Popen([sys.executable] + sys.argv)
     sys.exit()
 
-def set_title(title):
+
+def set_title(title: str):
+    """
+    Устанавливает заголовок консоли.
+
+    :param title: Заголовок.
+    :type title: `str`
+    """
     if sys.platform == "win32":
         ctypes.windll.kernel32.SetConsoleTitleW(title)
     elif sys.platform.startswith("linux"):
@@ -28,7 +36,14 @@ def set_title(title):
         sys.stdout.write(f"\x1b]0;{title}\x07")
         sys.stdout.flush()
 
+
 def setup_logger(log_file: str = "logs/latest.log"):
+    """
+    Настраивает логгер.
+
+    :param log_file: Путь к файлу логов.
+    :type log_file: `str`
+    """
     class ShortLevelFormatter(ColoredFormatter):
         def format(self, record):
             record.shortLevel = record.levelname[0]
@@ -67,19 +82,32 @@ def setup_logger(log_file: str = "logs/latest.log"):
     logger.addHandler(file_handler)
     return logger
     
+
 def is_package_installed(requirement_string: str) -> bool:
+    """
+    Проверяет, установлена ли библиотека.
+
+    :param requirement_string: Строка пакета из файла зависимостей.
+    :type requirement_string: `str`
+    """
     try:
         pkg_resources.require(requirement_string)
         return True
     except (pkg_resources.DistributionNotFound, pkg_resources.VersionConflict):
         return False
 
+
 def install_requirements(requirements_path: str):
+    """
+    Устанавливает зависимости из файла.
+
+    :param requirements_path: Путь к файлу зависимостей.
+    :type requirements_path: `str`
+    """
     if not os.path.exists(requirements_path):
         return
     with open(requirements_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
-
     missing_packages = []
     for line in lines:
         pkg = line.strip()
@@ -87,12 +115,13 @@ def install_requirements(requirements_path: str):
             continue
         if not is_package_installed(pkg):
             missing_packages.append(pkg)
-
     if missing_packages:
-        print(f"{Fore.WHITE}⚙️  Установка недостающих зависимостей: {Fore.YELLOW}{f'{Fore.WHITE}, {Fore.YELLOW}'.join(missing_packages)}{Fore.WHITE}")
+        logger.info(f"Установка недостающих зависимостей: {Fore.YELLOW}{f'{Fore.WHITE}, {Fore.YELLOW}'.join(missing_packages)}{Fore.WHITE}")
         subprocess.check_call([sys.executable, "-m", "pip", "install", *missing_packages])
 
+
 def patch_requests():
+    """Патчит стандартные requests на кастомные с обработкой ошибок."""
     _orig_request = requests.Session.request
     def _request(self, method, url, **kwargs):  # type: ignore
         for attempt in range(6):
@@ -112,7 +141,6 @@ def patch_requests():
                         break
                 else: 
                     return resp
-
             retry_hdr = resp.headers.get("Retry-After")
             try:
                 delay = float(retry_hdr) if retry_hdr else min(120.0, 5.0 * (2 ** attempt))

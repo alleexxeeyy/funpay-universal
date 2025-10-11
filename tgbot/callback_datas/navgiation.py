@@ -2,7 +2,6 @@ from aiogram.filters.callback_data import CallbackData
 from uuid import UUID
 
 
-
 class SystemNavigation(CallbackData, prefix="sysnav"):
     to: str
 

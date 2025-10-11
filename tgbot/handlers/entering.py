@@ -7,11 +7,9 @@ from .. import templates as templ
 from .. import states
 from .. import callback_datas as calls
 from ..helpful import throw_float_message
-
 from settings import Settings as sett
 
 router = Router()
-
 
 
 def is_int(txt: str) -> bool:

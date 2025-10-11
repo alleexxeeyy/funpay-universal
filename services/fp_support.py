@@ -2,7 +2,7 @@ from __future__ import annotations
 import requests
 from bs4 import BeautifulSoup
 import json
-import html
+
 from FunPayAPI import Account
 
 class FunPaySupportAPI:
@@ -70,9 +70,8 @@ class FunPaySupportAPI:
         return response
         
     def get(self) -> FunPaySupportAPI:
-        """
-        Получает и заполняет/обновляет данные аккаунта на сайте поддержки.
-        """
+        """Получает и заполняет/обновляет данные аккаунта на сайте поддержки."""
+        
         r = self.method("get", "https://support.funpay.com/", {}, {}, True)
         cookies = r.cookies.get_dict()
         self.phpsessid = cookies.get("PHPSESSID", self.phpsessid)
@@ -85,9 +84,12 @@ class FunPaySupportAPI:
         self.csrf_token = self.app_data["csrfToken"]
         return self
         
-    def get_ticket_token(self):
+    def get_ticket_token(self) -> str:
         """
         Получает токен для создания тикета.
+        
+        :return: Токен.
+        :rtype: str
         """
         headers = {
             "X-CSRF-Token": self.csrf_token,

@@ -1,16 +1,27 @@
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, Message, CallbackQuery
 from aiogram.exceptions import TelegramAPIError
+
 from . import templates as templ
 
 
-async def do_auth(message: Message, state: FSMContext):
+async def do_auth(message: Message, state: FSMContext) -> Message | None:
+    """
+    Начинает процесс авторизации в боте (запрашивает пароль, указанный в конфиге).
+
+    :param message: Исходное сообщение.
+    :type message: `aiogram.types.Message`
+
+    :param state: Исходное состояние.
+    :type state: `aiogram.fsm.context.FSMContext`
+    """
     from . import states
     await state.set_state(states.SystemStates.entering_password)
     return await throw_float_message(state=state,
                                      message=message,
                                      text=templ.sign_text('🔑 Введите ключ-пароль, указанный вами в конфиге бота ↓\n\n<span class="tg-spoiler">Если вы забыли, его можно посмотреть напрямую в конфиге по пути bot_settings/config.json, параметр password в разделе telegram.bot</span>'),
                                      reply_markup=templ.destroy_kb())
+
 
 async def throw_float_message(state: FSMContext, message: Message, text: str, 
                               reply_markup: InlineKeyboardMarkup = None,
