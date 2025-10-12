@@ -47,7 +47,7 @@ def check_and_configure_config():
                     requests_timeout=config["funpay"]["api"]["requests_timeout"],
                     proxy=proxy).get()
             return True
-        except UnauthorizedError:
+        except:
             return False
 
     def is_user_agent_valid(ua: str) -> bool:
@@ -122,20 +122,6 @@ def check_and_configure_config():
         else:
             print(f"\n{Fore.LIGHTRED_EX}Похоже, что вы ввели некорректный golden_key. Убедитесь, что он соответствует формату и попробуйте ещё раз.")
 
-        print(f"\n{Fore.WHITE}Введите {Fore.LIGHTBLUE_EX}IPv4 Прокси {Fore.WHITE}в формате user:password@ip:port или ip:port, если он без авторизации. Если вы не знаете что это, или не хотите устанавливать прокси - пропустите этот параметр, нажав Enter."
-              f"\n  {Fore.WHITE}· Пример: DRjcQTm3Yc:m8GnUN8Q9L@46.161.30.187:8000")
-        proxy = input(f"  {Fore.WHITE}↳ {Fore.LIGHTWHITE_EX}").strip()
-        if not proxy:
-            print(f"\n{Fore.WHITE}Вы пропустили ввод прокси.")
-            break
-        if is_proxy_valid(proxy):
-            config["funpay"]["api"]["proxy"] = proxy
-            sett.set("config", config)
-            print(f"\n{Fore.GREEN}Прокси успешно сохранён в конфиг.")
-        else:
-            print(f"\n{Fore.LIGHTRED_EX}Похоже, что вы ввели некорректный Прокси. Убедитесь, что он соответствует формату и попробуйте ещё раз.")
-
-    while not config["funpay"]["api"]["user_agent"]:
         print(f"\n{Fore.WHITE}Введите {Fore.LIGHTMAGENTA_EX}User Agent {Fore.WHITE}вашего браузера. Его можно скопировать на сайте {Fore.LIGHTWHITE_EX}https://whatmyuseragent.com. Или вы можете пропустить этот параметр, нажав Enter."
               f"\n  {Fore.WHITE}· Пример: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
         user_agent = input(f"  {Fore.WHITE}↳ {Fore.LIGHTWHITE_EX}").strip()
@@ -148,6 +134,19 @@ def check_and_configure_config():
             print(f"\n{Fore.GREEN}User Agent успешно сохранён в конфиг.")
         else:
             print(f"\n{Fore.LIGHTRED_EX}Похоже, что вы ввели некорректный User Agent. Убедитесь, что в нём нет русских символов и попробуйте ещё раз.")
+        
+        print(f"\n{Fore.WHITE}Введите {Fore.LIGHTBLUE_EX}IPv4 Прокси {Fore.WHITE}в формате user:password@ip:port или ip:port, если он без авторизации. Если вы не знаете что это, или не хотите устанавливать прокси - пропустите этот параметр, нажав Enter."
+              f"\n  {Fore.WHITE}· Пример: DRjcQTm3Yc:m8GnUN8Q9L@46.161.30.187:8000")
+        proxy = input(f"  {Fore.WHITE}↳ {Fore.LIGHTWHITE_EX}").strip()
+        if not proxy:
+            print(f"\n{Fore.WHITE}Вы пропустили ввод прокси.")
+            break
+        if is_proxy_valid(proxy):
+            config["funpay"]["api"]["proxy"] = proxy
+            sett.set("config", config)
+            print(f"\n{Fore.GREEN}Прокси успешно сохранён в конфиг.")
+        else:
+            print(f"\n{Fore.LIGHTRED_EX}Похоже, что вы ввели некорректный Прокси. Убедитесь, что он соответствует формату и попробуйте ещё раз.")
 
     while not config["telegram"]["api"]["token"]:
         print(f"\n{Fore.WHITE}Введите {Fore.CYAN}Токен вашего Telegram бота{Fore.WHITE}. Бота нужно создать у @BotFather."
@@ -174,6 +173,7 @@ def check_and_configure_config():
     if config["funpay"]["api"]["proxy"] and not is_proxy_working(config["funpay"]["api"]["proxy"]):
         print(f"\n{Fore.LIGHTRED_EX}Похоже, что указанный вами прокси не работает. Пожалуйста, проверьте его и введите снова.")
         config["funpay"]["api"]["golden_key"] = ""
+        config["funpay"]["api"]["user_agent"] = ""
         config["funpay"]["api"]["proxy"] = ""
         sett.set("config", config)
         return check_and_configure_config()
@@ -183,6 +183,8 @@ def check_and_configure_config():
     if not is_fp_account_working():
         print(f"\n{Fore.LIGHTRED_EX}Не удалось подключиться к вашему FunPay аккаунту. Пожалуйста, убедитесь, что у вас указан верный golden_key и введите его снова.")
         config["funpay"]["api"]["golden_key"] = ""
+        config["funpay"]["api"]["user_agent"] = ""
+        config["funpay"]["api"]["proxy"] = ""
         sett.set("config", config)
         return check_and_configure_config()
     else:

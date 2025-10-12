@@ -3,6 +3,7 @@ import math
 import textwrap
 from datetime import datetime, timedelta
 from uuid import UUID
+from core.modules import Module, get_modules, get_module_by_uuid
 
 from __init__ import VERSION
 from .. import callback_datas as calls
@@ -860,8 +861,7 @@ def settings_other_float_text(placeholder: str):
 
 
 def modules_text():
-    from core.modules import ModulesManager
-    modules = ModulesManager.get_modules()
+    modules = get_modules()
     txt = textwrap.dedent(f"""
         🔌 <b>Модули</b>
         Всего <b>{len(modules)}</b> загруженных модулей
@@ -871,8 +871,7 @@ def modules_text():
     return txt
 
 def modules_kb(page: int = 0):
-    from core.modules import ModulesManager
-    modules = ModulesManager.get_modules()
+    modules = get_modules()
     rows = []
     items_per_page = 7
     total_pages = math.ceil(len(modules) / items_per_page)
@@ -905,8 +904,7 @@ def modules_kb(page: int = 0):
 
 
 def module_page_text(module_uuid: UUID):
-    from core.modules import ModulesManager, Module
-    module: Module = ModulesManager.get_module_by_uuid(module_uuid)
+    module: Module = get_module_by_uuid(module_uuid)
     if not module: raise Exception("Не удалось найти модуль")
     txt = textwrap.dedent(f"""
         🔧 <b>Управление модулем</b>
@@ -925,8 +923,7 @@ def module_page_text(module_uuid: UUID):
     return txt
 
 def module_page_kb(module_uuid: UUID, page: int = 0):
-    from core.modules import ModulesManager, Module
-    module: Module = ModulesManager.get_module_by_uuid(module_uuid)
+    module: Module = get_module_by_uuid(module_uuid)
     if not module: raise Exception("Не удалось найти модуль")
     rows = [
         [InlineKeyboardButton(text="🔴 Отключить модуль" if module.enabled else "🟢 Подключить модуль", callback_data="switch_module_enabled")],
