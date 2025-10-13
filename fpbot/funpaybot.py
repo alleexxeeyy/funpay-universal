@@ -119,12 +119,17 @@ class FunPayBot:
         :return: Объект лота.
         :rtype: `FunPayAPI.types.LotShortcut`
         """
+        def extract_numbers(s: str):
+            return re.findall(r"\d+", s)
+
+        title_norm = title.strip().lower()
+        title_nums = extract_numbers(title_norm)
         for _ in range(max_attempts):
             try:
                 profile = self.funpay_account.get_user(self.funpay_account.id)
                 lots = profile.get_sorted_lots(2)
                 subcat_id = subcategory.id if subcategory else subcategory_id
-                title = title.strip().lower()
+                best = (0, None)
                 for lot_subcat, lot_data in lots.items():
                     if subcat_id and lot_subcat.id != subcat_id:
                         continue
@@ -132,13 +137,21 @@ class FunPayBot:
                         lot_title = (lot.title or "").strip().lower()
                         if not lot_title:
                             continue
-                        if lot_title == title:
+                        if lot_title == title_norm:
                             return lot
-                        if lot_title in title:
-                            return lot
-                        if title in lot_title:
-                            return lot
-                return None
+                        score = max(
+                            fuzz.partial_ratio(title_norm, lot_title),
+                            fuzz.token_set_ratio(title_norm, lot_title)
+                        )
+                        lot_nums = extract_numbers(lot_title)
+                        if title_nums and lot_nums:
+                            score = (score + 10) if title_nums == lot_nums else (score - 10)
+                        elif title_nums and not lot_nums:
+                            score -= 5
+                        if score > best[0]:
+                            best = (score, lot)
+                if best[1] and best[0] >= 70:
+                    return best[1]
             except Exception:
                 continue
         self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось получить лот по названию заказа «{title}»")
@@ -498,6 +511,7 @@ class FunPayBot:
                     if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_order"]:
                         fpbot.log_to_tg(text=log_text(f'📋 Новый заказ <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a>', f"<b>┏ Покупатель:</b> {event.order.buyer_username}\n<b>┣ Товар:</b> {event.order.description}\n<b>┣ Количество:</b> {event.order.amount}\n<b>┗ Сумма:</b> {event.order.price} {fpbot.funpay_account.currency.name}"),
                                         kb=log_new_order_kb(this_chat.name, event.order.id))
+                    fpbot.send_message(this_chat.id, fpbot.msg("new_order", order_title=event.order.description, order_amount=event.order.amount))
                     if self.config["funpay"]["bot"]["auto_deliveries_enabled"]:
                         lot = self.get_lot_by_order_title(event.order.description, event.order.subcategory)
                         if lot:
