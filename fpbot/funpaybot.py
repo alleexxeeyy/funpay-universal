@@ -12,6 +12,7 @@ from rapidfuzz import fuzz
 from aiogram.types import InlineKeyboardMarkup
 import textwrap
 import shutil
+import re
 
 from settings import Settings as sett
 from data import Data as data
@@ -23,7 +24,7 @@ from .stats import get_stats, set_stats
 from FunPayAPI import Account, Runner, exceptions as fpapi_exceptions, types as fpapi_types
 from FunPayAPI.common.enums import *
 from FunPayAPI.updater.events import *
-from core.utils import set_title, restart
+from core.utils import set_title
 from core.handlers import get_bot_event_handlers, set_bot_event_handlers, get_funpay_event_handlers, set_funpay_event_handlers
 
 from services.fp_support import FunPaySupportAPI
@@ -110,15 +111,29 @@ class FunPayBot:
         :type title: `str`
 
         :param subcategory: Подкатегория товара, _опционально_.
-        :type subcategory: `FunPayAPI.types.SubCategory`
+        :type subcategory: `FunPayAPI.types.SubCategory` or `None`
 
         :param subcategory_id: ID подкатегории товара, _опционально_.
-        :type subcategory_id: `FunPayAPI.types.SubCategory`
+        :type subcategory_id: `FunPayAPI.types.SubCategory` or `None`
 
         :return: Объект лота.
         :rtype: `FunPayAPI.types.LotShortcut`
         """
-        for _ in range(max_attempts-1):
+        def clean_text(s: str) -> str:
+            s = re.sub(r"[^\w\s\d]", " ", s)
+            s = re.sub(r"\s+", " ", s)
+            return s.strip().lower()
+        
+        def tokenize(s: str) -> list[str]:
+            return clean_text(s).split()
+
+        def extract_numbers(s: str) -> list[str]:
+            return re.findall(r"\d+", s)
+
+        clean_title = clean_text(title)
+        title_tokens = tokenize(title)
+        title_numbers = extract_numbers(title)
+        for _ in range(max_attempts - 1):
             try:
                 profile = self.funpay_account.get_user(self.funpay_account.id)
                 lots = profile.get_sorted_lots(2)
@@ -130,21 +145,37 @@ class FunPayBot:
                     for _, lot in lot_data.items():
                         if not lot.title:
                             continue
-                        if lot.title.strip() == title.strip():
+                        lot_title = lot.title.strip()
+                        clean_lot_title = clean_text(lot_title)
+                        lot_tokens = tokenize(lot_title)
+                        lot_numbers = extract_numbers(lot_title)
+                        if clean_lot_title == clean_title:
                             return lot
-                        score = fuzz.partial_ratio(title, lot.title)
-                        token_score = fuzz.token_set_ratio(title, lot.title)
-                        score = max(score, token_score)
+                        token_match = lot_tokens == title_tokens
+                        number_match = lot_numbers == title_numbers
+                        score = 0
+                        if token_match:
+                            score += 60
+                        else:
+                            token_overlap = len(set(title_tokens) & set(lot_tokens))
+                            token_total = max(len(title_tokens), len(lot_tokens))
+                            score += int((token_overlap / token_total) * 50)
+                        if number_match:
+                            score += 40
+                        elif title_numbers and lot_numbers:
+                            score -= 30
+                        fuzzy_score = fuzz.partial_ratio(clean_title, clean_lot_title)
+                        score += fuzzy_score * 0.2
                         candidates.append((score, lot))
                 if not candidates:
                     return None
                 candidates.sort(key=lambda x: x[0], reverse=True)
                 best_score, best_lot = candidates[0]
-                result = best_lot if best_score >= 70 else None
-                if not result:
-                    continue
-                return result
-            except:
+                if best_score >= 70:
+                    return best_lot
+                else:
+                    return None
+            except Exception:
                 continue
         self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось получить лот по названию заказа {Fore.LIGHTWHITE_EX}«{title}»")
     

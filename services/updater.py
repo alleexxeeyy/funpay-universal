@@ -40,7 +40,7 @@ def check_for_updates():
         bytes = download_update(latest_release)
         if bytes:
             if install_update(latest_release, bytes):
-                logger.info(f"✅ Обновление {Fore.LIGHTWHITE_EX}{latest_release['tag_name']} {Fore.YELLOW}было успешно установлено.")
+                logger.info(f"{Fore.YELLOW}Обновление {Fore.LIGHTWHITE_EX}{latest_release['tag_name']} {Fore.YELLOW}было успешно установлено.")
                 restart()
     except Exception as e:
         logger.error(f"{Fore.LIGHTRED_EX}При проверке на наличие обновлений произошла ошибка: {Fore.WHITE}{e}")
