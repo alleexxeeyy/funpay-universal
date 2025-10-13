@@ -119,65 +119,29 @@ class FunPayBot:
         :return: Объект лота.
         :rtype: `FunPayAPI.types.LotShortcut`
         """
-        def clean_text(s: str) -> str:
-            s = re.sub(r"[^\w\s\d]", " ", s)
-            s = re.sub(r"\s+", " ", s)
-            return s.strip().lower()
-        
-        def tokenize(s: str) -> list[str]:
-            return clean_text(s).split()
-
-        def extract_numbers(s: str) -> list[str]:
-            return re.findall(r"\d+", s)
-
-        clean_title = clean_text(title)
-        title_tokens = tokenize(title)
-        title_numbers = extract_numbers(title)
-        for _ in range(max_attempts - 1):
+        for _ in range(max_attempts):
             try:
                 profile = self.funpay_account.get_user(self.funpay_account.id)
                 lots = profile.get_sorted_lots(2)
-                candidates = []
                 subcat_id = subcategory.id if subcategory else subcategory_id
+                title = title.strip().lower()
                 for lot_subcat, lot_data in lots.items():
                     if subcat_id and lot_subcat.id != subcat_id:
                         continue
                     for _, lot in lot_data.items():
-                        if not lot.title:
+                        lot_title = (lot.title or "").strip().lower()
+                        if not lot_title:
                             continue
-                        lot_title = lot.title.strip()
-                        clean_lot_title = clean_text(lot_title)
-                        lot_tokens = tokenize(lot_title)
-                        lot_numbers = extract_numbers(lot_title)
-                        if clean_lot_title == clean_title:
+                        if lot_title == title:
                             return lot
-                        token_match = lot_tokens == title_tokens
-                        number_match = lot_numbers == title_numbers
-                        score = 0
-                        if token_match:
-                            score += 60
-                        else:
-                            token_overlap = len(set(title_tokens) & set(lot_tokens))
-                            token_total = max(len(title_tokens), len(lot_tokens))
-                            score += int((token_overlap / token_total) * 50)
-                        if number_match:
-                            score += 40
-                        elif title_numbers and lot_numbers:
-                            score -= 30
-                        fuzzy_score = fuzz.partial_ratio(clean_title, clean_lot_title)
-                        score += fuzzy_score * 0.2
-                        candidates.append((score, lot))
-                if not candidates:
-                    return None
-                candidates.sort(key=lambda x: x[0], reverse=True)
-                best_score, best_lot = candidates[0]
-                if best_score >= 70:
-                    return best_lot
-                else:
-                    return None
+                        if lot_title in title:
+                            return lot
+                        if title in lot_title:
+                            return lot
+                return None
             except Exception:
                 continue
-        self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось получить лот по названию заказа {Fore.LIGHTWHITE_EX}«{title}»")
+        self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось получить лот по названию заказа «{title}»")
     
     def get_lot_by_order_title(self, title: str, subcategory: types.SubCategory | None = None,
                                subcategory_id: int | None = None) -> types.LotShortcut:
