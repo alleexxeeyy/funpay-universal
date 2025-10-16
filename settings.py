@@ -2,6 +2,7 @@ import os
 import json
 import copy
 
+
 DATA = {
     "config": {
         "path": "bot_settings/config.json",
@@ -42,57 +43,6 @@ DATA = {
                 "bot": {
                     "password": "",
                     "signed_users": []
-                }
-            }
-        },
-        "params": {
-            "funpay": {
-                "api": {
-                    "golden_key": {
-                        "required": True,
-                        "type": str,
-                        "desc": [
-                            "golden_key вашего аккаунта FunPay, который необходим для того, чтобы бот подключился и работал с вашим аккаунтом.",
-                            "Его можно скопировать из cookie сайта funpay.com. Можете воспользоваться расширением Cookie-Editor."
-                        ]
-                    },
-                    "user_agent": {
-                        "required": False,
-                        "type": str,
-                        "desc": [
-                            "Юзер агент вашего браузера. Желательно указать, чтобы бот лучше работал с вашим аккаунтом и возникало меньше проблем с подключением.",
-                            "Узнать его просто: Переходите на сайт https://www.whatismybrowser.com/detect/what-is-my-user-agent/ и копируете весь текст в синем окошке."
-                        ]
-                    },
-                    "proxy": {
-                        "required": False,
-                        "type": str,
-                        "desc": [
-                            "IPv4 прокси. Если желаете, можете указать его, тогда запросы будут отправляться с него.",
-                            "Формат: user:pass@ip:port или ip:port"
-                        ]
-                    }
-                }
-            },
-            "telegram": {
-                "api": {
-                    "token": {
-                        "required": True,
-                        "type": str,
-                        "desc": [
-                            "Токен Telegram бота. В TG боте можно будет настроить остальную часть функционала бота.",
-                            "Чтобы получить токен, нужно создать бота у @BotFather. Пишите /newbot и начинаете настройку."
-                        ]
-                    }
-                },
-                "bot": {
-                    "password": {
-                        "required": True,
-                        "type": str,
-                        "desc": [
-                            "Пароль от вашего Telegram бота. Будет запрашиваться для использования бота."
-                        ]
-                    }
                 }
             }
         }
@@ -195,6 +145,7 @@ def validate_config(config, default):
                 return False
     return True
 
+
 def restore_config(config: dict, default: dict):
     """
     Восстанавливает недостающие параметры в конфиге из стандартного шаблона.
@@ -224,6 +175,7 @@ def restore_config(config: dict, default: dict):
     config = check_default(config, default)
     return config
     
+
 def get_json(path: str, default: dict, need_restore: bool = True) -> dict:
     """
     Получает данные файла настроек.
@@ -258,6 +210,7 @@ def get_json(path: str, default: dict, need_restore: bool = True) -> dict:
     finally:
         return config
     
+
 def set_json(path: str, new: dict):
     """
     Устанавливает новые данные в файл настроек.
@@ -270,6 +223,7 @@ def set_json(path: str, new: dict):
     """
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(new, f, indent=4, ensure_ascii=False)
+
 
 class Settings:
     

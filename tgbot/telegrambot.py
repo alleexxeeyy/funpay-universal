@@ -23,7 +23,7 @@ def get_telegram_bot() -> None | TelegramBot:
         return getattr(TelegramBot, "instance")
 
 class TelegramBot:
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args, **kwargs) -> TelegramBot:
         if not hasattr(cls, "instance"):
             cls.instance = super(TelegramBot, cls).__new__(cls)
             cls.loop = asyncio.get_running_loop()

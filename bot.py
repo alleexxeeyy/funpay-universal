@@ -26,11 +26,13 @@ async def start_telegram_bot():
     tgbot = TelegramBot(config["telegram"]["api"]["token"])
     await tgbot.run_bot()
 
+
 async def start_funpay_bot():
     from fpbot.funpaybot import FunPayBot
     def run():
         asyncio.new_event_loop().run_until_complete(FunPayBot().run_bot())
     Thread(target=run, daemon=True).start()
+
 
 def check_and_configure_config():
     config = sett.get("config")
@@ -177,7 +179,7 @@ def check_and_configure_config():
         config["funpay"]["api"]["proxy"] = ""
         sett.set("config", config)
         return check_and_configure_config()
-    else:
+    elif config["funpay"]["api"]["proxy"]:
         logger.info(f"{Fore.WHITE}Прокси успешно работает.")
 
     if not is_fp_account_working():
@@ -197,6 +199,7 @@ def check_and_configure_config():
         return check_and_configure_config()
     else:
         logger.info(f"{Fore.WHITE}Telegram бот успешно работает.")
+
 
 if __name__ == "__main__":
     try:

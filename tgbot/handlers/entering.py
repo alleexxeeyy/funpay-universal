@@ -49,6 +49,7 @@ async def handler_entering_password(message: types.Message, state: FSMContext):
                                       text=templ.do_action_text(e), 
                                       reply_markup=templ.destroy_kb())
 
+
 @router.message(states.ActionsStates.entering_review_answer_text, F.text)
 async def handler_entering_password(message: types.Message, state: FSMContext):
     try: 

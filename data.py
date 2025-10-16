@@ -1,6 +1,7 @@
 import json
 import os
 
+
 DATA = {
     "initialized_users": {
         "path": "bot_data/initialized_users.json",
@@ -18,6 +19,7 @@ DATA = {
         }
     }
 }
+
 
 def get_json(path: str, default: dict | list) -> dict:
     """
@@ -43,6 +45,7 @@ def get_json(path: str, default: dict | list) -> dict:
     finally:
         return config
     
+
 def set_json(path: str, new: dict):
     """
     Устанавливает новые данные в файл данных.
@@ -55,6 +58,7 @@ def set_json(path: str, new: dict):
     """
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(new, f, indent=4, ensure_ascii=False)
+
 
 class Data:
     

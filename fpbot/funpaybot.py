@@ -1,5 +1,4 @@
 from __future__ import annotations
-from __init__ import VERSION
 import asyncio
 import time
 from datetime import datetime, timedelta
@@ -14,19 +13,19 @@ import textwrap
 import shutil
 import re
 
+from FunPayAPI import Account, Runner, exceptions as fpapi_exceptions, types as fpapi_types
+from FunPayAPI.common.enums import *
+from FunPayAPI.updater.events import *
+
+from __init__ import VERSION
+from core.utils import set_title
+from core.handlers import get_bot_event_handlers, set_bot_event_handlers, get_funpay_event_handlers, set_funpay_event_handlers
 from settings import Settings as sett
 from data import Data as data
 from logging import getLogger
 from tgbot.telegrambot import get_telegram_bot, get_telegram_bot_loop
 from tgbot.templates import log_text, log_new_mess_kb, log_new_order_kb, log_new_review_kb
 from .stats import get_stats, set_stats
-
-from FunPayAPI import Account, Runner, exceptions as fpapi_exceptions, types as fpapi_types
-from FunPayAPI.common.enums import *
-from FunPayAPI.updater.events import *
-from core.utils import set_title
-from core.handlers import get_bot_event_handlers, set_bot_event_handlers, get_funpay_event_handlers, set_funpay_event_handlers
-
 from services.fp_support import FunPaySupportAPI
 
 
@@ -35,7 +34,7 @@ def get_funpay_bot() -> None | FunPayBot:
         return getattr(FunPayBot, "instance")
 
 class FunPayBot:
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args, **kwargs) -> FunPayBot:
         if not hasattr(cls, "instance"):
             cls.instance = super(FunPayBot, cls).__new__(cls)
         return getattr(cls, "instance")
@@ -249,6 +248,15 @@ class FunPayBot:
         self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось отправить сообщение {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.LIGHTWHITE_EX}{chat_id} {Fore.LIGHTRED_EX}")
 
     def log_to_tg(self, text: str, kb: InlineKeyboardMarkup | None = None):
+        """
+        Отправляет сообщение всем авторизованным в боте пользователям.
+
+        :param text: Текст сообщения.
+        :type text: `str`
+        
+        :param kb: Клавиатура сообщения, _опционально_.
+        :type kb: `aiogram.types.InlineKeyboardMarkup` or `None`
+        """
         asyncio.run_coroutine_threadsafe(get_telegram_bot().log_event(text, kb), get_telegram_bot_loop())
     
     def log_new_message(self, message: types.Message):
@@ -308,7 +316,7 @@ class FunPayBot:
             self.auto_support_tickets["last_time"] = last_time.isoformat()
             data.set("auto_support_tickets", self.auto_support_tickets)
             fpbot = get_funpay_bot()
-            support_api = FunPaySupportAPI(fpbot.funpay_account).get()
+            support_api = FunPaySupportAPI(self.funpay_account).get()
             self.logger.info(f"{Fore.WHITE}Создаю тикеты в тех. поддержку на закрытие заказов...")
 
             def calculate_orders(all_orders, orders_per_ticket=25):
@@ -316,8 +324,8 @@ class FunPayBot:
 
             all_sales: list[fpapi_types.OrderShortcut] = []
             start_from = self.auto_support_tickets["next_start_from"] if self.auto_support_tickets["next_start_from"] != None else None
-            while len(all_sales) < fpbot.funpay_account.active_sales:
-                sales = fpbot.funpay_account.get_sales(start_from=start_from, include_paid=True, include_closed=False, include_refunded=False)
+            while len(all_sales) < self.funpay_account.active_sales:
+                sales = self.funpay_account.get_sales(start_from=start_from, include_paid=True, include_closed=False, include_refunded=False)
                 for sale in sales[1]:
                     all_sales.append(sale)
                 start_from = sales[0]
@@ -327,7 +335,7 @@ class FunPayBot:
             ticketed_orders = []
             for order_ids_per_ticket in order_ids:
                 formatted_order_ids = ", ".join(order_ids_per_ticket)
-                resp: dict = support_api.create_ticket(formatted_order_ids, f"Здравствуйте! Прошу подтвердить заказы, ожидающие подтверждения: {formatted_order_ids}. С уважением, {fpbot.funpay_account.username}!")
+                resp: dict = support_api.create_ticket(formatted_order_ids, f"Здравствуйте! Прошу подтвердить заказы, ожидающие подтверждения: {formatted_order_ids}. С уважением, {self.funpay_account.username}!")
                 if resp.get("error") or not resp.get("action") or resp["action"]["message"] != "Ваша заявка отправлена.":
                     self.auto_support_tickets["next_start_from"] = order_ids_per_ticket[0]
                     break
@@ -335,7 +343,7 @@ class FunPayBot:
                 self.logger.info(f"{Fore.LIGHTWHITE_EX}{resp['action']['url'].split('/')[-1]} (https://support.funpay.com{resp['action']['url']}) {Fore.WHITE}— тикет создан для {Fore.LIGHTCYAN_EX}{len(order_ids_per_ticket)} заказов")
             else:
                 self.auto_support_tickets["next_start_from"] = None
-            self.auto_support_tickets["last_time"] = (datetime.now() + timedelta(seconds=fpbot.config["funpay"]["bot"]["auto_support_tickets_create_interval"])).isoformat()
+            self.auto_support_tickets["last_time"] = (datetime.now() + timedelta(seconds=self.config["funpay"]["bot"]["auto_support_tickets_create_interval"])).isoformat()
             
             if len(ticketed_orders) == 0 and self.auto_support_tickets["next_start_from"] is not None:
                 self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось создать тикеты в тех. поддержку по причине: {Fore.WHITE}{resp.get('error') if resp else 'Неизвестная ошибка.'}")
@@ -377,14 +385,14 @@ class FunPayBot:
                 while True:
                     try:
                         set_title(f"FunPay Universal v{VERSION} | {self.funpay_account.username}: {self.funpay_account.total_balance} {self.funpay_account.currency.name}. Активных заказов: {self.funpay_account.active_sales}")
-                        if fpbot.initialized_users != data.get("initialized_users"): data.set("initialized_users", fpbot.initialized_users)
-                        if fpbot.categories_raise_time != data.get("categories_raise_time"): data.set("categories_raise_time", fpbot.categories_raise_time)
-                        if fpbot.auto_support_tickets != data.get("auto_support_tickets"): fpbot.auto_support_tickets = data.get("auto_support_tickets")
-                        if fpbot.stats != get_stats(): set_stats(fpbot.stats)
-                        fpbot.config = sett.get("config") if fpbot.config != sett.get("config") else fpbot.config
-                        fpbot.messages = sett.get("messages") if fpbot.messages != sett.get("messages") else fpbot.messages
-                        fpbot.custom_commands = sett.get("custom_commands") if fpbot.custom_commands != sett.get("custom_commands") else fpbot.custom_commands
-                        fpbot.auto_deliveries = sett.get("auto_deliveries") if fpbot.auto_deliveries != sett.get("auto_deliveries") else fpbot.auto_deliveries
+                        if self.initialized_users != data.get("initialized_users"): data.set("initialized_users", self.initialized_users)
+                        if self.categories_raise_time != data.get("categories_raise_time"): data.set("categories_raise_time", self.categories_raise_time)
+                        if self.auto_support_tickets != data.get("auto_support_tickets"): self.auto_support_tickets = data.get("auto_support_tickets")
+                        if self.stats != get_stats(): set_stats(self.stats)
+                        self.config = sett.get("config") if self.config != sett.get("config") else self.config
+                        self.messages = sett.get("messages") if self.messages != sett.get("messages") else self.messages
+                        self.custom_commands = sett.get("custom_commands") if self.custom_commands != sett.get("custom_commands") else self.custom_commands
+                        self.auto_deliveries = sett.get("auto_deliveries") if self.auto_deliveries != sett.get("auto_deliveries") else self.auto_deliveries
                     except Exception as e:
                         self.logger.error(f"{Fore.LIGHTRED_EX}В бесконечном цикле произошла ошибка: {Fore.WHITE}{e}")
                     time.sleep(3)
@@ -405,8 +413,8 @@ class FunPayBot:
             def auto_raising_lots_loop():
                 while True:
                     try:
-                        if fpbot.config["funpay"]["bot"]["auto_raising_lots_enabled"] and datetime.now() > fpbot.lots_raise_next_time:
-                            fpbot.raise_lots()
+                        if self.config["funpay"]["bot"]["auto_raising_lots_enabled"] and datetime.now() > self.lots_raise_next_time:
+                            self.raise_lots()
                         time.sleep(3)
                     except Exception as e:
                         self.logger.error(f"{Fore.LIGHTRED_EX}Ошибка при поднятии лотов: {Fore.WHITE}{e}")
@@ -415,11 +423,11 @@ class FunPayBot:
             def auto_tickets_loop():
                 while True:
                     try:
-                        if fpbot.config["funpay"]["bot"]["auto_support_tickets_enabled"]:
+                        if self.config["funpay"]["bot"]["auto_support_tickets_enabled"]:
                             if datetime.now() >= (datetime.fromisoformat(self.auto_support_tickets["last_time"]) + timedelta(seconds=self.config["funpay"]["bot"]["auto_support_tickets_create_interval"])) if self.auto_support_tickets["last_time"] else datetime.now():
                                 self.auto_support_tickets["last_time"] = datetime.now().isoformat()
                                 data.set("auto_support_tickets", self.auto_support_tickets)
-                                fpbot.create_support_tickets()
+                                self.create_support_tickets()
                         time.sleep(3)
                     except Exception as e:
                         self.logger.error(f"{Fore.LIGHTRED_EX}Ошибка при создании тикетов: {Fore.WHITE}{e}")
@@ -437,65 +445,51 @@ class FunPayBot:
         async def on_new_review(fpbot: FunPayBot, event: NewMessageEvent):
             try:
                 review_order_id = event.message.text.split(' ')[-1].replace('#', '').replace('.', '')
-                order = fpbot.funpay_account.get_order(review_order_id)
+                order = self.funpay_account.get_order(review_order_id)
                 review = order.review
-                if order.buyer_username != fpbot.funpay_account.username:
+                if order.buyer_username != self.funpay_account.username:
                     self.log_new_review(order.review)
-                    if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_review"]:
-                        fpbot.log_to_tg(text=log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┣ Оставил:</b> {review.author}\n<b>┗ Текст отзыва:</b> {review.text}"),
+                    if self.config["funpay"]["bot"]["tg_logging_enabled"] and self.config["funpay"]["bot"]["tg_logging_events"]["new_review"]:
+                        self.log_to_tg(text=log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┣ Оставил:</b> {review.author}\n<b>┗ Текст отзыва:</b> {review.text}"),
                                         kb=log_new_review_kb(event.message.chat_name, review_order_id))
-                    if fpbot.config["funpay"]["bot"]["auto_reviews_replies_enabled"]:
-                        fpbot.funpay_account.send_review(review_order_id, fpbot.msg("order_review_reply", review_date=datetime.now().strftime("%d.%m.%Y"), order_title=order.title, order_amount=order.amount, order_price=order.sum))
+                    if self.config["funpay"]["bot"]["auto_reviews_replies_enabled"]:
+                        self.funpay_account.send_review(review_order_id, self.msg("order_review_reply", review_date=datetime.now().strftime("%d.%m.%Y"), order_title=order.title, order_amount=order.amount, order_price=order.sum))
             except Exception:
                 self.logger.error(f"{Fore.LIGHTRED_EX}При обработке ивента новых отзывов произошла ошибка: {Fore.WHITE}")
                 traceback.print_exc()
         
         async def on_new_message(fpbot: FunPayBot, event: NewMessageEvent):
             try:
-                this_chat = fpbot.funpay_account.get_chat_by_name(event.message.chat_name, True)
+                this_chat = self.funpay_account.get_chat_by_name(event.message.chat_name, True)
                 if event.message.type is not MessageTypes.NEW_FEEDBACK:
                     self.log_new_message(event.message)
-                if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and (fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_user_message"] or fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_system_message"]):
-                    if event.message.author != fpbot.funpay_account.username:
+                if self.config["funpay"]["bot"]["tg_logging_enabled"] and (self.config["funpay"]["bot"]["tg_logging_events"]["new_user_message"] or self.config["funpay"]["bot"]["tg_logging_events"]["new_system_message"]):
+                    if event.message.author != self.funpay_account.username:
                         do = False
-                        if fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_user_message"] and event.message.author.lower() != "funpay": do = True 
-                        if fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_system_message"] and event.message.author.lower() == "funpay": do = True 
+                        if self.config["funpay"]["bot"]["tg_logging_events"]["new_user_message"] and event.message.author.lower() != "funpay": do = True 
+                        if self.config["funpay"]["bot"]["tg_logging_events"]["new_system_message"] and event.message.author.lower() == "funpay": do = True 
                         if do:
                             text = f"<b>{event.message.author}:</b> {event.message.text or ''}"
                             if event.message.image_link:
                                 text += f' <b><a href="{event.message.image_link}">{event.message.image_name}</a></b>'
-                            fpbot.log_to_tg(text=log_text('💬 Новое сообщение в <a href="https://funpay.com/chat/?node={event.message.chat_id}">чате</a>', text.strip()),
+                            self.log_to_tg(text=log_text('💬 Новое сообщение в <a href="https://funpay.com/chat/?node={event.message.chat_id}">чате</a>', text.strip()),
                                             kb=log_new_mess_kb(event.message.chat_name))
 
-                if this_chat.name not in fpbot.initialized_users:
-                    try:
-                        if event.message.type is MessageTypes.NON_SYSTEM and event.message.author == this_chat.name:
-                            fpbot.send_message(this_chat.id, fpbot.msg("first_message", username=event.message.author))
-                        fpbot.initialized_users.append(this_chat.name)
-                    except Exception as e:
-                        self.logger.error(f"{Fore.LIGHTRED_EX}При отправке приветственного сообщения для {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
                 if event.message.author == this_chat.name:
+                    if this_chat.name not in self.initialized_users:
+                        if event.message.type is MessageTypes.NON_SYSTEM:
+                            self.send_message(this_chat.id, self.msg("first_message", username=event.message.author))
+                        self.initialized_users.append(this_chat.name)
+                    
                     if self.config["funpay"]["bot"]["custom_commands_enabled"]:
                         if event.message.text in self.custom_commands.keys():
-                            try:
-                                message = "\n".join(self.custom_commands[event.message.text])
-                                fpbot.send_message(this_chat.id, message)
-                            except Exception as e:
-                                self.logger.error(f"{Fore.LIGHTRED_EX}При вводе пользовательской команды \"{event.message.text}\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
-                                fpbot.send_message(this_chat.id, fpbot.msg("cmd_error", reason="Непредвиденная ошибка"))
+                            message = "\n".join(self.custom_commands[event.message.text])
+                            self.send_message(this_chat.id, message)
                     if str(event.message.text).lower() == "!команды" or str(event.message.text).lower() == "!commands":
-                        try:
-                            fpbot.send_message(this_chat.id, fpbot.msg("cmd_commands"))
-                        except Exception as e:
-                            self.logger.error(f"{Fore.LIGHTRED_EX}При вводе команды \"!команды\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
-                            fpbot.send_message(this_chat.id, fpbot.msg("cmd_error", reason="Непредвиденная ошибка"))
+                        self.send_message(this_chat.id, self.msg("cmd_commands"))
                     elif str(event.message.text).lower() == "!продавец" or str(event.message.text).lower() == "!seller":
-                        try:
-                            asyncio.run_coroutine_threadsafe(get_telegram_bot().call_seller(event.message.author, this_chat.id), get_telegram_bot_loop())
-                            fpbot.send_message(this_chat.id, fpbot.msg("cmd_seller"))
-                        except Exception as e:
-                            self.logger.log(f"При вводе команды \"!продавец\" у {event.message.author} произошла ошибка: {Fore.WHITE}{e}")
-                            fpbot.send_message(this_chat.id, fpbot.msg("cmd_error", reason="Непредвиденная ошибка"))
+                        asyncio.run_coroutine_threadsafe(get_telegram_bot().call_seller(event.message.author, this_chat.id), get_telegram_bot_loop())
+                        self.send_message(this_chat.id, self.msg("cmd_seller"))
 
                 if event.message.type is MessageTypes.NEW_FEEDBACK:
                     await on_new_review(fpbot, event)
@@ -505,39 +499,39 @@ class FunPayBot:
 
         async def on_new_order(fpbot: FunPayBot, event: NewOrderEvent):
             try:
-                this_chat = fpbot.funpay_account.get_chat_by_name(event.order.buyer_username, True)
-                if event.order.buyer_username != fpbot.funpay_account.username:
+                this_chat = self.funpay_account.get_chat_by_name(event.order.buyer_username, True)
+                if event.order.buyer_username != self.funpay_account.username:
                     self.log_new_order(event.order)
-                    if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["new_order"]:
-                        fpbot.log_to_tg(text=log_text(f'📋 Новый заказ <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a>', f"<b>┏ Покупатель:</b> {event.order.buyer_username}\n<b>┣ Товар:</b> {event.order.description}\n<b>┣ Количество:</b> {event.order.amount}\n<b>┗ Сумма:</b> {event.order.price} {fpbot.funpay_account.currency.name}"),
+                    if self.config["funpay"]["bot"]["tg_logging_enabled"] and self.config["funpay"]["bot"]["tg_logging_events"]["new_order"]:
+                        self.log_to_tg(text=log_text(f'📋 Новый заказ <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a>', f"<b>┏ Покупатель:</b> {event.order.buyer_username}\n<b>┣ Товар:</b> {event.order.description}\n<b>┣ Количество:</b> {event.order.amount}\n<b>┗ Сумма:</b> {event.order.price} {self.funpay_account.currency.name}"),
                                         kb=log_new_order_kb(this_chat.name, event.order.id))
-                    fpbot.send_message(this_chat.id, fpbot.msg("new_order", order_title=event.order.description, order_amount=event.order.amount))
+                    self.send_message(this_chat.id, self.msg("new_order", order_id=event.order.id, order_title=event.order.description, order_amount=event.order.amount))
                     if self.config["funpay"]["bot"]["auto_deliveries_enabled"]:
                         lot = self.get_lot_by_order_title(event.order.description, event.order.subcategory)
                         if lot:
                             if str(lot.id) in self.auto_deliveries.keys():
-                                fpbot.send_message(this_chat.id, "\n".join(self.auto_deliveries[str(lot.id)]))
+                                self.send_message(this_chat.id, "\n".join(self.auto_deliveries[str(lot.id)]))
             except Exception:
                 self.logger.error(f"{Fore.LIGHTRED_EX}При обработке ивента новых заказов произошла ошибка: {Fore.WHITE}")
                 traceback.print_exc()
             
         async def on_order_status_changed(fpbot: FunPayBot, event: OrderStatusChangedEvent):
             try:
-                this_chat = fpbot.funpay_account.get_chat_by_name(event.order.buyer_username, True)
-                if event.order.buyer_username != fpbot.funpay_account.username:
+                this_chat = self.funpay_account.get_chat_by_name(event.order.buyer_username, True)
+                if event.order.buyer_username != self.funpay_account.username:
                     self.log_order_status_changed(event.order)
                     status = "Неизвестный"
                     if event.order.status is OrderStatuses.PAID: status = "Оплачен"
                     elif event.order.status is OrderStatuses.CLOSED: status = "Закрыт"
                     elif event.order.status is OrderStatuses.REFUNDED: status = "Возврат"
-                    if fpbot.config["funpay"]["bot"]["tg_logging_enabled"] and fpbot.config["funpay"]["bot"]["tg_logging_events"]["order_status_changed"]:
-                        fpbot.log_to_tg(log_text(f'🔄️📋 Статус заказа <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a> изменился', f"<b>Новый статус:</b> {status}"))
+                    if self.config["funpay"]["bot"]["tg_logging_enabled"] and self.config["funpay"]["bot"]["tg_logging_events"]["order_status_changed"]:
+                        self.log_to_tg(log_text(f'🔄️📋 Статус заказа <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a> изменился', f"<b>Новый статус:</b> {status}"))
                     if event.order.status is OrderStatuses.CLOSED:
-                        fpbot.stats.earned_money = round(fpbot.stats.earned_money + event.order.price, 2)
-                        fpbot.send_message(this_chat.id, fpbot.msg("order_confirmed", order_id=event.order.id))
+                        self.stats.earned_money = round(self.stats.earned_money + event.order.price, 2)
+                        self.send_message(this_chat.id, self.msg("order_confirmed", order_id=event.order.id, order_title=event.order.description, order_amount=event.order.amount))
                     elif event.order.status is OrderStatuses.REFUNDED:
-                        fpbot.stats.orders_refunded = fpbot.stats.orders_refunded + 1
-                        fpbot.send_message(this_chat.id, fpbot.msg("order_refunded", order_id=event.order.id))
+                        self.stats.orders_refunded = self.stats.orders_refunded + 1
+                        self.send_message(this_chat.id, self.msg("order_refunded", order_id=event.order.id, order_title=event.order.description, order_amount=event.order.amount))
             except Exception:
                 self.logger.error(f"{Fore.LIGHTRED_EX}При обработке ивента смены статуса заказа произошла ошибка: {Fore.WHITE}")
                 traceback.print_exc()
