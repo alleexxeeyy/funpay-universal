@@ -6,6 +6,7 @@ bot_data/*.json
 
 .vscode
 .vs
+.history
 
 modules/
 modules1/

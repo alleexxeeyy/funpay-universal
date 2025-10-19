@@ -5,9 +5,7 @@ import requests
 from threading import Thread
 import traceback
 from colorama import init, Fore, Style
-init()
 from logging import getLogger
-logger = getLogger(f"universal")
 
 from FunPayAPI.account import Account
 from FunPayAPI.common.exceptions import UnauthorizedError
@@ -18,6 +16,10 @@ from core.utils import set_title, setup_logger, install_requirements, patch_requ
 from core.modules import load_modules, set_modules, connect_modules
 from core.handlers import get_bot_event_handlers
 from services.updater import check_for_updates
+
+
+init()
+logger = getLogger(f"universal")
 
 
 async def start_telegram_bot():

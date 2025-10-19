@@ -3,21 +3,16 @@ from aiogram import types, Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramAPIError
 
+from settings import Settings as sett
+
 from .. import templates as templ
 from .. import states
 from .. import callback_datas as calls
 from ..helpful import throw_float_message
-from settings import Settings as sett
+
 
 router = Router()
 
-
-def is_int(txt: str) -> bool:
-    try:
-        int(txt)
-        return True
-    except ValueError:
-        return False
     
 def is_eng_str(str: str):
     pattern = r'^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};:\'",.<>/?\\|`~ ]+$'
@@ -100,7 +95,7 @@ async def handler_entering_password(message: types.Message, state: FSMContext):
 async def handler_entering_messages_page(message: types.Message, state: FSMContext):
     try: 
         await state.set_state(None)
-        if not is_int(message.text):
+        if not message.text.strip().isdigit():
             raise Exception("❌ Вы должны ввести числовое значение")
         
         await state.update_data(last_page=int(message.text.strip())-1)
@@ -209,7 +204,7 @@ async def handler_entering_proxy(message: types.Message, state: FSMContext):
 async def handler_entering_requests_timeout(message: types.Message, state: FSMContext):
     try:
         await state.set_state(None)
-        if not is_int(message.text.strip()):
+        if not message.text.strip().isdigit():
             raise Exception("❌ Вы должны ввести числовое значение")       
         if int(message.text.strip()) < 0:
             raise Exception("❌ Слишком низкое значение")
@@ -232,7 +227,7 @@ async def handler_entering_requests_timeout(message: types.Message, state: FSMCo
 async def handler_entering_runner_requests_delay(message: types.Message, state: FSMContext):
     try:
         await state.set_state(None)
-        if not is_int(message.text.strip()):
+        if not message.text.strip().isdigit():
             raise Exception("❌ Вы должны ввести числовое значение")
         if int(message.text.strip()) < 0:
             raise Exception("❌ Слишком низкое значение")
@@ -259,7 +254,7 @@ async def handler_entering_tg_logging_chat_id(message: types.Message, state: FSM
         if len(message.text.strip()) < 0:
             raise Exception("❌ Слишком низкое значение")
         
-        if is_int(message.text.strip()): chat_id = "-100" + str(message.text.strip()).replace("-100", "")
+        if message.text.strip().isdigit(): chat_id = "-100" + str(message.text.strip()).replace("-100", "")
         else: chat_id = "@" + str(message.text.strip()).replace("@", "")
 
         config = sett.get("config")
@@ -281,7 +276,7 @@ async def handler_entering_tg_logging_chat_id(message: types.Message, state: FSM
 async def handler_entering_auto_support_tickets_orders_per_ticket(message: types.Message, state: FSMContext):
     try:
         await state.set_state(None)
-        if not is_int(message.text.strip()):
+        if not message.text.strip().isdigit():
             raise Exception("❌ Вы должны ввести числовое значение")       
         if int(message.text.strip()) < 0:
             raise Exception("❌ Слишком низкое значение")
@@ -304,7 +299,7 @@ async def handler_entering_auto_support_tickets_orders_per_ticket(message: types
 async def handler_entering_auto_support_tickets_create_interval(message: types.Message, state: FSMContext):
     try:
         await state.set_state(None)
-        if not is_int(message.text.strip()):
+        if not message.text.strip().isdigit():
             raise Exception("❌ Вы должны ввести числовое значение")       
         if int(message.text.strip()) < 0:
             raise Exception("❌ Слишком низкое значение")
@@ -328,7 +323,7 @@ async def handler_entering_auto_support_tickets_create_interval(message: types.M
 async def handler_entering_custom_commands_page(message: types.Message, state: FSMContext):
     try: 
         await state.set_state(None)
-        if not is_int(message.text):
+        if not message.text.strip().isdigit():
             raise Exception("❌ Вы должны ввести числовое значение")
         
         await state.update_data(last_page=int(message.text.strip())-1)
@@ -415,7 +410,7 @@ async def handler_entering_custom_command_answer(message: types.Message, state: 
 async def handler_entering_auto_deliveries_page(message: types.Message, state: FSMContext):
     try:
         await state.set_state(None)
-        if not is_int(message.text):
+        if not message.text.strip().isdigit():
             raise Exception("❌ Вы должны ввести числовое значение")
         
         await state.update_data(last_page=int(message.text.strip())-1)
@@ -435,7 +430,7 @@ async def handler_entering_auto_deliveries_page(message: types.Message, state: F
 async def handler_entering_new_auto_delivery_lot_id(message: types.Message, state: FSMContext):
     try:
         await state.set_state(None)
-        if not is_int(message.text.strip()):
+        if not message.text.strip().isdigit():
             raise Exception("❌ Вы должны ввести числовое значение")
         if len(message.text.strip()) <= 0 or len(message.text.strip()) >= 100:
             raise Exception("❌ Слишком короткий или длинный ID лота")

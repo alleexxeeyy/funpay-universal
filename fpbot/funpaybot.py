@@ -13,11 +13,10 @@ import textwrap
 import shutil
 import re
 
+from __init__ import VERSION
 from FunPayAPI import Account, Runner, exceptions as fpapi_exceptions, types as fpapi_types
 from FunPayAPI.common.enums import *
 from FunPayAPI.updater.events import *
-
-from __init__ import VERSION
 from core.utils import set_title
 from core.handlers import get_bot_event_handlers, set_bot_event_handlers, get_funpay_event_handlers, set_funpay_event_handlers
 from settings import Settings as sett
@@ -25,8 +24,9 @@ from data import Data as data
 from logging import getLogger
 from tgbot.telegrambot import get_telegram_bot, get_telegram_bot_loop
 from tgbot.templates import log_text, log_new_mess_kb, log_new_order_kb, log_new_review_kb
-from .stats import get_stats, set_stats
 from services.fp_support import FunPaySupportAPI
+
+from .stats import get_stats, set_stats
 
 
 def get_funpay_bot() -> None | FunPayBot:
@@ -410,7 +410,7 @@ class FunPayBot:
                         self.logger.error(f"{Fore.LIGHTRED_EX}Ошибка при обновлении данных аккаунта FunPay: {Fore.WHITE}{e}")
                         time.sleep(60)
 
-            def auto_raising_lots_loop():
+            def raise_lots_loop():
                 while True:
                     try:
                         if self.config["funpay"]["bot"]["auto_raising_lots_enabled"] and datetime.now() > self.lots_raise_next_time:
@@ -420,7 +420,7 @@ class FunPayBot:
                         self.logger.error(f"{Fore.LIGHTRED_EX}Ошибка при поднятии лотов: {Fore.WHITE}{e}")
                         time.sleep(30)
 
-            def auto_tickets_loop():
+            def create_support_tickets_loop():
                 while True:
                     try:
                         if self.config["funpay"]["bot"]["auto_support_tickets_enabled"]:
@@ -435,8 +435,8 @@ class FunPayBot:
 
             Thread(target=endless_loop, daemon=True).start()
             Thread(target=refresh_funpay_account_loop, daemon=True).start()
-            Thread(target=auto_raising_lots_loop, daemon=True).start()
-            Thread(target=auto_tickets_loop, daemon=True).start()
+            Thread(target=raise_lots_loop, daemon=True).start()
+            Thread(target=create_support_tickets_loop, daemon=True).start()
         
         bot_event_handlers = get_bot_event_handlers()
         bot_event_handlers["ON_FUNPAY_BOT_INIT"].insert(0, on_funpay_bot_init)
@@ -451,7 +451,7 @@ class FunPayBot:
                     self.log_new_review(order.review)
                     if self.config["funpay"]["bot"]["tg_logging_enabled"] and self.config["funpay"]["bot"]["tg_logging_events"]["new_review"]:
                         self.log_to_tg(text=log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┣ Оставил:</b> {review.author}\n<b>┗ Текст отзыва:</b> {review.text}"),
-                                        kb=log_new_review_kb(event.message.chat_name, review_order_id))
+                                       kb=log_new_review_kb(event.message.chat_name, review_order_id))
                     if self.config["funpay"]["bot"]["auto_reviews_replies_enabled"]:
                         self.funpay_account.send_review(review_order_id, self.msg("order_review_reply", review_date=datetime.now().strftime("%d.%m.%Y"), order_title=order.title, order_amount=order.amount, order_price=order.sum))
             except Exception:
@@ -527,6 +527,7 @@ class FunPayBot:
                     if self.config["funpay"]["bot"]["tg_logging_enabled"] and self.config["funpay"]["bot"]["tg_logging_events"]["order_status_changed"]:
                         self.log_to_tg(log_text(f'🔄️📋 Статус заказа <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a> изменился', f"<b>Новый статус:</b> {status}"))
                     if event.order.status is OrderStatuses.CLOSED:
+                        self.stats.orders_completed = 1
                         self.stats.earned_money = round(self.stats.earned_money + event.order.price, 2)
                         self.send_message(this_chat.id, self.msg("order_confirmed", order_id=event.order.id, order_title=event.order.description, order_amount=event.order.amount))
                     elif event.order.status is OrderStatuses.REFUNDED:
