@@ -4,9 +4,8 @@ __pycache__/
 bot_settings/*.json
 bot_data/*.json
 
-.vscode
-.vs
-.history
+.*
+!.templates/
 
 modules/
 modules1/

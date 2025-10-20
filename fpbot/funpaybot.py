@@ -527,11 +527,11 @@ class FunPayBot:
                     if self.config["funpay"]["bot"]["tg_logging_enabled"] and self.config["funpay"]["bot"]["tg_logging_events"]["order_status_changed"]:
                         self.log_to_tg(log_text(f'🔄️📋 Статус заказа <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a> изменился', f"<b>Новый статус:</b> {status}"))
                     if event.order.status is OrderStatuses.CLOSED:
-                        self.stats.orders_completed = 1
-                        self.stats.earned_money = round(self.stats.earned_money + event.order.price, 2)
+                        self.stats.orders_completed += 1
+                        self.stats.earned_money += round(event.order.price, 2)
                         self.send_message(this_chat.id, self.msg("order_confirmed", order_id=event.order.id, order_title=event.order.description, order_amount=event.order.amount))
                     elif event.order.status is OrderStatuses.REFUNDED:
-                        self.stats.orders_refunded = self.stats.orders_refunded + 1
+                        self.stats.orders_refunded += 1
                         self.send_message(this_chat.id, self.msg("order_refunded", order_id=event.order.id, order_title=event.order.description, order_amount=event.order.amount))
             except Exception:
                 self.logger.error(f"{Fore.LIGHTRED_EX}При обработке ивента смены статуса заказа произошла ошибка: {Fore.WHITE}")
