@@ -19,7 +19,7 @@ from FunPayAPI.common.enums import *
 from FunPayAPI.updater.events import *
 from core.utils import set_title
 from core.handlers import get_bot_event_handlers, set_bot_event_handlers, get_funpay_event_handlers, set_funpay_event_handlers
-from settings import Settings as sett
+from settings import DATA, Settings as sett
 from data import Data as data
 from logging import getLogger
 from tgbot.telegrambot import get_telegram_bot, get_telegram_bot_loop
@@ -60,7 +60,7 @@ class FunPayBot:
 
 
     def msg(self, message_name: str, exclude_watermark: bool = False,
-            messages_config_name: str = "messages", messages_data: dict | None = None,
+            messages_config_name: str = "messages", messages_data: dict = DATA,
             **kwargs) -> str | None:
         """ 
         Получает отформатированное сообщение из словаря сообщений.
@@ -99,7 +99,7 @@ class FunPayBot:
                 return msg
             except:
                 pass
-        return "Не удалось получить сообщение"
+        return f"Не удалось получить сообщение {message_name}"
     
     def get_lot_by_title(self, title: str, subcategory: types.SubCategory | None = None,
                          subcategory_id: int | None = None, max_attempts: int = 3) -> types.LotShortcut:
