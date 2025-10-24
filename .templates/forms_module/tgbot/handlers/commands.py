@@ -2,13 +2,13 @@ from aiogram import types, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
-from .. import templates as templ
+from tgbot.helpful import throw_float_message, do_auth
 from settings import Settings as main_sett
 
-from tgbot.helpful import throw_float_message, do_auth
+from .. import templates as templ
+
 
 router = Router()
-
 
 
 @router.message(Command("forms"))

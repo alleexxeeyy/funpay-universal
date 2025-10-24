@@ -1,24 +1,37 @@
 import json
 import os
+from dataclasses import dataclass
 
 
-DATA = {
-    "initialized_users": {
-        "path": "bot_data/initialized_users.json",
-        "default": []
-    },
-    "categories_raise_time": {
-        "path": "bot_data/categories_raise_time.json",
-        "default": {}
-    },
-    "auto_support_tickets": {
-        "path": "bot_data/auto_support_tickets.json",
-        "default": {
-            "last_time": None,
-            "next_start_from": None
-        }
+@dataclass
+class DataFile:
+    name: str
+    path: str
+    default: list | dict
+
+
+INITIALIZED_USERS = DataFile(
+    name="initialized_users",
+    path="bot_data/initialized_users.json",
+    default=[]
+)
+
+CATEGORIES_RAISE_TIME = DataFile(
+    name="categories_raise_time",
+    path="bot_data/categories_raise_time.json",
+    default={}
+)
+
+AUTO_SUPPORT_TICKETS = DataFile(
+    name="auto_support_tickets",
+    path="bot_data/auto_support_tickets.json",
+    default={
+        "last_time": None,
+        "next_start_from": None
     }
-}
+)
+
+DATA = [INITIALIZED_USERS, CATEGORIES_RAISE_TIME, AUTO_SUPPORT_TICKETS]
 
 
 def get_json(path: str, default: dict | list) -> dict:
@@ -63,15 +76,15 @@ def set_json(path: str, new: dict):
 class Data:
     
     @staticmethod
-    def get(name, data: dict | None = None) -> dict:
-        data = data if data is not None else DATA
-        if name not in data:
-            return None
-        return get_json(data[name]["path"], data[name]["default"])
+    def get(name: str, data: list[DataFile] = DATA) -> dict | None:
+        try: 
+            file = [file for file in data if file.name == name][0]
+            return get_json(file.path, file.default)
+        except: return None
 
     @staticmethod
-    def set(name, new, data: dict | None = None) -> dict:
-        data = data if data is not None else DATA
-        if name not in data:
-            return None
-        set_json(data[name]["path"], new)
+    def set(name: str, new: list | dict, data: list[DataFile] = DATA):
+        try: 
+            file = [file for file in data if file.name == name][0]
+            set_json(file.path, new)
+        except: pass

@@ -4,14 +4,14 @@ from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramAPIError
 
 from tgbot import templates as main_templ
+from tgbot.helpful import throw_float_message
+
 from .. import templates as templ
 from .. import callback_datas as calls
 from .. import states
 from ...settings import Settings as sett
 from .navigation import *
 
-from fpbot.funpaybot import get_funpay_bot
-from tgbot.helpful import throw_float_message
 
 router = Router()
 

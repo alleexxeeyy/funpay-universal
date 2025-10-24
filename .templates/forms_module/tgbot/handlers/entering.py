@@ -2,26 +2,16 @@ from aiogram import F, types, Router
 from aiogram.exceptions import TelegramAPIError
 from aiogram.fsm.context import FSMContext
 
-from .. import templates as templ
 from tgbot import templates as main_templ
-from .. import states
-from settings import Settings as main_sett
-from ...settings import Settings as sett
-from .. import callback_datas as calls
-
-from fpbot.funpaybot import get_funpay_bot
 from tgbot.helpful import throw_float_message
 
+from .. import states
+from ...settings import Settings as sett
+from .. import callback_datas as calls
+from .. import templates as templ
+
+
 router = Router()
-
-
-
-def is_int(txt) -> bool:
-    try:
-        int(txt)
-        return True
-    except ValueError:
-        return False
 
 
 @router.message(states.FORMS_MessagePageStates.entering_message_text, F.text)
@@ -52,7 +42,7 @@ async def handler_entering_message_text(message: types.Message, state: FSMContex
 async def handler_entering_messages_page(message: types.Message, state: FSMContext):
     try: 
         await state.set_state(None)
-        if not is_int(message.text.strip()):
+        if not message.text.strip().isdigit():
             raise Exception("❌ Вы должны ввести числовое значение")
         
         await state.update_data(last_page=int(message.text.strip())-1)

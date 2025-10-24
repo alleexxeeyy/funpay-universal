@@ -1,16 +1,11 @@
+import math
+import textwrap
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from .. import callback_datas as calls
-from ...data import Data as data
 from ...settings import Settings as sett
 from ...meta import NAME, VERSION
-from fpbot.funpaybot import get_funpay_bot
-from FunPayAPI.types import LotShortcut
-
-import math
-import textwrap
-from datetime import datetime, timedelta
 
 
 def menu_text():

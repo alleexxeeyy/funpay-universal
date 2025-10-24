@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from colorama import Fore
 from threading import Thread
 
+from fpbot.funpaybot import get_funpay_bot
 from FunPayAPI.updater.events import *
 from FunPayAPI.common.enums import *
 from FunPayAPI.account import *
@@ -13,11 +14,10 @@ from ..meta import PREFIX, NAME
 from ..data import Data as data
 from ..settings import Settings as sett
 from ..settings import DATA
-from fpbot.funpaybot import get_funpay_bot
+
 
 if TYPE_CHECKING:
     from fpbot.funpaybot import FunPayBot
-
 
 logger = getLogger(f"{NAME}.funpay")
 config = sett.get("config")

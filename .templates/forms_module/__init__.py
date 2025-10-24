@@ -1,7 +1,5 @@
-from colorama import Fore
-from core.modules_manager import Module
+from core.modules import Module
 from logging import getLogger
-logger = getLogger(f"forms")
 
 from FunPayAPI.updater.events import EventTypes
 
@@ -11,7 +9,9 @@ from .tgbot import router
 from .meta import *
 
 
+logger = getLogger(f"forms")
 _module: Module = None
+
 
 def set_module(new: Module):
     global _module

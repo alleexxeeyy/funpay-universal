@@ -2,16 +2,13 @@ from aiogram import Router
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
+from tgbot.helpful import throw_float_message
+
 from .. import templates as templ
 from .. import callback_datas as calls
-from .. import states
-from ...settings import Settings as sett
 
-from tgbot.helpful import throw_float_message
-from fpbot.funpaybot import get_funpay_bot
 
 router = Router()
-
 
 
 @router.callback_query(calls.FORMS_MenuNavigation.filter())

@@ -450,7 +450,7 @@ class FunPayBot:
                 if order.buyer_username != self.funpay_account.username:
                     self.log_new_review(order.review)
                     if self.config["funpay"]["bot"]["tg_logging_enabled"] and self.config["funpay"]["bot"]["tg_logging_events"]["new_review"]:
-                        self.log_to_tg(text=log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┣ Оставил:</b> {review.author}\n<b>┗ Текст отзыва:</b> {review.text}"),
+                        self.log_to_tg(text=log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┣ Оставил:</b> {review.author}\n<b>┗ Текст:</b> {review.text}"),
                                        kb=log_new_review_kb(event.message.chat_name, review_order_id))
                     if self.config["funpay"]["bot"]["auto_reviews_replies_enabled"]:
                         self.funpay_account.send_review(review_order_id, self.msg("order_review_reply", review_date=datetime.now().strftime("%d.%m.%Y"), order_title=order.title, order_amount=order.amount, order_price=order.sum))

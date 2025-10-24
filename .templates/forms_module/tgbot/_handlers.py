@@ -1,7 +1,11 @@
 from aiogram.types import BotCommand
-from tgbot.telegrambot import TelegramBot
-from ..meta import NAME
 from logging import getLogger
+
+from tgbot.telegrambot import TelegramBot
+
+from ..meta import NAME
+
+
 logger = getLogger(f"{NAME}.telegram")
 
 

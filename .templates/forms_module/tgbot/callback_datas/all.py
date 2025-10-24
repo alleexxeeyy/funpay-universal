@@ -1,7 +1,6 @@
 from aiogram.filters.callback_data import CallbackData
 
 
-
 class FORMS_MenuNavigation(CallbackData, prefix="forms_mennav"):
     to: str
     
