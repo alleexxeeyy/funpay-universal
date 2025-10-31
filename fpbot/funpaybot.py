@@ -7,15 +7,15 @@ import time
 from threading import Thread
 from colorama import Fore
 from rapidfuzz import fuzz
-from aiogram.types import InlineKeyboardMarkup
 import textwrap
 import shutil
 import re
 
-from __init__ import VERSION
 from FunPayAPI import Account, Runner, exceptions as fpapi_exceptions, types as fpapi_types
 from FunPayAPI.common.enums import *
 from FunPayAPI.updater.events import *
+
+from __init__ import VERSION
 from core.utils import set_title, shutdown, run_async_in_thread
 from core.handlers import add_bot_event_handler, add_funpay_event_handler, call_bot_event, call_funpay_event
 from settings import DATA, Settings as sett
@@ -45,6 +45,7 @@ class FunPayBot:
         self.custom_commands = sett.get("custom_commands")
         self.auto_deliveries = sett.get("auto_deliveries")
         self.logger = getLogger(f"universal.funpay")
+        
         proxy = {
             "https": "http://" + self.config["funpay"]["api"]["proxy"], 
             "http": "http://" + self.config["funpay"]["api"]["proxy"]
@@ -53,7 +54,7 @@ class FunPayBot:
             golden_key=self.config["funpay"]["api"]["golden_key"],
             user_agent=self.config["funpay"]["api"]["user_agent"],
             requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
-            proxy=proxy or None
+            proxy=proxy
         ).get()
 
         self.initialized_users = data.get("initialized_users")
@@ -90,21 +91,19 @@ class FunPayBot:
                 return "{" + key + "}"
 
         messages = sett.get(messages_config_name, messages_data) or {}
-        mess: dict = messages.get(message_name, {})
-        if mess.get("enabled") is False:
+        mess = messages.get(message_name, {})
+        if not mess.get("enabled"):
             return None
         message_lines: list[str] = mess.get("text", [])
         if not message_lines:
             return f"Сообщение {message_name} пустое"
-        if message_lines and message_lines:
-            try:
-                formatted_lines = [line.format_map(SafeDict(**kwargs)) for line in message_lines]
-                msg = "\n".join(formatted_lines)
-                if not exclude_watermark and self.config["funpay"]["watermark"]["enabled"]:
-                    msg += f'\n{self.config["funpay"]["watermark"]["value"]}' or ""
-                return msg
-            except:
-                pass
+        try:
+            msg = "\n".join([line.format_map(SafeDict(**kwargs)) for line in message_lines])
+            if not exclude_watermark and self.config["funpay"]["watermark"]["enabled"]:
+                msg += f'\n{self.config["funpay"]["watermark"]["value"]}' or ""
+            return msg
+        except:
+            pass
         return f"Не удалось получить сообщение {message_name}"
     
     def get_lot_by_title(self, title: str, subcategory: types.SubCategory | None = None,
@@ -163,6 +162,7 @@ class FunPayBot:
     
     def get_lot_by_order_title(self, title: str, subcategory: types.SubCategory | None = None,
                                subcategory_id: int | None = None) -> types.LotShortcut:
+        """Эквивалент метода `get_lot_by_title()`"""
         return self.get_lot_by_title(title, subcategory, subcategory_id)
 
     def send_message(self, chat_id: int | str, text: Optional[str] = None, chat_name: Optional[str] = None,
@@ -199,7 +199,7 @@ class FunPayBot:
         :return: Экземпляр отправленного сообщения или None, если сообщение не отправилось.
         :rtype: :class:`FunPayAPI.types.Message` or `None`
         """
-        if text is None:
+        if text is None and not image_id:
             return None
         for _ in range(max_attempts):
             try:
@@ -215,18 +215,6 @@ class FunPayBot:
                 return None
         text = text.replace('\n', '').strip()
         self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось отправить сообщение {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.LIGHTWHITE_EX}{chat_id} {Fore.LIGHTRED_EX}")
-
-    def log_to_tg(self, text: str, kb: InlineKeyboardMarkup | None = None):
-        """
-        Отправляет сообщение всем авторизованным в боте пользователям.
-
-        :param text: Текст сообщения.
-        :type text: `str`
-        
-        :param kb: Клавиатура сообщения, _опционально_.
-        :type kb: `aiogram.types.InlineKeyboardMarkup` or `None`
-        """
-        asyncio.run_coroutine_threadsafe(get_telegram_bot().log_event(text, kb), get_telegram_bot_loop())
 
 
     def raise_lots(self):
@@ -245,6 +233,7 @@ class FunPayBot:
             try:
                 self.funpay_account.raise_lots(category.id)
                 raised_categories.append(category.name)
+                time.sleep(0.5)
                 # Если удалось поднять эту категорию, то снова отправляем запрос на её поднятие,
                 # чтобы словить ошибку и получить время её следующего поднятия
                 self.funpay_account.raise_lots(category.id)
@@ -253,18 +242,13 @@ class FunPayBot:
                     self.categories_raise_time[str(subcategory.id)] = (datetime.now() + timedelta(seconds=e.wait_time)).isoformat()
                 else:
                     del self.categories_raise_time[str(subcategory.id)]
-            except fpapi_exceptions.RequestFailedError as e:
-                if e.status_code == 429:
-                    self.logger.error(f"{Fore.LIGHTRED_EX}При поднятии лотов произошла ошибка 429 слишком частых запросов. Попытаюсь поднять лоты снова через 5 минут")
-                    self.__lots_raise_next_time = datetime.now() + timedelta(minutes=5)
-                    return
             time.sleep(1)
 
         for category in self.categories_raise_time:
             if datetime.fromisoformat(self.categories_raise_time[category]) < self.__lots_raise_next_time:
                 self.__lots_raise_next_time = datetime.fromisoformat(self.categories_raise_time[category])
         if len(raised_categories) > 0:
-            self.logger.info(f'{Fore.YELLOW}Подняты категории: {Fore.LIGHTWHITE_EX}{f"{Fore.WHITE}, {Fore.LIGHTWHITE_EX}".join(map(str, raised_categories))}')
+            self.logger.info(f"{Fore.YELLOW}Подняты категории: {Fore.LIGHTWHITE_EX}{f'{Fore.WHITE}, {Fore.LIGHTWHITE_EX}'.join(map(str, raised_categories))}")
 
     def create_tickets(self):
         """Создаёт тикеты в тех. поддержку на закрытие неподтверждённых заказов."""
@@ -386,7 +370,7 @@ class FunPayBot:
                     golden_key=fpbot.config["funpay"]["api"]["golden_key"],
                     user_agent=fpbot.config["funpay"]["api"]["user_agent"],
                     requests_timeout=fpbot.config["funpay"]["api"]["requests_timeout"],
-                    proxy=proxy or None
+                    proxy=proxy
                 ).get()
 
             while True:
@@ -435,13 +419,18 @@ class FunPayBot:
         review_order_id = event.message.text.split(' ')[-1].replace('#', '').replace('.', '')
         order = fpbot.funpay_account.get_order(review_order_id)
         review = order.review
+        
         if order.buyer_username != fpbot.funpay_account.username:
             fpbot.log_new_review(order.review)
             if fpbot.config["funpay"]["tg_logging"]["enabled"] and fpbot.config["funpay"]["tg_logging"]["events"]["new_review"]:
-                fpbot.log_to_tg(
-                    text=log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┣ Оставил:</b> {review.author}\n<b>┗ Текст:</b> {review.text}"),
-                    kb=log_new_review_kb(event.message.chat_name, review_order_id)
+                asyncio.run_coroutine_threadsafe(
+                    get_telegram_bot().log_event(
+                        text=log_text(f'✨💬 Новый отзыв на заказ <a href="https://funpay.com/orders/{review_order_id}/">#{review_order_id}</a>', f"<b>┏ Оценка:</b> {'⭐' * review.stars}\n<b>┣ Оставил:</b> {review.author}\n<b>┗ Текст:</b> {review.text}"),
+                        kb=log_new_review_kb(event.message.chat_name, review_order_id)
+                    ), 
+                    get_telegram_bot_loop()
                 )
+
             if fpbot.config["funpay"]["auto_reviews_replies"]["enabled"]:
                 fpbot.funpay_account.send_review(
                     order_id=review_order_id, 
@@ -451,9 +440,9 @@ class FunPayBot:
     async def _on_new_message(fpbot: FunPayBot, event: NewMessageEvent):
         this_chat = fpbot.funpay_account.get_chat_by_name(event.message.chat_name, True)
         if event.message.type is MessageTypes.NEW_FEEDBACK:
-            return await fpbot._on_new_review(fpbot, event)
+            return await FunPayBot._on_new_review(fpbot, event)
+            
         fpbot.log_new_message(event.message)
-        
         if fpbot.config["funpay"]["tg_logging"]["enabled"] and (fpbot.config["funpay"]["tg_logging"]["events"]["new_user_message"] or fpbot.config["funpay"]["tg_logging"]["events"]["new_system_message"]):
             if event.message.author != fpbot.funpay_account.username:
                 do = False
@@ -463,9 +452,12 @@ class FunPayBot:
                     text = f"<b>{event.message.author}:</b> "
                     text += event.message.text or ""
                     text += f'<b><a href="{event.message.image_link}">{event.message.image_name}</a></b>' if event.message.image_link else ""
-                    fpbot.log_to_tg(
-                        text=log_text('💬 Новое сообщение в <a href="https://funpay.com/chat/?node={event.message.chat_id}">чате</a>', text.strip()),
-                        kb=log_new_mess_kb(event.message.chat_name)
+                    asyncio.run_coroutine_threadsafe(
+                        get_telegram_bot().log_event(
+                            text=log_text(f'💬 Новое сообщение в <a href="https://funpay.com/chat/?node={event.message.chat_id}">чате</a>', text.strip()),
+                            kb=log_new_mess_kb(event.message.chat_name)
+                        ), 
+                        get_telegram_bot_loop()
                     )
 
         if event.message.author == this_chat.name:
@@ -478,7 +470,7 @@ class FunPayBot:
                 if event.message.text.lower() in [key.lower() for key in fpbot.custom_commands.keys()]:
                     message = "\n".join(fpbot.custom_commands[event.message.text])
                     fpbot.send_message(this_chat.id, message)
-                    
+
             if str(event.message.text).lower() == "!команды" or str(event.message.text).lower() == "!commands":
                 fpbot.send_message(this_chat.id, fpbot.msg("cmd_commands"))
             elif str(event.message.text).lower() == "!продавец" or str(event.message.text).lower() == "!seller":
@@ -491,13 +483,17 @@ class FunPayBot:
     async def _on_new_order(fpbot: FunPayBot, event: NewOrderEvent):
         if event.order.buyer_username != fpbot.funpay_account.username:
             this_chat = fpbot.funpay_account.get_chat_by_name(event.order.buyer_username, True)
+            
             fpbot.log_new_order(event.order)
             if fpbot.config["funpay"]["tg_logging"]["enabled"] and fpbot.config["funpay"]["tg_logging"]["events"]["new_order"]:
-                fpbot.log_to_tg(
-                    text=log_text(f'📋 Новый заказ <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a>', f"<b>┏ Покупатель:</b> {event.order.buyer_username}\n<b>┣ Товар:</b> {event.order.description}\n<b>┣ Количество:</b> {event.order.amount}\n<b>┗ Сумма:</b> {event.order.price} {fpbot.funpay_account.currency.name}"),
-                    kb=log_new_order_kb(this_chat.name, event.order.id)
+                asyncio.run_coroutine_threadsafe(
+                    get_telegram_bot().log_event(
+                        text=log_text(f'📋 Новый заказ <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a>', f"<b>┏ Покупатель:</b> {event.order.buyer_username}\n<b>┣ Товар:</b> {event.order.description}\n<b>┣ Количество:</b> {event.order.amount}\n<b>┗ Сумма:</b> {event.order.price} {fpbot.funpay_account.currency.name}"),
+                        kb=log_new_order_kb(this_chat.name, event.order.id)
+                    ), 
+                    get_telegram_bot_loop()
                 )
-            
+
             fpbot.send_message(this_chat.id, fpbot.msg("new_order", order_id=event.order.id, order_title=event.order.description, order_amount=event.order.amount))
             if fpbot.config["funpay"]["auto_deliveries"]["enabled"]:
                 lot = fpbot.get_lot_by_order_title(event.order.description, event.order.subcategory)
@@ -512,11 +508,14 @@ class FunPayBot:
             elif event.order.status is OrderStatuses.CLOSED: status_frmtd = "Закрыт"
             elif event.order.status is OrderStatuses.REFUNDED: status_frmtd = "Возврат"
             fpbot.log_order_status_changed(event.order, status_frmtd)
-            if fpbot.config["funpay"]["tg_logging"]["enabled"] and fpbot.config["funpay"]["tg_logging"]["events"]["order_status_changed"]:
-                fpbot.log_to_tg(
-                    text=log_text(f'🔄️📋 Статус заказа <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a> изменился', f"<b>Новый статус:</b> {status_frmtd}")
-                )
             
+            if fpbot.config["funpay"]["tg_logging"]["enabled"] and fpbot.config["funpay"]["tg_logging"]["events"]["order_status_changed"]:
+                asyncio.run_coroutine_threadsafe(
+                    get_telegram_bot().log_event(
+                        text=log_text(f'🔄️📋 Статус заказа <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a> изменился', f"<b>Новый статус:</b> {status_frmtd}")
+                    ), 
+                    get_telegram_bot_loop()
+                )
             if event.order.status is OrderStatuses.CLOSED:
                 fpbot.stats.orders_completed += 1
                 fpbot.stats.earned_money += round(event.order.price, 2)

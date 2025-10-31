@@ -2,7 +2,6 @@ import asyncio
 import re
 import string
 import requests
-from threading import Thread
 import traceback
 from colorama import Fore, init as init_colorama
 from logging import getLogger
@@ -231,6 +230,7 @@ if __name__ == "__main__":
         install_requirements("requirements.txt") # установка недостающих зависимостей, если таковые есть
         patch_requests()
         setup_logger()
+        
         set_title(f"FunPay Universal v{VERSION} by @alleexxeeyy")
         print(
             f"\n\n   {ACCENT_COLOR}FunPay Universal {Fore.WHITE}v{Fore.LIGHTWHITE_EX}{VERSION}"

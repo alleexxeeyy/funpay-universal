@@ -15,13 +15,11 @@ INITIALIZED_USERS = DataFile(
     path="bot_data/initialized_users.json",
     default=[]
 )
-
 CATEGORIES_RAISE_TIME = DataFile(
     name="categories_raise_time",
     path="bot_data/categories_raise_time.json",
     default={}
 )
-
 AUTO_TICKETS = DataFile(
     name="auto_tickets",
     path="bot_data/auto_tickets.json",
@@ -30,7 +28,6 @@ AUTO_TICKETS = DataFile(
         "next_start_from": None
     }
 )
-
 DATA = [INITIALIZED_USERS, CATEGORIES_RAISE_TIME, AUTO_TICKETS]
 
 

@@ -17,10 +17,12 @@ async def do_auth(message: Message, state: FSMContext) -> Message | None:
     """
     from . import states
     await state.set_state(states.SystemStates.waiting_for_password)
-    return await throw_float_message(state=state,
-                                     message=message,
-                                     text=templ.sign_text('🔑 Введите ключ-пароль, указанный вами в конфиге бота ↓\n\n<span class="tg-spoiler">Если вы забыли, его можно посмотреть напрямую в конфиге по пути bot_settings/config.json, параметр password в разделе telegram.bot</span>'),
-                                     reply_markup=templ.destroy_kb())
+    return await throw_float_message(
+        state=state,
+        message=message,
+        text=templ.sign_text('🔑 Введите ключ-пароль, указанный вами в конфиге бота ↓\n\n<span class="tg-spoiler">Если вы забыли, его можно посмотреть напрямую в конфиге по пути bot_settings/config.json, параметр password в разделе telegram.bot</span>'),
+        reply_markup=templ.destroy_kb()
+    )
 
 
 async def throw_float_message(state: FSMContext, message: Message, text: str, 
@@ -67,30 +69,56 @@ async def throw_float_message(state: FSMContext, message: Message, text: str,
                 try:
                     if message.from_user.id != bot.id: 
                         await bot.delete_message(message.chat.id, message.message_id)
-                    mess = await bot.edit_message_text(text=text, reply_markup=reply_markup, 
-                                                    chat_id=message.chat.id, message_id=accent_message_id, parse_mode="HTML")
+                    mess = await bot.edit_message_text(
+                        text=text, 
+                        reply_markup=reply_markup, 
+                        chat_id=message.chat.id, 
+                        message_id=accent_message_id, 
+                        parse_mode="HTML"
+                    )
                 except TelegramAPIError as e:
                     if "message to edit not found" in e.message.lower():
                         accent_message_id = None
                     elif "message is not modified" in e.message.lower():
-                        await bot.answer_callback_query(callback.id, show_alert=False, cache_time=0)
+                        await bot.answer_callback_query(
+                            callback_query_id=callback.id, 
+                            show_alert=False, 
+                            cache_time=0
+                        )
                         pass
                     elif "query is too old" in e.message.lower():
                         return
                     else:
                         raise e
         if callback:
-            await bot.answer_callback_query(callback.id, show_alert=False, cache_time=0)
+            await bot.answer_callback_query(
+                callback_query_id=callback.id, 
+                show_alert=False, 
+                cache_time=0
+            )
         if accent_message_id is None or new_mess_cond or send:
-            mess = await bot.send_message(chat_id=message.chat.id, text=text, 
-                                          reply_markup=reply_markup, parse_mode="HTML")
+            mess = await bot.send_message(
+                chat_id=message.chat.id, 
+                text=text, 
+                reply_markup=reply_markup, 
+                parse_mode="HTML"
+            )
     except Exception as e:
         try:
-            mess = await bot.edit_message_text(chat_id=message.chat.id, reply_markup=templ.destroy_kb(),
-                                               text=templ.error_text(e), message_id=accent_message_id, parse_mode="HTML")
+            mess = await bot.edit_message_text(
+                chat_id=message.chat.id, 
+                reply_markup=templ.destroy_kb(),
+                text=templ.error_text(e), 
+                message_id=accent_message_id, 
+                parse_mode="HTML"
+            )
         except Exception as e:
-            mess = await bot.send_message(chat_id=message.chat.id, reply_markup=templ.destroy_kb(),
-                                          text=templ.error_text(e), parse_mode="HTML")
+            mess = await bot.send_message(
+                chat_id=message.chat.id, 
+                reply_markup=templ.destroy_kb(),
+                text=templ.error_text(e), 
+                parse_mode="HTML"
+            )
     finally:
         if mess: await state.update_data(accent_message_id=mess.message_id)
     return mess

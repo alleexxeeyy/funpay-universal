@@ -70,7 +70,6 @@ CONFIG = SettingsFile(
         }
     }
 )
-
 MESSAGES = SettingsFile(
     name="messages",
     path="bot_settings/messages.json",
@@ -137,21 +136,18 @@ MESSAGES = SettingsFile(
         }
     }
 )
-
 CUSTOM_COMMANDS = SettingsFile(
     name="custom_commands",
     path="bot_settings/custom_commands.json",
     need_restore=False,
     default={}
 )
-
 AUTO_DELIVERIES = SettingsFile(
     name="auto_deliveries",
     path="bot_settings/auto_deliveries.json",
     need_restore=False,
     default={}
 )
-
 DATA = [CONFIG, MESSAGES, CUSTOM_COMMANDS, AUTO_DELIVERIES]
 
 
