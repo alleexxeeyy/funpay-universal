@@ -25,19 +25,32 @@ CONFIG = SettingsFile(
                 "requests_timeout": 30,
                 "runner_requests_delay": 4
             },
-            "bot": {
-                "messages_watermark_enabled": True,
-                "messages_watermark": "©️ 𝗙𝘂𝗻𝗣𝗮𝘆 𝗨𝗻𝗶𝘃𝗲𝗿𝘀𝗮𝗹",
-                "custom_commands_enabled": True,
-                "auto_deliveries_enabled": True,
-                "auto_raising_lots_enabled": True,
-                "auto_reviews_replies_enabled": True,
-                "auto_support_tickets_enabled": True,
-                "auto_support_tickets_orders_per_ticket": 25,
-                "auto_support_tickets_create_interval": 86400,
-                "tg_logging_enabled": True,
-                "tg_logging_chat_id": "",
-                "tg_logging_events": {
+            "watermark": {
+                "enabled": True,
+                "value": "©️ 𝗙𝘂𝗻𝗣𝗮𝘆 𝗨𝗻𝗶𝘃𝗲𝗿𝘀𝗮𝗹",
+            },
+            "custom_commands": {
+                "enabled": True
+            },
+            "auto_deliveries": {
+                "enabled": True
+            },
+            "auto_raising_lots": {
+                "enabled": True
+            },
+            "auto_reviews_replies": {
+                "enabled": True
+            },
+            "auto_tickets": {
+                "enabled": True,
+                "orders_per_ticket": 25,
+                "min_order_age": 86400,
+                "interval": 86400
+            },
+            "tg_logging": {
+                "enabled": True,
+                "chat_id": "",
+                "events": {
                     "new_user_message": True,
                     "new_system_message": True,
                     "new_order": True,

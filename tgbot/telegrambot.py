@@ -1,39 +1,44 @@
 from __future__ import annotations
 import asyncio
-from colorama import Fore
 import textwrap
+import logging
+from colorama import Fore
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, InlineKeyboardMarkup
-import logging
-logger = logging.getLogger(f"universal.telegram")
+
+from settings import Settings as sett
+from core.modules import get_modules
+from core.handlers import call_bot_event
 
 from . import router as main_router
 from . import templates as templ
-from settings import Settings as sett
-from core.modules import get_modules
-from core.handlers import get_bot_event_handlers
 
 
-def get_telegram_bot_loop() -> None | asyncio.AbstractEventLoop:
-    if hasattr(TelegramBot, "loop"):
-        return getattr(TelegramBot, "loop")
+logger = logging.getLogger(f"universal.telegram")
 
-def get_telegram_bot() -> None | TelegramBot:
+
+def get_telegram_bot() -> TelegramBot | None:
     if hasattr(TelegramBot, "instance"):
         return getattr(TelegramBot, "instance")
+    
+
+def get_telegram_bot_loop() -> asyncio.AbstractEventLoop | None:
+    if hasattr(get_telegram_bot(), "loop"):
+        return getattr(get_telegram_bot(), "loop")
+
 
 class TelegramBot:
     def __new__(cls, *args, **kwargs) -> TelegramBot:
         if not hasattr(cls, "instance"):
             cls.instance = super(TelegramBot, cls).__new__(cls)
-            cls.loop = asyncio.get_running_loop()
         return getattr(cls, "instance")
 
-    def __init__(self, bot_token: str):
-        self.bot_token = bot_token
+    def __init__(self):
         logging.getLogger("aiogram").setLevel(logging.ERROR)
         logging.getLogger("aiogram.event").setLevel(logging.ERROR)
-        self.bot = Bot(token=self.bot_token)
+        
+        config = sett.get("config")
+        self.bot = Bot(token=config["telegram"]["api"]["token"])
         self.dp = Dispatcher()
 
         for module in get_modules():
@@ -41,14 +46,15 @@ class TelegramBot:
                 main_router.include_router(router)
         self.dp.include_router(main_router)
 
-    async def set_main_menu(self):
+
+    async def _set_main_menu(self):
         try:
             main_menu_commands = [BotCommand(command="/start", description="🏠 Главное меню")]
             await self.bot.set_my_commands(main_menu_commands)
         except:
             pass
 
-    async def set_short_description(self):
+    async def _set_short_description(self):
         try:
             short_description = textwrap.dedent(f"""
                 📣 @alexeyproduction
@@ -59,7 +65,7 @@ class TelegramBot:
         except:
             pass
 
-    async def set_description(self):
+    async def _set_description(self):
         try:
             description = textwrap.dedent(f"""
                 FunPay Universal — Современный бот-помощник для FunPay 🟦
@@ -82,29 +88,21 @@ class TelegramBot:
         except:
             pass
 
+
     async def run_bot(self):
-        await self.set_main_menu()
-        await self.set_short_description()
-        await self.set_description()
-        
-        bot_event_handlers = get_bot_event_handlers()
-        async def handle_on_telegram_bot_init():
-            """ 
-            Запускается преред инициализацией Telegram бота. 
-            Запускает за собой все хендлеры ON_TELEGRAM_BOT_INIT.
-            """
-            for handler in bot_event_handlers.get("ON_TELEGRAM_BOT_INIT", []):
-                try:
-                    await handler(self)
-                except Exception as e:
-                    logger.error(f"{Fore.LIGHTRED_EX}{Fore.LIGHTRED_EX}Ошибка при обработке хендлера ивента ON_TELEGRAM_BOT_INIT: {Fore.WHITE}{e}")
-        await handle_on_telegram_bot_init()
+        self.loop = asyncio.get_running_loop()
+
+        await self._set_main_menu()
+        await self._set_short_description()
+        await self._set_description()
+
+        await call_bot_event("ON_TELEGRAM_BOT_INIT", [self])
         
         me = await self.bot.get_me()
         logger.info(f"{Fore.CYAN}Telegram бот {Fore.LIGHTCYAN_EX}@{me.username} {Fore.CYAN}запущен и активен")
         await self.dp.start_polling(self.bot, skip_updates=True, handle_signals=False)
         
-        
+
     async def call_seller(self, calling_name: str, chat_id: int | str):
         """
         Пишет админу в Telegram с просьбой о помощи от заказчика.
@@ -133,14 +131,9 @@ class TelegramBot:
         :type kb: `aiogram.types.InlineKeyboardMarkup` or `None`
         """
         config = sett.get("config")
-        chat_id = config["funpay"]["bot"]["tg_logging_chat_id"]
+        chat_id = config["funpay"]["tg_logging"]["chat_id"]
         if not chat_id:
             for user_id in config["telegram"]["bot"]["signed_users"]:
                 await self.bot.send_message(chat_id=user_id, text=text, reply_markup=kb, parse_mode="HTML")
         else:
             await self.bot.send_message(chat_id=chat_id, text=f'{text}\n<span class="tg-spoiler">Переключите чат логов на чат с ботом, чтобы отображалась меню с действиями</span>', reply_markup=None, parse_mode="HTML")
-
-
-if __name__ == "__main__":
-    config = sett.get("config")
-    asyncio.run(TelegramBot(config["telegram"]["api"]["token"]).run_bot())

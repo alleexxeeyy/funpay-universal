@@ -1,5 +1,10 @@
+from colorama import Fore
+from logging import getLogger
+
 from FunPayAPI.updater.events import EventTypes
 
+
+logger = getLogger("universal.handlers")
 
 _bot_event_handlers: dict[str, list[callable]] = {
     "ON_MODULE_CONNECTED": [],
@@ -7,7 +12,7 @@ _bot_event_handlers: dict[str, list[callable]] = {
     "ON_MODULE_DISABLED": [],
     "ON_MODULE_RELOADED": [],
     "ON_INIT": [],
-    "ON_FUNPAY_BOT_INIT": [],
+    "ON_FUNPAY_BOT_INIT": [], 
     "ON_TELEGRAM_BOT_INIT": []
 }
 _funpay_event_handlers: dict[EventTypes, list[callable]] = {
@@ -22,6 +27,16 @@ _funpay_event_handlers: dict[EventTypes, list[callable]] = {
 }
 
 
+def get_bot_event_handlers() -> dict[str, list[callable]]:
+    """
+    Возвращает хендлеры ивентов бота.
+
+    :return: Словарь с событиями и списками хендлеров.
+    :rtype: `dict[str, list[callable]]`
+    """
+    return _bot_event_handlers
+
+
 def set_bot_event_handlers(data: dict[str, list[callable]]):
     """
     Устанавливает новые хендлеры ивентов бота.
@@ -33,7 +48,7 @@ def set_bot_event_handlers(data: dict[str, list[callable]]):
     _bot_event_handlers = data
 
 
-def add_bot_event_handler(event: str, handler: callable):
+def add_bot_event_handler(event: str, handler: callable, index: int | None = None):
     """
     Добавляет новый хендлер в ивенты бота.
 
@@ -42,9 +57,13 @@ def add_bot_event_handler(event: str, handler: callable):
 
     :param handler: Вызываемый метод.
     :type handler: `callable`
+
+    :param index: Индекс в массиве хендлеров, _опционально_.
+    :type index: `int` or `None`
     """
     global _bot_event_handlers
-    _bot_event_handlers[event].append(handler)
+    if not index: _bot_event_handlers[event].append(handler)
+    else: _bot_event_handlers[event].insert(index, handler)
 
 
 def register_bot_event_handlers(handlers: dict[str, list[callable]]):
@@ -61,14 +80,28 @@ def register_bot_event_handlers(handlers: dict[str, list[callable]]):
         _bot_event_handlers[event_type].extend(funcs)
 
 
-def get_bot_event_handlers() -> dict[str, list[callable]]:
+def remove_bot_event_handlers(handlers: dict[str, list[callable]]):
     """
-    Возвращает хендлеры ивентов бота.
+    Удаляет переданные хендлеры бота.
+
+    :param handlers: Словарь с событиями и списками хендлеров бота.
+    :type handlers: `dict[str, list[callable]]`
+    """
+    for event, funcs in handlers.items():
+        if event in _bot_event_handlers:
+            for func in funcs:
+                if func in _bot_event_handlers[event]:
+                    _bot_event_handlers[event].remove(func)
+
+
+def get_funpay_event_handlers() -> dict[EventTypes, list]:
+    """
+    Возвращает хендлеры ивентов FunPay.
 
     :return: Словарь с событиями и списками хендлеров.
-    :rtype: `dict[str, list[callable]]`
+    :rtype: `dict[FunPayAPI.updater.events.EventTypes, list[callable]]`
     """
-    return _bot_event_handlers
+    return _funpay_event_handlers
 
 
 def set_funpay_event_handlers(data: dict[EventTypes, list[callable]]):
@@ -82,7 +115,7 @@ def set_funpay_event_handlers(data: dict[EventTypes, list[callable]]):
     _funpay_event_handlers = data
 
 
-def add_funpay_event_handler(event: EventTypes, handler: callable):
+def add_funpay_event_handler(event: EventTypes, handler: callable, index: int | None = None):
     """
     Добавляет новый хендлер в ивенты FunPay.
 
@@ -91,12 +124,16 @@ def add_funpay_event_handler(event: EventTypes, handler: callable):
 
     :param handler: Вызываемый метод.
     :type handler: `callable`
+
+    :param index: Индекс в массиве хендлеров, _опционально_.
+    :type index: `int` or `None`
     """
     global _funpay_event_handlers
-    _funpay_event_handlers[event].append(handler)
+    if not index: _funpay_event_handlers[event].append(handler)
+    else: _funpay_event_handlers[event].insert(index, handler)
 
 
-def register_funpay_event_handlers(handlers):
+def register_funpay_event_handlers(handlers: dict[EventTypes, list[callable]]):
     """
     Регистрирует хендлеры ивентов FunPay (добавляет переданные хендлеры, если их нету). 
 
@@ -110,34 +147,58 @@ def register_funpay_event_handlers(handlers):
         _funpay_event_handlers[event_type].extend(funcs)
 
 
-def get_funpay_event_handlers() -> dict[EventTypes, list]:
+def remove_funpay_event_handlers(handlers: dict[EventTypes, list[callable]]):
     """
-    Возвращает хендлеры ивентов FunPay.
+    Удаляет переданные хендлеры FunPay.
 
-    :return: Словарь с событиями и списками хендлеров.
-    :rtype: `dict[FunPayAPI.updater.events.EventTypes, list[callable]]`
+    :param handlers: Словарь с событиями и списками хендлеров FunPay.
+    :type handlers: `dict[FunPayAPI.updater.events.EventTypes, list[callable]]`
     """
-    return _funpay_event_handlers
-
-
-def remove_handlers(bot_event_handlers: dict[str, list[callable]], funpay_event_handlers: dict[EventTypes, list[callable]]):
-    """
-    Удаляет переданные хендлеры бота и FunPay.
-
-    :param bot_event_handlers: Словарь с событиями и списками хендлеров бота.
-    :type bot_event_handlers: `dict[str, list[callable]]`
-
-    :param funpay_event_handlers: Словарь с событиями и списками хендлеров FunPay.
-    :type funpay_event_handlers: `dict[FunPayAPI.updater.events.EventTypes, list[callable]]`
-    """ # ДОДЕЛАТЬ
-    global _bot_event_handlers, _funpay_event_handlers
-    for event, funcs in bot_event_handlers.items():
-        if event in _bot_event_handlers:
-            for func in funcs:
-                if func in _bot_event_handlers[event]:
-                    _bot_event_handlers[event].remove(func)
-    for event, funcs in funpay_event_handlers.items():
+    global _funpay_event_handlers
+    for event, funcs in handlers.items():
         if event in _funpay_event_handlers:
             for func in funcs:
                 if func in _funpay_event_handlers[event]:
                     _funpay_event_handlers[event].remove(func)
+
+
+async def call_bot_event(event: str, args: list = [], func = None):
+    """
+    Вызывает ивент бота.
+
+    :param event: Тип ивента.
+    :type event: `str`
+
+    :param args: Аргументы.
+    :type args: `list`
+    
+    :param func: Функция, для которой нужно вызвать ивент (если нужно вызвать только для одной определённой), _опционально_.
+    :type func: `callable` or `None`
+    """
+    if not func: 
+        handlers = get_bot_event_handlers().get(event, [])
+    else:
+        handlers = [func]
+    for handler in handlers:
+        try:
+            await handler(*args)
+        except Exception as e:
+            logger.error(f"{Fore.LIGHTRED_EX}Ошибка при обработке хендлера «{handler.__module__}.{handler.__qualname__}» для ивента бота «{event}»: {Fore.WHITE}{e}")
+
+
+async def call_funpay_event(event: EventTypes, args: list = []):
+    """
+    Вызывает ивент бота.
+
+    :param event: Тип ивента.
+    :type event: `FunPayAPI.common.enums.EventTypes`
+
+    :param args: Аргументы.
+    :type args: `list`
+    """
+    handlers = get_funpay_event_handlers().get(event, [])
+    for handler in handlers:
+        try:
+            await handler(*args)
+        except Exception as e:
+            logger.error(f"{Fore.LIGHTRED_EX}Ошибка при обработке хендлера «{handler.__module__}.{handler.__qualname__}» для ивента FunPay «{event.name}»: {Fore.WHITE}{e}")

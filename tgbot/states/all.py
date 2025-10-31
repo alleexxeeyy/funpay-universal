@@ -1,49 +1,44 @@
 from aiogram.fsm.state import State, StatesGroup
 
 
-class ActionsStates(StatesGroup):
-    entering_message_text = State()
-    entering_review_answer_text = State()
-
 class SystemStates(StatesGroup):
-    entering_password = State()
+    waiting_for_password = State()
 
 
-class StatsStates(StatesGroup):
-    entering_page = State()
+class ActionsStates(StatesGroup):
+    waiting_for_message_text = State()
+    waiting_for_review_answer_text = State()
+
 
 class SettingsStates(StatesGroup):
-    entering_golden_key = State()
-    entering_user_agent = State()
-    entering_proxy = State()
-    entering_requests_timeout = State()
-    entering_runner_requests_delay = State()
-    entering_tg_logging_chat_id = State()
-    entering_auto_support_tickets_orders_per_ticket = State()
-    entering_auto_support_tickets_create_interval = State()
-    entering_messages_watermark = State()
+    waiting_for_golden_key = State()
+    waiting_for_user_agent = State()
+    waiting_for_proxy = State()
+
+    waiting_for_requests_timeout = State()
+    waiting_for_runner_requests_delay = State()
+
+    waiting_for_auto_tickets_orders_per_ticket = State()
+    waiting_for_auto_tickets_create_interval = State()
+
+    waiting_for_tg_logging_chat_id = State()
+    waiting_for_watermark_value = State()
 
 
 class MessagesStates(StatesGroup):
-    entering_page = State()
-
-class MessagePageStates(StatesGroup):
-    entering_message_text = State()
+    waiting_for_page = State()
+    waiting_for_message_text = State()
 
 
 class CustomCommandsStates(StatesGroup):
-    entering_page = State()
-    entering_new_custom_command = State()
-    entering_new_custom_command_answer = State()
-
-class CustomCommandPageStates(StatesGroup):
-    entering_custom_command_answer = State()
+    waiting_for_page = State()
+    waiting_for_new_custom_command = State()
+    waiting_for_new_custom_command_answer = State()
+    waiting_for_custom_command_answer = State()
 
 
 class AutoDeliveriesStates(StatesGroup):
-    entering_page = State()
-    entering_new_auto_delivery_lot_id = State()
-    entering_new_auto_delivery_message = State()
-
-class AutoDeliveryPageStates(StatesGroup):
-    entering_auto_delivery_message = State()
+    waiting_for_page = State()
+    waiting_for_new_auto_delivery_lot_id = State()
+    waiting_for_new_auto_delivery_message = State()
+    waiting_for_auto_delivery_message = State()

@@ -5,6 +5,7 @@ import json
 
 from FunPayAPI import Account
 
+
 class FunPaySupportAPI:
     """
     API сайта поддержки FunPay.
@@ -12,7 +13,6 @@ class FunPaySupportAPI:
     :param funpay_account: Объект вашего аккаунта FunPay.
     :type funpay_account: `FunPayAPI.Account`
     """
-
     def __init__(self, funpay_account: Account):
         self.funpay_account: Account = funpay_account
         """ Объект аккаунта FunPay. """

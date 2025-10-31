@@ -75,6 +75,8 @@ async def throw_float_message(state: FSMContext, message: Message, text: str,
                     elif "message is not modified" in e.message.lower():
                         await bot.answer_callback_query(callback.id, show_alert=False, cache_time=0)
                         pass
+                    elif "query is too old" in e.message.lower():
+                        return
                     else:
                         raise e
         if callback:
@@ -83,8 +85,6 @@ async def throw_float_message(state: FSMContext, message: Message, text: str,
             mess = await bot.send_message(chat_id=message.chat.id, text=text, 
                                           reply_markup=reply_markup, parse_mode="HTML")
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         try:
             mess = await bot.edit_message_text(chat_id=message.chat.id, reply_markup=templ.destroy_kb(),
                                                text=templ.error_text(e), message_id=accent_message_id, parse_mode="HTML")

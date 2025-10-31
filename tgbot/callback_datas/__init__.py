@@ -1,2 +1,2 @@
-from .navgiation import *
+from .navigation import *
 from .actions import *

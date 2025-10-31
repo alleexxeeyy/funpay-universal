@@ -134,12 +134,12 @@
   def get_module():
       return _module
   
-  def on_module_connected(module: Module):
+  async def on_module_connected(module: Module):
       try:
           set_module(module)
           print(f"{PREFIX} Модуль подключен и активен")
       except:
-          disable_module(_module.uuid)
+          await disable_module(_module.uuid)
   
 
   BOT_EVENT_HANDLERS = {
@@ -296,9 +296,9 @@
   from . import get_module
 
 
-  disable_module(get_module().uuid) #  выключает модуль
-  enable_module(get_module().uuid) #  включает модуль
-  reload_module(get_module().uuid) #  перезагружает модуль
+  await disable_module(get_module().uuid) #  выключает модуль
+  await enable_module(get_module().uuid) #  включает модуль
+  await reload_module(get_module().uuid) #  перезагружает модуль
   ```
 
 </details>

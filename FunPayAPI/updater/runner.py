@@ -9,7 +9,6 @@ if TYPE_CHECKING:
 import json
 import logging
 from bs4 import BeautifulSoup
-from colorama import Fore
 
 from ..common import exceptions
 from .events import *
@@ -86,8 +85,6 @@ class Runner:
         self.account: Account = account
         """Экземпляр аккаунта, к которому привязан Runner."""
         self.account.runner = self
-
-        self.__msg_time_re = re.compile(r"\d{2}:\d{2}")
 
     def get_updates(self) -> dict:
         """
@@ -300,11 +297,11 @@ class Runner:
             except exceptions.RequestFailedError as e:
                 logger.error(e)
             except:
-                logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось получить истории чатов {list(chats_data.keys())}.")
+                logger.error(f"Не удалось получить истории чатов {list(chats_data.keys())}.")
                 logger.debug("TRACEBACK", exc_info=True)
             time.sleep(1)
         else:
-            logger.error(f"{PREFIX} {Fore.LIGHTRED_EX}Не удалось получить истории чатов {list(chats_data.keys())}: превышено кол-во попыток.")
+            logger.error(f"Не удалось получить истории чатов {list(chats_data.keys())}: превышено кол-во попыток.")
             return {}
 
         result = {}
@@ -374,11 +371,11 @@ class Runner:
             except exceptions.RequestFailedError as e:
                 logger.error(e)
             except:
-                logger.error(f"{Fore.LIGHTRED_EX}{Fore.LIGHTRED_EX}Не удалось обновить список заказов.")
+                logger.error("Не удалось обновить список заказов.")
                 logger.debug("TRACEBACK", exc_info=True)
             time.sleep(1)
         else:
-            logger.error(f"{Fore.LIGHTRED_EX}{Fore.LIGHTRED_EX}Не удалось обновить список продаж: превышено кол-во попыток.")
+            logger.error("Не удалось обновить список продаж: превышено кол-во попыток.")
             return events
 
         saved_orders = {}
@@ -452,6 +449,7 @@ class Runner:
         """
         events = []
         while True:
+            start_time = time.time()
             try:
                 self.__interlocutor_ids = set([event.message.interlocutor_id for event in events
                                                if event.type == EventTypes.NEW_MESSAGE])
@@ -474,7 +472,13 @@ class Runner:
                 if not ignore_exceptions:
                     raise e
                 else:
-                    logger.error(f"{Fore.LIGHTRED_EX}{Fore.LIGHTRED_EX}Произошла ошибка при получении событий. "
+                    logger.error("Произошла ошибка при получении событий. "
                                  "(ничего страшного, если это сообщение появляется нечасто).")
                     logger.debug("TRACEBACK", exc_info=True)
-            time.sleep(requests_delay)
+            iteration_time = time.time() - start_time
+            if time.time() - self.account.last_429_err_time > 60:
+                rt = requests_delay - iteration_time
+                if rt > 0:
+                    time.sleep(rt)
+            else:
+                time.sleep(requests_delay)
