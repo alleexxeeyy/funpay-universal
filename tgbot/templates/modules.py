@@ -35,19 +35,22 @@ def modules_kb(page: int = 0):
     for module in list(modules)[start_offset:end_offset]:
         rows.append([InlineKeyboardButton(text=module.meta.name, callback_data=calls.ModulePage(uuid=module.uuid).pack())])
 
-    buttons_row = []
-    if page > 0: btn_back = InlineKeyboardButton(text="←", callback_data=calls.ModulesPagination(page=page - 1).pack())
-    else: btn_back = InlineKeyboardButton(text="🛑", callback_data="123")
-    buttons_row.append(btn_back)
+    if total_pages > 1:
+        buttons_row = []
 
-    buttons_row.append(InlineKeyboardButton(text=f"{page+1}/{total_pages}", callback_data="enter_module_page"))
+        btn_back = InlineKeyboardButton(text="←", callback_data=calls.ModulesPagination(page=page-1).pack()) if page > 0 else InlineKeyboardButton(text="🛑", callback_data="123")
+        buttons_row.append(btn_back)
 
-    if page < total_pages - 1: btn_next = InlineKeyboardButton(text="→", callback_data=calls.ModulesPagination(page=page+1).pack())
-    else: btn_next = InlineKeyboardButton(text="🛑", callback_data="123")
-    buttons_row.append(btn_next)
-    rows.append(buttons_row)
+        btn_pages = InlineKeyboardButton(text=f"{page+1}/{total_pages}", callback_data="enter_module_page")
+        buttons_row.append(btn_pages)
+
+        btn_next = InlineKeyboardButton(text="→", callback_data=calls.ModulesPagination(page=page+1).pack()) if page < total_pages - 1 else InlineKeyboardButton(text="🛑", callback_data="123")
+        buttons_row.append(btn_next)
+
+        rows.append(buttons_row)
 
     rows.append([InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.MenuNavigation(to="default").pack())])
+    
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     return kb
 

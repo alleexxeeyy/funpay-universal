@@ -38,6 +38,7 @@ def settings_mess_kb(page: int = 0):
 
     if total_pages > 1:
         buttons_row = []
+        
         btn_back = InlineKeyboardButton(text="←", callback_data=calls.MessagesPagination(page=page-1).pack()) if page > 0 else InlineKeyboardButton(text="🛑", callback_data="123")
         buttons_row.append(btn_back)
 

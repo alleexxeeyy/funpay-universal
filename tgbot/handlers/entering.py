@@ -232,7 +232,7 @@ async def handler_waiting_for_requests_timeout(message: types.Message, state: FS
         await state.set_state(None)
         if not message.text.strip().isdigit():
             raise Exception("❌ Вы должны ввести числовое значение")       
-        if int(message.text.strip()) < 0:
+        if int(message.text.strip()) <= 0:
             raise Exception("❌ Слишком низкое значение")
 
         config = sett.get("config")
@@ -259,7 +259,7 @@ async def handler_waiting_for_runner_requests_delay(message: types.Message, stat
         await state.set_state(None)
         if not message.text.strip().isdigit():
             raise Exception("❌ Вы должны ввести числовое значение")
-        if int(message.text.strip()) < 0:
+        if int(message.text.strip()) <= 0:
             raise Exception("❌ Слишком низкое значение")
 
         config = sett.get("config")
@@ -284,7 +284,7 @@ async def handler_waiting_for_runner_requests_delay(message: types.Message, stat
 async def handler_waiting_for_tg_logging_chat_id(message: types.Message, state: FSMContext):
     try:
         await state.set_state(None) 
-        if len(message.text.strip()) < 0:
+        if len(message.text.strip()) <= 0:
             raise Exception("❌ Слишком низкое значение")
         
         if message.text.strip().isdigit(): chat_id = "-100" + str(message.text.strip()).replace("-100", "")
@@ -314,7 +314,7 @@ async def handler_waiting_for_auto_tickets_orders_per_ticket(message: types.Mess
         await state.set_state(None)
         if not message.text.strip().isdigit():
             raise Exception("❌ Вы должны ввести числовое значение")       
-        if int(message.text.strip()) < 0:
+        if int(message.text.strip()) <= 0:
             raise Exception("❌ Слишком низкое значение")
 
         config = sett.get("config")
@@ -335,13 +335,40 @@ async def handler_waiting_for_auto_tickets_orders_per_ticket(message: types.Mess
         )
 
 
+@router.message(states.SettingsStates.waiting_for_auto_tickets_min_order_age, F.text)
+async def handler_waiting_for_auto_tickets_min_order_age(message: types.Message, state: FSMContext):
+    try:
+        await state.set_state(None)
+        if not message.text.strip().isdigit():
+            raise Exception("❌ Вы должны ввести числовое значение")       
+        if int(message.text.strip()) <= 0:
+            raise Exception("❌ Слишком низкое значение")
+
+        config = sett.get("config")
+        config["funpay"]["auto_tickets"]["min_order_age"] = int(message.text.strip())
+        sett.set("config", config)
+        await throw_float_message(
+            state=state,
+            message=message,
+            text=templ.settings_tickets_float_text(f"✅ <b>Минимальный возраст заказов</b> был успешно изменён на <b>{message.text.strip()}</b>"),
+            reply_markup=templ.back_kb(calls.SettingsNavigation(to="tickets").pack())
+        )
+    except Exception as e:
+        await throw_float_message(
+            state=state,
+            message=message,
+            text=templ.settings_tickets_float_text(e), 
+            reply_markup=templ.back_kb(calls.SettingsNavigation(to="tickets").pack())
+        )
+
+
 @router.message(states.SettingsStates.waiting_for_auto_tickets_create_interval, F.text)
 async def handler_waiting_for_auto_tickets_create_interval(message: types.Message, state: FSMContext):
     try:
         await state.set_state(None)
         if not message.text.strip().isdigit():
             raise Exception("❌ Вы должны ввести числовое значение")       
-        if int(message.text.strip()) < 0:
+        if int(message.text.strip()) <= 0:
             raise Exception("❌ Слишком низкое значение")
 
         config = sett.get("config")

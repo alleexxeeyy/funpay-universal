@@ -512,6 +512,22 @@ async def callback_enter_auto_tickets_orders_per_ticket(callback: CallbackQuery,
     )
 
 
+@router.callback_query(F.data == "enter_auto_tickets_min_order_age")
+async def callback_enter_auto_tickets_min_order_age(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(states.SettingsStates.waiting_for_auto_tickets_min_order_age)
+    config = sett.get("config")
+    auto_tickets_min_order_age = config["funpay"]["auto_tickets"]["min_order_age"] or "❌ Не задано"
+    await throw_float_message(
+        state=state, 
+        message=callback.message, 
+        text=templ.settings_tickets_float_text(
+            "👴 Введите новый <b>минимальный возраст заказов</b> (в секундах) ↓"
+            f"\n┗ Текущее: <code>{auto_tickets_min_order_age}</code>"
+        ), 
+        reply_markup=templ.back_kb(calls.SettingsNavigation(to="tickets").pack())
+    )
+
+
 @router.callback_query(F.data == "enter_auto_tickets_create_interval")
 async def callback_enter_enter_auto_tickets_create_interval(callback: CallbackQuery, state: FSMContext):
     await state.set_state(states.SettingsStates.waiting_for_auto_tickets_create_interval)

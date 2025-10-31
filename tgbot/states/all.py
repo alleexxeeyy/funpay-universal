@@ -19,6 +19,7 @@ class SettingsStates(StatesGroup):
     waiting_for_runner_requests_delay = State()
 
     waiting_for_auto_tickets_orders_per_ticket = State()
+    waiting_for_auto_tickets_min_order_age = State()
     waiting_for_auto_tickets_create_interval = State()
 
     waiting_for_tg_logging_chat_id = State()
