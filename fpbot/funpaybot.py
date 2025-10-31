@@ -361,7 +361,6 @@ class FunPayBot:
         fpbot.stats.bot_launch_time = datetime.now()
         
         def check_config_loop():
-
             def _check_config():
                 set_title(f"FunPay Universal v{VERSION} | {fpbot.funpay_account.username}: {fpbot.funpay_account.total_balance} {fpbot.funpay_account.currency.name if fpbot.funpay_account.currency != Currency.UNKNOWN else 'RUB'}. Активных заказов: {fpbot.funpay_account.active_sales}")
                 if fpbot.initialized_users != data.get("initialized_users"): data.set("initialized_users", fpbot.initialized_users)
@@ -378,7 +377,6 @@ class FunPayBot:
                 time.sleep(3)
 
         def refresh_account_loop():
-
             def _refresh_account():
                 proxy = {
                     "https": "http://" + fpbot.config["funpay"]["api"]["proxy"], 
@@ -396,7 +394,6 @@ class FunPayBot:
                 time.sleep(2400)
 
         def check_banned_loop():
-
             def _check_banned():
                 user = fpbot.account.get_user(fpbot.account.id)
                 if user.banned:
@@ -455,8 +452,8 @@ class FunPayBot:
         this_chat = fpbot.funpay_account.get_chat_by_name(event.message.chat_name, True)
         if event.message.type is MessageTypes.NEW_FEEDBACK:
             return await fpbot._on_new_review(fpbot, event)
-    
         fpbot.log_new_message(event.message)
+        
         if fpbot.config["funpay"]["tg_logging"]["enabled"] and (fpbot.config["funpay"]["tg_logging"]["events"]["new_user_message"] or fpbot.config["funpay"]["tg_logging"]["events"]["new_system_message"]):
             if event.message.author != fpbot.funpay_account.username:
                 do = False

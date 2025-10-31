@@ -7,7 +7,6 @@ from .fpbot.handlers import (
     on_new_message,
     run_cycles,
     stop_cycles
-
 )
 from .tgbot._handlers import on_telegram_bot_init
 from .tgbot import router

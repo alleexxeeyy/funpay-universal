@@ -45,29 +45,25 @@ def check_and_configure_config():
         return bool(re.match(pattern, s))
     
     def is_fp_account_working() -> bool:
-        try:
-            proxy = {"https": "http://" + config["funpay"]["api"]["proxy"], "http": "http://" + config["funpay"]["api"]["proxy"]} if config["funpay"]["api"]["proxy"] else None
-            Account(golden_key=config["funpay"]["api"]["golden_key"],
-                    user_agent=config["funpay"]["api"]["user_agent"],
-                    requests_timeout=config["funpay"]["api"]["requests_timeout"],
-                    proxy=proxy).get()
-            return True
-        except:
-            return False
+        proxy = {"https": "http://" + config["funpay"]["api"]["proxy"], "http": "http://" + config["funpay"]["api"]["proxy"]} if config["funpay"]["api"]["proxy"] else None
+        Account(
+            golden_key=config["funpay"]["api"]["golden_key"],
+            user_agent=config["funpay"]["api"]["user_agent"],
+            requests_timeout=config["funpay"]["api"]["requests_timeout"],
+            proxy=proxy
+        ).get()
+        return True
     
     def is_fp_account_banned() -> bool:
-        try:
-            proxy = {"https": "http://" + config["funpay"]["api"]["proxy"], "http": "http://" + config["funpay"]["api"]["proxy"]} if config["funpay"]["api"]["proxy"] else None
-            acc = get_funpay_bot() or Account(
-                golden_key=config["funpay"]["api"]["golden_key"],
-                user_agent=config["funpay"]["api"]["user_agent"],
-                requests_timeout=config["funpay"]["api"]["requests_timeout"],
-                proxy=proxy
-            ).get()
-            user = acc.get_user(acc.id)
-            return user.banned
-        except:
-            return True
+        proxy = {"https": "http://" + config["funpay"]["api"]["proxy"], "http": "http://" + config["funpay"]["api"]["proxy"]} if config["funpay"]["api"]["proxy"] else None
+        acc = get_funpay_bot() or Account(
+            golden_key=config["funpay"]["api"]["golden_key"],
+            user_agent=config["funpay"]["api"]["user_agent"],
+            requests_timeout=config["funpay"]["api"]["requests_timeout"],
+            proxy=proxy
+        ).get()
+        user = acc.get_user(acc.id)
+        return user.banned
 
     def is_user_agent_valid(ua: str) -> bool:
         if not ua or not (10 <= len(ua) <= 512):
