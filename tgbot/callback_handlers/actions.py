@@ -319,7 +319,7 @@ async def callback_enter_custom_commands_page(callback: CallbackQuery, state: FS
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_comm_float_text(
+        text=templ.settings_comms_float_text(
             "📃 Введите номер страницы для перехода ↓"
         ), 
         reply_markup=templ.back_kb(calls.CustomCommandsPagination(page=last_page).pack())
@@ -565,7 +565,7 @@ async def callback_add_new_custom_command(callback: CallbackQuery, state: FSMCon
         await throw_float_message(
             state=state, 
             message=callback.message, 
-            text=templ.settings_comm_float_text(
+            text=templ.settings_new_comm_float_text(
                 f"✅ <b>Пользовательская команда</b> <code>{new_custom_command}</code> была добавлена"
             ), 
             reply_markup=templ.back_kb(calls.CustomCommandsPagination(page=last_page).pack())
@@ -576,7 +576,7 @@ async def callback_add_new_custom_command(callback: CallbackQuery, state: FSMCon
         await throw_float_message(
             state=state, 
             message=callback.message, 
-            text=templ.settings_comm_float_text(e), 
+            text=templ.settings_new_comm_float_text(e), 
             reply_markup=templ.back_kb(calls.CustomCommandsPagination(page=last_page).pack())
         )
 
@@ -600,7 +600,7 @@ async def callback_add_new_auto_delivery(callback: CallbackQuery, state: FSMCont
         await throw_float_message(
             state=state, 
             message=callback.message, 
-            text=templ.settings_deliv_float_text(
+            text=templ.settings_new_deliv_float_text(
                 f"✅ <b>Авто-выдача</b> на лот <code>{new_auto_delivery_lot_id}</code> была добавлена"
             ), 
             reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=last_page).pack())
@@ -611,7 +611,7 @@ async def callback_add_new_auto_delivery(callback: CallbackQuery, state: FSMCont
         await throw_float_message(
             state=state, 
             message=callback.message, 
-            text=templ.settings_deliv_float_text(e), 
+            text=templ.settings_new_deliv_float_text(e), 
             reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=last_page).pack())
         )
 
