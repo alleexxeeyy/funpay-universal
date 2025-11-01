@@ -123,41 +123,22 @@ class FunPayBot:
         :return: Объект лота.
         :rtype: `FunPayAPI.types.LotShortcut`
         """
-        def extract_numbers(s: str):
-            return re.findall(r"\d+", s)
+        user = self.account.get_user(self.account.id)
+        lots = user.get_lots()
+        subcategory_id = subcategory_id if subcategory_id else subcategory.id if subcategory else None
+        cleaned_title = (" ".join(re.sub(r"[^\w\s]", " ", title).split())).lower()
 
-        title_norm = title.strip().lower()
-        title_nums = extract_numbers(title_norm)
-        for _ in range(max_attempts):
-            try:
-                profile = self.funpay_account.get_user(self.funpay_account.id)
-                lots = profile.get_sorted_lots(2)
-                subcat_id = subcategory.id if subcategory else subcategory_id
-                best = (0, None)
-                for lot_subcat, lot_data in lots.items():
-                    if subcat_id and lot_subcat.id != subcat_id:
-                        continue
-                    for _, lot in lot_data.items():
-                        lot_title = (lot.title or "").strip().lower()
-                        if not lot_title:
-                            continue
-                        if lot_title == title_norm:
-                            return lot
-                        score = max(
-                            fuzz.partial_ratio(title_norm, lot_title),
-                            fuzz.token_set_ratio(title_norm, lot_title)
-                        )
-                        lot_nums = extract_numbers(lot_title)
-                        if title_nums and lot_nums:
-                            score = (score + 10) if title_nums == lot_nums else (score - 10)
-                        elif title_nums and not lot_nums:
-                            score -= 5
-                        if score > best[0]:
-                            best = (score, lot)
-                if best[1] and best[0] >= 70:
-                    return best[1]
-            except Exception:
+        for lot in lots:
+            if subcategory_id and lot.subcategory.id != subcategory_id:
                 continue
+
+            cleaned_lot_title = (" ".join(re.sub(r"[^\w\s]", " ", lot.title).split())).lower()
+            if (
+                cleaned_lot_title in cleaned_title
+                or cleaned_lot_title == cleaned_title
+            ):
+                return lot
+            
         self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось получить лот по названию заказа «{title}»")
     
     def get_lot_by_order_title(self, title: str, subcategory: types.SubCategory | None = None,
@@ -410,7 +391,7 @@ class FunPayBot:
                 time.sleep(3)
 
         Thread(target=check_config_loop, daemon=True).start()
-        Thread(target=refresh_account_loop, daemon=True).start()
+        Thread(target=refresh_account_loop, daemon=True).start()    
         Thread(target=check_banned_loop, daemon=True).start()
         Thread(target=raise_lots_loop, daemon=True).start()
         Thread(target=create_tickets_loop, daemon=True).start()
@@ -557,8 +538,6 @@ class FunPayBot:
         add_funpay_event_handler(EventTypes.NEW_ORDER, FunPayBot._on_new_order, 0) 
         add_funpay_event_handler(EventTypes.ORDER_STATUS_CHANGED, FunPayBot._on_order_status_changed, 0)
 
-        await call_bot_event("ON_FUNPAY_BOT_INIT", [self])
-
         async def runner_loop():
             runner = Runner(self.funpay_account)
             for event in runner.listen(requests_delay=self.config["funpay"]["api"]["runner_requests_delay"]):
@@ -566,3 +545,5 @@ class FunPayBot:
 
         run_async_in_thread(runner_loop)
         self.logger.info(f"Слушатель событий запущен")
+
+        await call_bot_event("ON_FUNPAY_BOT_INIT", [self])

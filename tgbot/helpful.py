@@ -16,6 +16,7 @@ async def do_auth(message: Message, state: FSMContext) -> Message | None:
     :type state: `aiogram.fsm.context.FSMContext`
     """
     from . import states
+    
     await state.set_state(states.SystemStates.waiting_for_password)
     return await throw_float_message(
         state=state,

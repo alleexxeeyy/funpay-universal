@@ -9,8 +9,6 @@ logger = getLogger("universal.handlers")
 _bot_event_handlers: dict[str, list[callable]] = {
     "ON_MODULE_CONNECTED": [],
     "ON_MODULE_ENABLED": [],
-    "ON_MODULE_DISABLED": [],
-    "ON_MODULE_RELOADED": [],
     "ON_INIT": [],
     "ON_FUNPAY_BOT_INIT": [], 
     "ON_TELEGRAM_BOT_INIT": []

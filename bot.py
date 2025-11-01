@@ -14,7 +14,6 @@ from core.utils import set_title, setup_logger, install_requirements, patch_requ
 from core.modules import load_modules, set_modules, connect_modules
 from core.handlers import call_bot_event
 from services.updater import check_for_updates
-from fpbot.funpaybot import get_funpay_bot
 
 
 logger = getLogger(f"universal")
@@ -55,7 +54,7 @@ def check_and_configure_config():
     
     def is_fp_account_banned() -> bool:
         proxy = {"https": "http://" + config["funpay"]["api"]["proxy"], "http": "http://" + config["funpay"]["api"]["proxy"]} if config["funpay"]["api"]["proxy"] else None
-        acc = get_funpay_bot() or Account(
+        acc = Account(
             golden_key=config["funpay"]["api"]["golden_key"],
             user_agent=config["funpay"]["api"]["user_agent"],
             requests_timeout=config["funpay"]["api"]["requests_timeout"],

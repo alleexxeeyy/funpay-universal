@@ -3,6 +3,7 @@ from aiogram import types, Router, F
 from aiogram.fsm.context import FSMContext
 
 from settings import Settings as sett
+from fpbot.funpaybot import get_funpay_bot
 
 from .. import templates as templ
 from .. import states
@@ -26,7 +27,6 @@ async def handler_waiting_for_password(message: types.Message, state: FSMContext
             raise Exception("❌ Слишком короткий текст")
 
         data = await state.get_data()
-        from fpbot.funpaybot import get_funpay_bot
         fpbot = get_funpay_bot()
         chat_name = data.get("chat_name")
         chat = fpbot.funpay_account.get_chat_by_name(chat_name, True)
@@ -54,7 +54,6 @@ async def handler_waiting_for_password(message: types.Message, state: FSMContext
             raise Exception("❌ Слишком короткий текст")
 
         data = await state.get_data()
-        from fpbot.funpaybot import get_funpay_bot
         order_id = data.get("order_id")
         get_funpay_bot().funpay_account.send_review(order_id=order_id, text=message.text.strip())
         await throw_float_message(
