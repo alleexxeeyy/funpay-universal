@@ -6,7 +6,6 @@ from typing import  Optional
 import time
 from threading import Thread
 from colorama import Fore
-from rapidfuzz import fuzz
 import textwrap
 import shutil
 import re
@@ -40,12 +39,18 @@ class FunPayBot:
         return getattr(cls, "instance")
     
     def __init__(self):
+        self.logger = getLogger(f"universal.funpay")
+
         self.config = sett.get("config")
         self.messages = sett.get("messages")
         self.custom_commands = sett.get("custom_commands")
         self.auto_deliveries = sett.get("auto_deliveries")
-        self.logger = getLogger(f"universal.funpay")
-        
+
+        self.initialized_users = data.get("initialized_users")
+        self.categories_raise_time = data.get("categories_raise_time")
+        self.auto_tickets = data.get("auto_tickets")
+        self.stats = get_stats()
+
         proxy = {
             "https": "http://" + self.config["funpay"]["api"]["proxy"], 
             "http": "http://" + self.config["funpay"]["api"]["proxy"]
@@ -56,13 +61,6 @@ class FunPayBot:
             requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
             proxy=proxy
         ).get()
-
-        self.initialized_users = data.get("initialized_users")
-        self.categories_raise_time = data.get("categories_raise_time")
-        self.auto_tickets = data.get("auto_tickets")
-        self.stats = get_stats()
-
-        self.__lots_raise_next_time = datetime.now()
         
         
     def msg(self, message_name: str, exclude_watermark: bool = False,
@@ -197,13 +195,42 @@ class FunPayBot:
         text = text.replace('\n', '').strip()
         self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось отправить сообщение {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.LIGHTWHITE_EX}{chat_id} {Fore.LIGHTRED_EX}")
 
+    
+    def refresh_account(self):
+        """Обновляет данные об аккаунте."""
+        proxy = {
+            "https": "http://" + self.config["funpay"]["api"]["proxy"], 
+            "http": "http://" + self.config["funpay"]["api"]["proxy"]
+        } if self.config["funpay"]["api"]["proxy"] else None
+        self.account = self.funpay_account = Account(
+            golden_key=self.config["funpay"]["api"]["golden_key"],
+            user_agent=self.config["funpay"]["api"]["user_agent"],
+            requests_timeout=self.config["funpay"]["api"]["requests_timeout"],
+            proxy=proxy
+        ).get(True)
 
-    def raise_lots(self):
+    def check_banned(self):
+        """
+        Проверяет, забанен ли аккаунт FunPay.
+        Если аккаунт забанен, заканчивает работу бота.
+        """
+        user = self.account.get_user(self.account.id)
+        if user.banned:
+            self.logger.critical(f"")
+            self.logger.critical(f"{Fore.LIGHTRED_EX}Ваш FunPay аккаунт был заблокирован! К сожалению, я не могу продолжать работу на заблокированном аккаунте...")
+            self.logger.critical(f"Напишите в тех. поддержку FunPay, чтобы узнать причину бана и как можно быстрее решить эту проблему.")
+            self.logger.critical(f"")
+            shutdown()
+
+    def raise_lots(self) -> int:
         """
         Поднимает все лоты всех категорий профиля FunPay,
-        изменяет время следующего поднятия на наименьшее возможное
+        возвращает наименьшее время следующего поднятия (в секундах).
+
+        :return: Наименьшее время следующего поднятия (в секундах).
+        :rtype: `int`
         """
-        self.__lots_raise_next_time = datetime.now() + timedelta(hours=4)
+        next_time = 14400
         raised_categories = []
         profile = self.funpay_account.get_user(self.funpay_account.id)
         for subcategory in list(profile.get_sorted_lots(2).keys()):
@@ -226,10 +253,12 @@ class FunPayBot:
             time.sleep(1)
 
         for category in self.categories_raise_time:
-            if datetime.fromisoformat(self.categories_raise_time[category]) < self.__lots_raise_next_time:
-                self.__lots_raise_next_time = datetime.fromisoformat(self.categories_raise_time[category])
+            current_next_time = (datetime.fromisoformat(self.categories_raise_time[category]) - datetime.now()).seconds
+            next_time = current_next_time if current_next_time < next_time else next_time
         if len(raised_categories) > 0:
             self.logger.info(f"{Fore.YELLOW}Подняты категории: {Fore.LIGHTWHITE_EX}{f'{Fore.WHITE}, {Fore.LIGHTWHITE_EX}'.join(map(str, raised_categories))}")
+
+        return next_time
 
     def create_tickets(self):
         """Создаёт тикеты в тех. поддержку на закрытие неподтверждённых заказов."""
@@ -320,13 +349,13 @@ class FunPayBot:
         self.logger.info(f" · Текст: {Fore.LIGHTWHITE_EX}{review.text}")
         self.logger.info(f" · Оставил: {Fore.LIGHTWHITE_EX}{review.author}")
         self.logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
-    
+
 
     async def _on_funpay_bot_init(fpbot: FunPayBot):
         fpbot.stats.bot_launch_time = datetime.now()
         
         def check_config_loop():
-            def _check_config():
+            while True:
                 set_title(f"FunPay Universal v{VERSION} | {fpbot.funpay_account.username}: {fpbot.funpay_account.total_balance} {fpbot.funpay_account.currency.name if fpbot.funpay_account.currency != Currency.UNKNOWN else 'RUB'}. Активных заказов: {fpbot.funpay_account.active_sales}")
                 if fpbot.initialized_users != data.get("initialized_users"): data.set("initialized_users", fpbot.initialized_users)
                 if fpbot.categories_raise_time != data.get("categories_raise_time"): data.set("categories_raise_time", fpbot.categories_raise_time)
@@ -336,49 +365,23 @@ class FunPayBot:
                 fpbot.messages = sett.get("messages") if fpbot.messages != sett.get("messages") else fpbot.messages
                 fpbot.custom_commands = sett.get("custom_commands") if fpbot.custom_commands != sett.get("custom_commands") else fpbot.custom_commands
                 fpbot.auto_deliveries = sett.get("auto_deliveries") if fpbot.auto_deliveries != sett.get("auto_deliveries") else fpbot.auto_deliveries
-
-            while True:
-                Thread(target=_check_config, daemon=True).start()
                 time.sleep(3)
 
         def refresh_account_loop():
-            def _refresh_account():
-                proxy = {
-                    "https": "http://" + fpbot.config["funpay"]["api"]["proxy"], 
-                    "http": "http://" + fpbot.config["funpay"]["api"]["proxy"]
-                } if fpbot.config["funpay"]["api"]["proxy"] else None
-                fpbot.account = fpbot.funpay_account = Account(
-                    golden_key=fpbot.config["funpay"]["api"]["golden_key"],
-                    user_agent=fpbot.config["funpay"]["api"]["user_agent"],
-                    requests_timeout=fpbot.config["funpay"]["api"]["requests_timeout"],
-                    proxy=proxy
-                ).get()
-
             while True:
-                Thread(target=_refresh_account, daemon=True).start()
+                fpbot.refresh_account()
                 time.sleep(2400)
 
         def check_banned_loop():
-            def _check_banned():
-                user = fpbot.account.get_user(fpbot.account.id)
-                if user.banned:
-                    fpbot.logger.critical(f"")
-                    fpbot.logger.critical(f"{Fore.LIGHTRED_EX}Ваш FunPay аккаунт был заблокирован! К сожалению, я не могу продолжать работу на заблокированном аккаунте...")
-                    fpbot.logger.critical(f"Напишите в тех. поддержку FunPay, чтобы узнать причину бана и как можно быстрее решить эту проблему.")
-                    fpbot.logger.critical(f"")
-                    shutdown()
-
             while True:
-                Thread(target=_check_banned, daemon=True).start()
+                fpbot.check_banned()
                 time.sleep(900)
 
-        def raise_lots_loop():
+        def raise_lots_loop():            
             while True:
-                if (
-                    fpbot.config["funpay"]["auto_raising_lots"]["enabled"] 
-                    and datetime.now() > fpbot.__lots_raise_next_time
-                ):
-                    Thread(target=fpbot.raise_lots, daemon=True).start()
+                if fpbot.config["funpay"]["auto_raising_lots"]["enabled"]:
+                    seconds = fpbot.raise_lots()
+                    time.sleep(seconds)
                 time.sleep(3)
 
         def create_tickets_loop():
@@ -387,7 +390,7 @@ class FunPayBot:
                     fpbot.config["funpay"]["auto_tickets"]["enabled"]
                     and datetime.now() >= (datetime.fromisoformat(fpbot.auto_tickets["last_time"]) + timedelta(seconds=fpbot.config["funpay"]["auto_tickets"]["interval"])) if fpbot.auto_tickets["last_time"] else datetime.now()
                 ):
-                    Thread(target=fpbot.create_tickets, daemon=True).start()
+                    fpbot.create_tickets()
                 time.sleep(3)
 
         Thread(target=check_config_loop, daemon=True).start()

@@ -27,6 +27,7 @@ new_forms = data.get("new_forms")
 forms = data.get("forms")
 
 stop_cycles_event = Event()
+__active_funcs = {}
 
 
 def msg(message_name: str, exclude_watermark: bool = False, **kwargs) -> str | None:
@@ -128,6 +129,22 @@ async def handle_new_form(fpbot: 'FunPayBot', event: NewMessageEvent):
         return
 
 
+def run_in_thread_safe(func: callable, sleep_after_seconds: float = 0):
+    global __active_funcs
+    if __active_funcs.get(func) is True:
+        return
+
+    def run():
+        __active_funcs[func] = True
+        try: 
+            func()
+        finally: 
+            if sleep_after_seconds > 0: time.sleep(sleep_after_seconds)
+            __active_funcs[func] = False
+
+    Thread(target=run, daemon=True).start()
+
+
 async def run_cycles(_):
     from .. import get_module
     
@@ -143,7 +160,6 @@ async def run_cycles(_):
             time.sleep(1)
 
         def check_configs_loop():
-
             def _check_configs():
                 global config, messages, new_forms, forms
                 if sett.get("config") != config: config = sett.get("config")
@@ -152,7 +168,7 @@ async def run_cycles(_):
                 if data.get("forms") != forms: data.set("forms", forms)
 
             while get_module().enabled:
-                Thread(target=_check_configs, daemon=True).start()
+                run_in_thread_safe(_check_configs)
                 if stop_cycles_event.wait(3): return
 
         Thread(target=check_configs_loop, daemon=True).start()
