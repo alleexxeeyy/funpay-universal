@@ -17,8 +17,10 @@ _stats = Stats(
     earned_money=0
 )
 
+
 def get_stats() -> Stats:
     return _stats
+
 
 def set_stats(new):
     global _stats

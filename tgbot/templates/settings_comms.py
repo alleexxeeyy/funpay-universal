@@ -45,14 +45,13 @@ def settings_comms_kb(page: int = 0):
         
         btn_next = InlineKeyboardButton(text="→", callback_data=calls.CustomCustomCommandsPagination(page=page+1).pack()) if page < total_pages - 1 else InlineKeyboardButton(text="🛑", callback_data="123")
         buttons_row.append(btn_next)
-        
         rows.append(buttons_row)
 
     rows.append([InlineKeyboardButton(text="➕⌨️ Добавить",callback_data="enter_new_custom_command")])
     rows.append([
         InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.SettingsNavigation(to="default").pack()),
         InlineKeyboardButton(text="🔄️ Обновить", callback_data=calls.CustomCommandsPagination(page=page).pack())
-        ])
+    ])
     
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     return kb

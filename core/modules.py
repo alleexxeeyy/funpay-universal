@@ -7,6 +7,7 @@ from colorama import Fore
 from dataclasses import dataclass
 from logging import getLogger
 
+from __init__ import ACCENT_COLOR
 from core.handlers import (
     register_bot_event_handlers, 
     register_funpay_event_handlers, 
@@ -225,6 +226,13 @@ def load_modules() -> list[Module]:
     return modules
 
 
+def _format_string(count: int):
+    last_num = int(str(count)[-1])
+    if last_num == 1: return f"Подключен {Fore.LIGHTCYAN_EX}{count} модуль"
+    elif 2 <= last_num <= 4: return f"Подключено {Fore.LIGHTCYAN_EX}{count} модуля"
+    elif 5 <= last_num <= 9 or last_num == 0: return f"Подключено {Fore.LIGHTCYAN_EX}{count} модулей"
+
+
 async def connect_modules(modules: list[Module]):
     """
     Подключает загруженные модули.
@@ -240,6 +248,7 @@ async def connect_modules(modules: list[Module]):
         except Exception as e:
             logger.error(f"{Fore.LIGHTRED_EX}Ошибка при подключении модуля {module.meta.name}: {Fore.WHITE}{e}")
     
-    names = [f"{Fore.YELLOW}{module.meta.name} {Fore.LIGHTWHITE_EX}{module.meta.version}" for module in modules if module.enabled]
+    connected_modules = [module for module in loaded_modules if module.enabled]
+    names = [f"{Fore.YELLOW}{module.meta.name} {Fore.LIGHTWHITE_EX}{module.meta.version}" for module in connected_modules]
     if names:
-        logger.info(f'{Fore.CYAN}Подключено {Fore.LIGHTCYAN_EX}{len(loaded_modules)} модуля(-ей): {f"{Fore.WHITE}, ".join(names)}')
+        logger.info(f'{ACCENT_COLOR}{_format_string(len(connected_modules))}: {f"{Fore.WHITE}, ".join(names)}')
