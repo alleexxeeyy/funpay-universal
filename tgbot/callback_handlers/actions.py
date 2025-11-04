@@ -197,10 +197,13 @@ async def callback_switch_module_enabled(callback: CallbackQuery, state: FSMCont
         data = await state.get_data()
         last_page = data.get("last_page", 0)
         module_uuid = data.get("module_uuid")
-
+        if not module_uuid:
+            raise Exception("❌ UUID модуля не был найден, повторите процесс с самого начала")
         module = get_module_by_uuid(module_uuid)
+        if not module:
+            raise Exception("❌ Модуль с этим UUID не был найден, повторите процесс с самого начала")
+
         await disable_module(module_uuid) if module.enabled else await enable_module(module_uuid)
-        
         return await callback_module_page(callback, calls.ModulePage(uuid=module_uuid), state)
     except Exception as e:
         data = await state.get_data()

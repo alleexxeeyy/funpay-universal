@@ -45,10 +45,8 @@
 
   | Ивент | Когда вызывается | Передающиеся аргументы |
   |-------|------------------|------------------------|
-  | `ON_MODULE_CONNECTED` | При подключении модуля | `Module` |
-  | `ON_MODULE_ENABLED` | При включении модуля | `Module` |
-  | `ON_MODULE_DISABLED` | При выключении модуля | `Module` |
-  | `ON_MODULE_RELOADED` | При перезагрузке модуля | `Module` |
+  | `ON_MODULE_ENABLED` | При включении модуля (включая первое подключение и перезагрузку) | `Module` |
+  | `ON_MODULE_DISABLED` | При выключении модуля (включая перезагрузку) | `Module` |
   | `ON_INIT` | При инициализации бота | `-` |
   | `ON_FUNPAY_BOT_INIT` | При инициализации (запуске) FunPay бота | `FunPayBot` |
   | `ON_TELEGRAM_BOT_INIT` | При инициализации (запуске) Telegram бота | `TelegramBot` |
@@ -134,7 +132,7 @@
   def get_module():
       return _module
   
-  async def on_module_connected(module: Module):
+  async def on_module_enabled(module: Module):
       try:
           set_module(module)
           print(f"{PREFIX} Модуль подключен и активен")
@@ -143,7 +141,7 @@
   
 
   BOT_EVENT_HANDLERS = {
-      "ON_MODULE_CONNECTED": [on_module_connected],
+      "ON_MODULE_ENABLED": [on_module_enabled],
       "ON_FUNPAY_BOT_INIT": [on_funpay_bot_init],
       "ON_TELEGRAM_BOT_INIT": [on_telegram_bot_init]
   }
@@ -274,7 +272,7 @@
   _module: Module = None
 
 
-  def set_module(module: Module):
+  async def set_module(module: Module):
       global _module
       _module = module
 
@@ -283,7 +281,7 @@
   
 
   BOT_EVENT_HANDLERS = {
-      "ON_MODULE_CONNECTED": [set_module],
+      "ON_MODULE_ENABLED": [set_module],
       # ...
   }
   # ...

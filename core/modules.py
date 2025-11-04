@@ -76,7 +76,7 @@ def get_module_by_uuid(module_uuid: UUID) -> Module | None:
     :rtype: `core.modules.Module` or `None`
     """
     try: return [module for module in loaded_modules if module.uuid == module_uuid][0]
-    except: raise KeyError("Модуль не найден в загруженных.")
+    except: return None
 
 
 async def _enable_module(module: Module) -> bool:
