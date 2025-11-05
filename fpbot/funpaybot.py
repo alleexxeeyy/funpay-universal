@@ -267,7 +267,7 @@ class FunPayBot:
             return [all_orders[i:i+orders_per_ticket] for i in range(0, len(all_orders), orders_per_ticket)]
 
         all_sales: list[fpapi_types.OrderShortcut] = []
-        start_from = self.auto_tickets["next_start_from"] if self.auto_tickets["next_start_from"] != None else None
+        start_from = self.auto_tickets.get("next_start_from")
         while len(all_sales) < self.funpay_account.active_sales:
             sales = self.funpay_account.get_sales(start_from=start_from, include_paid=True, include_closed=False, include_refunded=False)
             for sale in sales[1]:
@@ -276,7 +276,7 @@ class FunPayBot:
             start_from = sales[0]
             time.sleep(0.5)
         
-        order_ids = calculate_orders([order.id for order in all_sales], self.config["funpay"]["auto_tickets"]["enabled"])
+        order_ids = calculate_orders([order.id for order in all_sales], self.config["funpay"]["auto_tickets"]["orders_per_ticket"])
         ticketed_orders = []
         for order_ids_per_ticket in order_ids:
             formatted_order_ids = ", ".join(order_ids_per_ticket)
@@ -523,6 +523,7 @@ class FunPayBot:
 
 
     async def run_bot(self):
+        self.create_tickets()
         self.logger.info(f"{Fore.GREEN}FunPay бот запущен и активен")
         self.logger.info("")
         self.logger.info(f"{ACCENT_COLOR}───────────────────────────────────────")

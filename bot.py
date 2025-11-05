@@ -243,11 +243,12 @@ if __name__ == "__main__":
         modules = load_modules()
         set_modules(modules)
         asyncio.run(connect_modules(modules))
-
-        asyncio.run(call_bot_event("ON_INIT"))
         
         main_loop.run_until_complete(start_telegram_bot())
         main_loop.run_until_complete(start_funpay_bot())
+
+        asyncio.run(call_bot_event("ON_INIT"))
+
         main_loop.run_forever()
     except Exception as e:
         traceback.print_exc()
