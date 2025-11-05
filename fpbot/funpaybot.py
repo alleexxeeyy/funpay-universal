@@ -523,7 +523,6 @@ class FunPayBot:
 
 
     async def run_bot(self):
-        self.create_tickets()
         self.logger.info(f"{Fore.GREEN}FunPay бот запущен и активен")
         self.logger.info("")
         self.logger.info(f"{ACCENT_COLOR}───────────────────────────────────────")

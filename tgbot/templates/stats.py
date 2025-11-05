@@ -12,7 +12,7 @@ def stats_text():
     txt = textwrap.dedent(f"""
         📊 <b>Статистика FunPay бота</b>
 
-        Дата запуска бота: <b>{stats.bot_launch_time.strftime("%d.%m.%Y %H:%M:%S") or 'Не запущен'}</b>
+        Дата запуска бота: <b>{stats.bot_launch_time.strftime("%d.%m.%Y %H:%M:%S") if stats.bot_launch_time else 'Не запущен'}</b>
 
         <b>Статистика с момента запуска:</b>
         ┣ Выполнено: <b>{stats.orders_completed}</b>
