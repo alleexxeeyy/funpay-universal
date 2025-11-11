@@ -43,14 +43,17 @@ def check_and_configure_config():
         return bool(re.match(pattern, s))
     
     def is_fp_account_working() -> bool:
-        proxy = {"https": "http://" + config["funpay"]["api"]["proxy"], "http": "http://" + config["funpay"]["api"]["proxy"]} if config["funpay"]["api"]["proxy"] else None
-        Account(
-            golden_key=config["funpay"]["api"]["golden_key"],
-            user_agent=config["funpay"]["api"]["user_agent"],
-            requests_timeout=config["funpay"]["api"]["requests_timeout"],
-            proxy=proxy
-        ).get()
-        return True
+        try:
+            proxy = {"https": "http://" + config["funpay"]["api"]["proxy"], "http": "http://" + config["funpay"]["api"]["proxy"]} if config["funpay"]["api"]["proxy"] else None
+            Account(
+                golden_key=config["funpay"]["api"]["golden_key"],
+                user_agent=config["funpay"]["api"]["user_agent"],
+                requests_timeout=config["funpay"]["api"]["requests_timeout"],
+                proxy=proxy
+            ).get()
+            return True
+        except Exception:
+            return False
     
     def is_fp_account_banned() -> bool:
         proxy = {"https": "http://" + config["funpay"]["api"]["proxy"], "http": "http://" + config["funpay"]["api"]["proxy"]} if config["funpay"]["api"]["proxy"] else None

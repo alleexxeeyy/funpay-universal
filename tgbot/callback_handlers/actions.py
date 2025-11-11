@@ -503,7 +503,7 @@ async def callback_enter_tg_logging_chat_id(callback: CallbackQuery, state: FSMC
 async def callback_enter_auto_tickets_orders_per_ticket(callback: CallbackQuery, state: FSMContext):
     await state.set_state(states.SettingsStates.waiting_for_auto_tickets_orders_per_ticket)
     config = sett.get("config")
-    auto_tickets_orders_per_ticket = config["funpay"]["bot"]["auto_tickets_orders_per_ticket"] or "❌ Не задано"
+    auto_tickets_orders_per_ticket = config["funpay"]["auto_tickets"]["orders_per_ticket"] or "❌ Не задано"
     await throw_float_message(
         state=state, 
         message=callback.message, 
@@ -535,7 +535,7 @@ async def callback_enter_auto_tickets_min_order_age(callback: CallbackQuery, sta
 async def callback_enter_enter_auto_tickets_create_interval(callback: CallbackQuery, state: FSMContext):
     await state.set_state(states.SettingsStates.waiting_for_auto_tickets_create_interval)
     config = sett.get("config")
-    auto_tickets_create_interval = config["funpay"]["bot"]["auto_tickets_create_interval"] or "❌ Не задано"
+    auto_tickets_create_interval = config["funpay"]["auto_tickets"]["interval"] or "❌ Не задано"
     await throw_float_message(
         state=state, 
         message=callback.message, 
