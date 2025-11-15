@@ -127,6 +127,7 @@ class FunPayBot:
             cleaned_lot_title = (" ".join(re.sub(r"[^\w\s]", " ", lot.title).split())).lower()
             if (
                 cleaned_lot_title in cleaned_title
+                or cleaned_title in cleaned_lot_title
                 or cleaned_lot_title == cleaned_title
             ):
                 return lot
@@ -191,14 +192,14 @@ class FunPayBot:
                                                         image_id, add_to_ignore_list, 
                                                         update_last_saved_message, leave_as_unread)
                 return mess
-            except (fpapi_exceptions.MessageNotDeliveredError, fpapi_exceptions.RequestFailedError):
+            except (fpapi_exceptions.MessageNotDeliveredError, fpapi_exceptions.RequestFailedError) as e:
                 continue
             except Exception as e:
-                text = text.replace('\n', '').strip()
-                self.logger.error(f"{Fore.LIGHTRED_EX}Ошибка при отправке сообщения {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.LIGHTWHITE_EX}{chat_id} {Fore.LIGHTRED_EX}: {Fore.WHITE}{e}")
+                text = text.replace('\n', ' ').strip()
+                self.logger.error(f"{Fore.LIGHTRED_EX}Ошибка при отправке сообщения {Fore.WHITE}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}: {Fore.WHITE}{e}")
                 return None
-        text = text.replace('\n', '').strip()
-        self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось отправить сообщение {Fore.LIGHTWHITE_EX}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.LIGHTWHITE_EX}{chat_id} {Fore.LIGHTRED_EX}")
+        text = text.replace('\n', ' ').strip()
+        self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось отправить сообщение {Fore.WHITE}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}")
 
     
     def refresh_account(self):
@@ -417,7 +418,7 @@ class FunPayBot:
         if fpbot.config["funpay"]["auto_reviews_replies"]["enabled"]:
             fpbot.funpay_account.send_review(
                 order_id=review_order_id, 
-                text=fpbot.msg("order_review_reply", review_date=datetime.now().strftime("%d.%m.%Y"), order_title=order.title, order_amount=order.amount, order_price=order.sum)
+                text=fpbot.msg("order_review_reply", review_date=datetime.now().strftime("%d.%m.%Y"), order_title=order.short_description or "Неизвестно", order_amount=order.amount, order_price=order.sum)
             )
 
     async def _on_new_message(fpbot: FunPayBot, event: NewMessageEvent):

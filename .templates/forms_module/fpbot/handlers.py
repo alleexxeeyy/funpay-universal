@@ -30,8 +30,8 @@ stop_cycles_event = Event()
 __active_funcs = {}
 
 
-def msg(message_name: str, exclude_watermark: bool = False, **kwargs) -> str | None:
-    return get_funpay_bot().msg(message_name, exclude_watermark, "messages", DATA, **kwargs)
+def msg(message_name: str, **kwargs) -> str | None:
+    return get_funpay_bot().msg(message_name, "messages", DATA, **kwargs)
 
 
 def is_fullname_valid(fullname: str) -> bool:
