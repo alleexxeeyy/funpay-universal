@@ -10,15 +10,15 @@ from .. import callback_datas as calls
 
 def events_text():
     config = sett.get("config")
-    auto_tickets = data.get("auto_tickets")
-    last_auto_tickets_create = (datetime.fromisoformat(auto_tickets["last_time"]).strftime("%d.%m.%Y %H:%M")) if auto_tickets.get("last_time") else "❌ Не было"
-    next_auto_tickets_create = ((datetime.fromisoformat(auto_tickets["last_time"]) if auto_tickets.get("last_time") else datetime.now()) + timedelta(seconds=config["funpay"]["auto_tickets"]["interval"])).strftime("%d.%m.%Y %H:%M")
+    latest_events_times = data.get("latest_events_times")
+    last_create_tickets = (datetime.fromisoformat(latest_events_times["create_tickets"]).strftime("%d.%m.%Y %H:%M")) if latest_events_times.get("create_tickets") else "❌ Не было"
+    next_create_tickets = ((datetime.fromisoformat(latest_events_times["create_tickets"]) if latest_events_times.get("create_tickets") else datetime.now()) + timedelta(seconds=config["funpay"]["auto_tickets"]["interval"])).strftime("%d.%m.%Y %H:%M")
     txt = textwrap.dedent(f"""
         🚩 <b>Ивенты</b>
 
         📆📞 <b>Создание тикетов на закрытие заказов:</b>
-        ┣ <b>Последнее:</b> {last_auto_tickets_create}
-        ┗ <b>Следующее:</b> {next_auto_tickets_create}
+        ┣ <b>Последнее:</b> {last_create_tickets}
+        ┗ <b>Следующее:</b> {next_create_tickets}
 
         Выберите действие ↓
     """)

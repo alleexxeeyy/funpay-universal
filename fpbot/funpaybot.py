@@ -48,7 +48,7 @@ class FunPayBot:
 
         self.initialized_users = data.get("initialized_users")
         self.categories_raise_time = data.get("categories_raise_time")
-        self.auto_tickets = data.get("auto_tickets")
+        self.latest_events_times = data.get("latest_events_times")
         self.stats = get_stats()
 
         proxy = {
@@ -188,7 +188,7 @@ class FunPayBot:
                     and not exclude_watermark
                 ):
                     text += f"\n{self.config['funpay']['watermark']['value']}"
-                mess = self.funpay_account.send_message(chat_id, text, chat_name, interlocutor_id, 
+                mess = self.account.send_message(chat_id, text, chat_name, interlocutor_id, 
                                                         image_id, add_to_ignore_list, 
                                                         update_last_saved_message, leave_as_unread)
                 return mess
@@ -204,7 +204,7 @@ class FunPayBot:
     
     def refresh_account(self):
         """Обновляет данные об аккаунте."""
-        self.account = self.funpay_account = self.account.get()
+        self.account = self.funpay_account = (self.account or self.funpay_account).get()
 
     def check_banned(self):
         """
@@ -228,19 +228,19 @@ class FunPayBot:
         """
         next_time = 14400
         raised_categories = []
-        profile = self.funpay_account.get_user(self.funpay_account.id)
+        profile = self.account.get_user(self.account.id)
         for subcategory in list(profile.get_sorted_lots(2).keys()):
             category = subcategory.category
             if str(subcategory.id) in self.categories_raise_time:
                 if datetime.now() < datetime.fromisoformat(self.categories_raise_time[str(subcategory.id)]):
                     continue
             try:
-                self.funpay_account.raise_lots(category.id)
+                self.account.raise_lots(category.id)
                 raised_categories.append(category.name)
                 time.sleep(0.5)
                 # Если удалось поднять эту категорию, то снова отправляем запрос на её поднятие,
                 # чтобы словить ошибку и получить время её следующего поднятия
-                self.funpay_account.raise_lots(category.id)
+                self.account.raise_lots(category.id)
             except fpapi_exceptions.RaiseError as e:
                 if e.wait_time is not None:
                     self.categories_raise_time[str(subcategory.id)] = (datetime.now() + timedelta(seconds=e.wait_time)).isoformat()
@@ -259,39 +259,39 @@ class FunPayBot:
     def create_tickets(self):
         """Создаёт тикеты в тех. поддержку на закрытие неподтверждённых заказов."""
         last_time = datetime.now()
-        self.auto_tickets["last_time"] = last_time.isoformat()
-        data.set("auto_tickets", self.auto_tickets)
-        support_api = FunPaySupportAPI(self.funpay_account).get()
+        self.latest_events_times["create_tickets"] = last_time.isoformat()
+        data.set("latest_events_times", self.latest_events_times)
+        support_api = FunPaySupportAPI(self.account).get()
         self.logger.info(f"{Fore.WHITE}Создаю тикеты в тех. поддержку на закрытие заказов...")
 
         def calculate_orders(all_orders, orders_per_ticket=25):
             return [all_orders[i:i+orders_per_ticket] for i in range(0, len(all_orders), orders_per_ticket)]
 
-        all_sales: list[fpapi_types.OrderShortcut] = []
-        start_from = self.auto_tickets.get("next_start_from")
-        while len(all_sales) < self.funpay_account.active_sales:
-            sales = self.funpay_account.get_sales(start_from=start_from, include_paid=True, include_closed=False, include_refunded=False)
+        all_order_ids: list[str] = []
+        next_start_from = None
+        while len(all_order_ids) < self.account.active_sales:
+            sales = self.account.get_sales(start_from=next_start_from, include_paid=True, include_closed=False, include_refunded=False)
             for sale in sales[1]:
                 if sale.date + timedelta(seconds=self.config["funpay"]["auto_tickets"]["min_order_age"]) <= datetime.now():
-                    all_sales.append(sale)
-            start_from = sales[0]
+                    if sale.id not in all_order_ids:
+                        all_order_ids.append(sale.id)
+            next_start_from = sales[0]
+            if not next_start_from:
+                break
             time.sleep(0.5)
         
-        order_ids = calculate_orders([order.id for order in all_sales], self.config["funpay"]["auto_tickets"]["orders_per_ticket"])
+        order_ids = calculate_orders([order_id for order_id in all_order_ids], self.config["funpay"]["auto_tickets"]["orders_per_ticket"])
         ticketed_orders = []
         for order_ids_per_ticket in order_ids:
             formatted_order_ids = ", ".join(order_ids_per_ticket)
-            resp: dict = support_api.create_ticket(formatted_order_ids, f"Здравствуйте! Прошу подтвердить заказы, ожидающие подтверждения: {formatted_order_ids}. С уважением, {self.funpay_account.username}!")
+            resp: dict = support_api.create_ticket(formatted_order_ids, f"Здравствуйте! Прошу подтвердить заказы, ожидающие подтверждения: {formatted_order_ids}. С уважением, {self.account.username}!")
             if resp.get("error") or not resp.get("action") or resp["action"]["message"] != "Ваша заявка отправлена.":
-                self.auto_tickets["next_start_from"] = order_ids_per_ticket[0]
                 break
             ticketed_orders.extend(order_ids_per_ticket)
             self.logger.info(f"{Fore.LIGHTWHITE_EX}{resp['action']['url'].split('/')[-1]} (https://support.funpay.com{resp['action']['url']}) {Fore.WHITE}— тикет создан для {Fore.LIGHTCYAN_EX}{len(order_ids_per_ticket)} заказов")
-        else:
-            self.auto_tickets["next_start_from"] = None
-        self.auto_tickets["last_time"] = datetime.now().isoformat()
+        self.latest_events_times["create_tickets"] = datetime.now().isoformat()
         
-        if len(ticketed_orders) == 0 and self.auto_tickets["next_start_from"] is not None:
+        if len(ticketed_orders) == 0:
             self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось создать тикеты в тех. поддержку по причине: {Fore.WHITE}{resp.get('error') if resp else 'Неизвестная ошибка.'}")
         elif len(ticketed_orders) >= 0:
             self.logger.info(f"{ACCENT_COLOR}Создал {Fore.LIGHTCYAN_EX}{len(calculate_orders(ticketed_orders))} тикета(-ов) в тех. поддержку {ACCENT_COLOR}на закрытие {Fore.LIGHTCYAN_EX}{len(ticketed_orders)} заказов")
@@ -325,7 +325,7 @@ class FunPayBot:
         self.logger.info(f" · Покупатель: {Fore.LIGHTWHITE_EX}{order.buyer_username}")
         self.logger.info(f" · Товар: {Fore.LIGHTWHITE_EX}{order.description}")
         self.logger.info(f" · Количество: {Fore.LIGHTWHITE_EX}{order.amount or order.parse_amount() or 0}")
-        self.logger.info(f" · Сумма: {Fore.LIGHTWHITE_EX}{order.price} {self.funpay_account.currency.name}")
+        self.logger.info(f" · Сумма: {Fore.LIGHTWHITE_EX}{order.price} {self.account.currency.name}")
         self.logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
     
     def log_order_status_changed(self, order: types.OrderShortcut, status_frmtd: str = "Неизвестный"):
@@ -335,7 +335,7 @@ class FunPayBot:
         self.logger.info(f" · Покупатель: {Fore.LIGHTWHITE_EX}{order.buyer_username}")
         self.logger.info(f" · Товар: {Fore.LIGHTWHITE_EX}{order.description}")
         self.logger.info(f" · Количество: {Fore.LIGHTWHITE_EX}{order.amount or order.parse_amount() or 0}")
-        self.logger.info(f" · Сумма: {Fore.LIGHTWHITE_EX}{order.price} {self.funpay_account.currency.name}")
+        self.logger.info(f" · Сумма: {Fore.LIGHTWHITE_EX}{order.price} {self.account.currency.name}")
         self.logger.info(f"{Fore.WHITE}───────────────────────────────────────")
     
     def log_new_review(self, review: types.Review):
@@ -355,7 +355,7 @@ class FunPayBot:
                 set_title(f"FunPay Universal v{VERSION} | {fpbot.funpay_account.username}: {fpbot.funpay_account.total_balance} {fpbot.funpay_account.currency.name if fpbot.funpay_account.currency != Currency.UNKNOWN else 'RUB'}. Активных заказов: {fpbot.funpay_account.active_sales}")
                 if fpbot.initialized_users != data.get("initialized_users"): data.set("initialized_users", fpbot.initialized_users)
                 if fpbot.categories_raise_time != data.get("categories_raise_time"): data.set("categories_raise_time", fpbot.categories_raise_time)
-                if fpbot.auto_tickets != data.get("auto_tickets"): fpbot.auto_tickets = data.get("auto_tickets")
+                if fpbot.latest_events_times != data.get("latest_events_times"): fpbot.latest_events_times = data.get("latest_events_times")
                 if fpbot.stats != get_stats(): set_stats(fpbot.stats)
                 fpbot.config = sett.get("config") if fpbot.config != sett.get("config") else fpbot.config
                 fpbot.messages = sett.get("messages") if fpbot.messages != sett.get("messages") else fpbot.messages
@@ -384,7 +384,7 @@ class FunPayBot:
             while True:
                 if (
                     fpbot.config["funpay"]["auto_tickets"]["enabled"]
-                    and datetime.now() >= (datetime.fromisoformat(fpbot.auto_tickets["last_time"]) + timedelta(seconds=fpbot.config["funpay"]["auto_tickets"]["interval"])) if fpbot.auto_tickets["last_time"] else datetime.now()
+                    and datetime.now() >= (datetime.fromisoformat(fpbot.latest_events_times["create_tickets"]) + timedelta(seconds=fpbot.config["funpay"]["auto_tickets"]["interval"])) if fpbot.latest_events_times["create_tickets"] else datetime.now()
                 ):
                     fpbot.create_tickets()
                 time.sleep(3)
@@ -450,6 +450,8 @@ class FunPayBot:
                     get_telegram_bot_loop()
                 )
 
+        if event.message.text is None:
+            return
         if this_chat.name not in fpbot.initialized_users:
             if event.message.type is MessageTypes.NON_SYSTEM:
                 fpbot.send_message(this_chat.id, fpbot.msg("first_message", username=event.message.author))
@@ -528,11 +530,11 @@ class FunPayBot:
         self.logger.info("")
         self.logger.info(f"{ACCENT_COLOR}───────────────────────────────────────")
         self.logger.info(f"{ACCENT_COLOR}Информация об аккаунте:")
-        self.logger.info(f" · ID: {Fore.LIGHTWHITE_EX}{self.funpay_account.id}")
-        self.logger.info(f" · Никнейм: {Fore.LIGHTWHITE_EX}{self.funpay_account.username}")
-        self.logger.info(f" · Баланс: {Fore.LIGHTWHITE_EX}{self.funpay_account.total_balance} {self.funpay_account.currency.name if self.funpay_account.currency != Currency.UNKNOWN else 'RUB'}")
-        self.logger.info(f" · Активные продажи: {Fore.LIGHTWHITE_EX}{self.funpay_account.active_sales}")
-        self.logger.info(f" · Активные покупки: {Fore.LIGHTWHITE_EX}{self.funpay_account.active_purchases}")
+        self.logger.info(f" · ID: {Fore.LIGHTWHITE_EX}{self.account.id}")
+        self.logger.info(f" · Никнейм: {Fore.LIGHTWHITE_EX}{self.account.username}")
+        self.logger.info(f" · Баланс: {Fore.LIGHTWHITE_EX}{self.account.total_balance} {self.account.currency.name if self.account.currency != Currency.UNKNOWN else 'RUB'}")
+        self.logger.info(f" · Активные продажи: {Fore.LIGHTWHITE_EX}{self.account.active_sales}")
+        self.logger.info(f" · Активные покупки: {Fore.LIGHTWHITE_EX}{self.account.active_purchases}")
         self.logger.info(f"{ACCENT_COLOR}───────────────────────────────────────")
         self.logger.info("")
         if self.config["funpay"]["api"]["proxy"]:
@@ -556,7 +558,7 @@ class FunPayBot:
         add_funpay_event_handler(EventTypes.ORDER_STATUS_CHANGED, FunPayBot._on_order_status_changed, 0)
 
         async def runner_loop():
-            runner = Runner(self.funpay_account)
+            runner = Runner(self.account)
             for event in runner.listen(requests_delay=self.config["funpay"]["api"]["runner_requests_delay"]):
                 await call_funpay_event(event.type, [self, event])
 

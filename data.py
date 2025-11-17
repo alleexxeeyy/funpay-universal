@@ -20,15 +20,14 @@ CATEGORIES_RAISE_TIME = DataFile(
     path="bot_data/categories_raise_time.json",
     default={}
 )
-AUTO_TICKETS = DataFile(
-    name="auto_tickets",
-    path="bot_data/auto_tickets.json",
+LATEST_EVENTS_TIMES = DataFile(
+    name="latest_events_times",
+    path="bot_data/latest_events_times.json",
     default={
-        "last_time": None,
-        "next_start_from": None
+        "create_tickets": None
     }
 )
-DATA = [INITIALIZED_USERS, CATEGORIES_RAISE_TIME, AUTO_TICKETS]
+DATA = [INITIALIZED_USERS, CATEGORIES_RAISE_TIME, LATEST_EVENTS_TIMES]
 
 
 def get_json(path: str, default: dict | list) -> dict:
