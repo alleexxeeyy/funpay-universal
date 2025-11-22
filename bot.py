@@ -10,8 +10,19 @@ from FunPayAPI.account import Account
 
 from __init__ import ACCENT_COLOR, VERSION
 from settings import Settings as sett
-from core.utils import set_title, setup_logger, install_requirements, patch_requests, init_main_loop, run_async_in_thread
-from core.modules import load_modules, set_modules, connect_modules
+from core.utils import (
+    set_title, 
+    setup_logger, 
+    install_requirements, 
+    patch_requests, 
+    init_main_loop, 
+    run_async_in_thread
+)
+from core.modules import (
+    load_modules, 
+    set_modules, 
+    connect_modules
+)
 from core.handlers import call_bot_event
 from services.updater import check_for_updates
 

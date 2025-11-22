@@ -282,6 +282,7 @@ class FunPayBot:
         
         order_ids = calculate_orders([order_id for order_id in all_order_ids], self.config["funpay"]["auto_tickets"]["orders_per_ticket"])
         ticketed_orders = []
+        resp = {}
         for order_ids_per_ticket in order_ids:
             formatted_order_ids = ", ".join(order_ids_per_ticket)
             resp: dict = support_api.create_ticket(formatted_order_ids, f"Здравствуйте! Прошу подтвердить заказы, ожидающие подтверждения: {formatted_order_ids}. С уважением, {self.account.username}!")
@@ -292,7 +293,7 @@ class FunPayBot:
         self.latest_events_times["create_tickets"] = datetime.now().isoformat()
         
         if len(ticketed_orders) == 0:
-            self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось создать тикеты в тех. поддержку по причине: {Fore.WHITE}{resp.get('error') if resp else 'Неизвестная ошибка.'}")
+            self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось создать тикеты в тех. поддержку по причине: {Fore.WHITE}{resp.get('error', 'Неизвестная ошибка.')}")
         elif len(ticketed_orders) >= 0:
             self.logger.info(f"{ACCENT_COLOR}Создал {Fore.LIGHTCYAN_EX}{len(calculate_orders(ticketed_orders))} тикета(-ов) в тех. поддержку {ACCENT_COLOR}на закрытие {Fore.LIGHTCYAN_EX}{len(ticketed_orders)} заказов")
         next_time = last_time + timedelta(seconds=self.config["funpay"]["auto_tickets"]["interval"])
