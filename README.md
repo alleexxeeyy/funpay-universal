@@ -2,8 +2,8 @@
 [![telegram](https://img.shields.io/badge/telegram-%D0%BA%D0%B0%D0%BD%D0%B0%D0%BB-blue?style=for-the-badge&logo=telegram)](https://t.me/alexeyproduction)
 [![modules](https://img.shields.io/badge/%F0%9F%A7%A9%20%D0%BC%D0%BE%D0%B4%D1%83%D0%BB%D0%B8-%D0%B1%D0%BE%D1%82%D0%B0-green?style=for-the-badge)](https://t.me/alexey_production_bot)
 [![python](https://img.shields.io/badge/python-3.11.x-yellow?style=for-the-badge&logo=python&link=https%3A%2F%2Fimg.shields.io%2Fbadge%2Ftelegram-%25D0%25BA%25D0%25B0%25D0%25BD%25D0%25B0%25D0%25BB-blue%3Fstyle%3Dfor-the-badge%26logo%3Dtelegram)](https://www.python.org/downloads/release/python-3119/)
-[![stars](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Frepos%2Falleexxeeyy%2Ffunpay-universal&query=%24.stargazers_count&style=for-the-badge&label=%E2%AD%90%20stars&color=43d433)](https://github.com/alleexxeeyy/funpay-universal/stargazers)
-[![forks](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Frepos%2Falleexxeeyy%2Ffunpay-universal&query=%24.forks_count&style=for-the-badge&label=%F0%9F%94%8C%20forks&color=%236c70e6)](https://github.com/alleexxeeyy/funpay-universal/stargazers)
+[![stars](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Frepos%2Falleexxeeyy%2Ffunpay-universal&query=%24.stargazers_count&style=for-the-badge&label=stars&color=43d433&logo=github)](https://github.com/alleexxeeyy/funpay-universal/stargazers)
+[![forks](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Frepos%2Falleexxeeyy%2Ffunpay-universal&query=%24.forks_count&style=for-the-badge&label=forks&color=%236c70e6&logo=github)](https://github.com/alleexxeeyy/funpay-universal/stargazers)
 
 Современный бот-помощник для FunPay 🤖🟦
 
@@ -16,6 +16,7 @@
 - [Для разработчиков](#-для-разработчиков)
 
 ## 🔧 Функционал
+
 ### 🤖💬 Telegram бот с полным управлением
 - Настройка любого параметра из конфига в пару действий
 - Просмотр статистики бота и профиля аккаунта
@@ -30,8 +31,8 @@
 - Пользовательская авто-выдача
 - Авто-ответы на отзывы
 - Авто-создание тикетов на закрытие неподтверждённых заказов
-- Редактирование и включение/отключение каждого сообщения
 - Команда `!продавец` для вызова продавца в чат
+- Редактирование и включение/отключение каждого сообщения
 - Уведомления в TG о новых сообщениях, заказах, отзывах и т.д.
 
 ### 🌐 Более продвинутое

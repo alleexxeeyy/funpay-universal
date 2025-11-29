@@ -34,7 +34,7 @@ async def callback_remember_chat_name(callback: CallbackQuery, callback_data: ca
             state=state, 
             message=callback.message, 
             text=templ.do_action_text(
-                "💬 Введите <b>сообщение</b> для отправки <b>{chat_name}</b> ↓"
+                f"💬 Введите <b>сообщение</b> для отправки <b>{chat_name}</b> ↓"
             ), 
             reply_markup=templ.destroy_kb(),
             callback=callback,
@@ -52,7 +52,7 @@ async def callback_remember_order_id(callback: CallbackQuery, callback_data: cal
             state=state, 
             message=callback.message, 
             text=templ.do_action_text(
-                "📦✔️ Подтвердите <b>возврат</b> заказа <b>#{order_id}</b> ↓"
+                f"📦✔️ Подтвердите <b>возврат</b> заказа <b>#{order_id}</b> ↓"
             ), 
             reply_markup=templ.confirm_kb(confirm_cb="refund_order", cancel_cb="destroy"),
             callback=callback,
@@ -64,7 +64,7 @@ async def callback_remember_order_id(callback: CallbackQuery, callback_data: cal
             state=state, 
             message=callback.message, 
             text=templ.do_action_text(
-                "💬🌟 Введите <b>ответ</b> на отзыв по заказу <b>#{order_id}</b> ↓"
+                f"💬🌟 Введите <b>ответ</b> на отзыв по заказу <b>#{order_id}</b> ↓"
             ), 
             reply_markup=templ.destroy_kb(),
             callback=callback,
@@ -85,7 +85,7 @@ async def callback_refund_order(callback: CallbackQuery, state: FSMContext):
         state=state, 
         message=callback.message, 
         text=templ.do_action_text(
-            "✅ По заказу <code>#{order_id}</code> был оформлен возврат"
+            f"✅ По заказу <code>#{order_id}</code> был оформлен возврат"
         ), 
         reply_markup=templ.destroy_kb()
     )
