@@ -226,35 +226,38 @@ class FunPayBot:
         :return: Наименьшее время до следующего поднятия (в секундах).
         :rtype: `int`
         """
-        next_time = 14400
-        raised_categories = []
-        profile = self.account.get_user(self.account.id)
-        for subcategory in list(profile.get_sorted_lots(2).keys()):
-            category = subcategory.category
-            if str(subcategory.id) in self.categories_raise_time:
-                if datetime.now() < datetime.fromisoformat(self.categories_raise_time[str(subcategory.id)]):
-                    continue
-            try:
-                self.account.raise_lots(category.id)
-                raised_categories.append(category.name)
-                time.sleep(0.5)
-                # Если удалось поднять эту категорию, то снова отправляем запрос на её поднятие,
-                # чтобы словить ошибку и получить время её следующего поднятия
-                self.account.raise_lots(category.id)
-            except fpapi_exceptions.RaiseError as e:
-                if e.wait_time is not None:
-                    self.categories_raise_time[str(subcategory.id)] = (datetime.now() + timedelta(seconds=e.wait_time)).isoformat()
-                else:
-                    del self.categories_raise_time[str(subcategory.id)]
-            time.sleep(1)
+        try:
+            next_time = 14400
+            raised_categories = []
+            profile = self.account.get_user(self.account.id)
+            for subcategory in list(profile.get_sorted_lots(2).keys()):
+                category = subcategory.category
+                if str(subcategory.id) in self.categories_raise_time:
+                    if datetime.now() < datetime.fromisoformat(self.categories_raise_time[str(subcategory.id)]):
+                        continue
+                try:
+                    self.account.raise_lots(category.id)
+                    raised_categories.append(category.name)
+                    time.sleep(0.5)
+                    # Если удалось поднять эту категорию, то снова отправляем запрос на её поднятие,
+                    # чтобы словить ошибку и получить время её следующего поднятия
+                    self.account.raise_lots(category.id)
+                except fpapi_exceptions.RaiseError as e:
+                    if e.wait_time is not None:
+                        self.categories_raise_time[str(subcategory.id)] = (datetime.now() + timedelta(seconds=e.wait_time)).isoformat()
+                    else:
+                        del self.categories_raise_time[str(subcategory.id)]
+                time.sleep(1)
 
-        for category in self.categories_raise_time:
-            current_next_time = (datetime.fromisoformat(self.categories_raise_time[category]) - datetime.now()).seconds
-            next_time = current_next_time if current_next_time < next_time else next_time
-        if len(raised_categories) > 0:
-            self.logger.info(f"{Fore.YELLOW}Подняты категории: {Fore.LIGHTWHITE_EX}{f'{Fore.WHITE}, {Fore.LIGHTWHITE_EX}'.join(map(str, raised_categories))}")
-
-        return next_time
+            for category in self.categories_raise_time:
+                current_next_time = (datetime.fromisoformat(self.categories_raise_time[category]) - datetime.now()).seconds
+                next_time = current_next_time if current_next_time < next_time else next_time
+            if len(raised_categories) > 0:
+                self.logger.info(f"{Fore.YELLOW}Подняты лоты категорий: {Fore.LIGHTWHITE_EX}{f'{Fore.WHITE}, {Fore.LIGHTWHITE_EX}'.join(map(str, raised_categories))}")
+            return next_time
+        except Exception as e:
+            self.logger.error(f"{Fore.LIGHTRED_EX}Ошибка при поднятии лотов: {Fore.WHITE}{e}")
+            return 0
 
     def create_tickets(self):
         """Создаёт тикеты в тех. поддержку на закрытие неподтверждённых заказов."""
