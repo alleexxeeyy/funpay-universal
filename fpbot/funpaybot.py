@@ -10,7 +10,7 @@ import textwrap
 import shutil
 import re
 
-from FunPayAPI import Account, Runner, exceptions as fpapi_exceptions, types as fpapi_types
+from FunPayAPI import Account, Runner, exceptions as fpapi_exceptions
 from FunPayAPI.common.enums import *
 from FunPayAPI.updater.events import *
 
