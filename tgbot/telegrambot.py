@@ -67,17 +67,17 @@ class TelegramBot:
 
     async def _set_description(self):
         try:
-            description = textwrap.dedent(f"""
-                FunPay Universal — Современный бот-помощник для FunPay 🟦
-                                        
+            description = textwrap.dedent(f"""            
                 🟢 Вечный онлайн
                 ⬆️ Авто-поднятие
                 📦 Авто-выдача
-                🕹️ Команды
-                💬✨ Авто-ответы на отзывы
-                💬 Вызов продавца в чат
+                ❗ Команды
+                ✨ Авто-ответы на отзывы
+                💬 Вызов продавца
                 📞 Авто-создание тикетов
-                                        
+                🖌️ Кастомизация
+                🔌 Плагины 
+                                                     
                 ⬇️ Скачать бота: https://github.com/alleexxeeyy/funpay-universal
                 
                 📣 Канал — @alexeyproduction
@@ -104,36 +104,30 @@ class TelegramBot:
         
 
     async def call_seller(self, calling_name: str, chat_id: int | str):
-        """
-        Пишет админу в Telegram с просьбой о помощи от заказчика.
-                
-        :param calling_name: Никнейм покупателя.
-        :type calling_name: `str`
-
-        :param chat_id: ID чата с заказчиком.
-        :type chat_id: `int` or `str`
-        """
         config = sett.get("config")
         for user_id in config["telegram"]["bot"]["signed_users"]:
-            await self.bot.send_message(chat_id=user_id, 
-                                        text=templ.call_seller_text(calling_name, f"https://funpay.com/chat/?node={chat_id}"),
-                                        reply_markup=templ.destroy_kb(),
-                                        parse_mode="HTML")
+            await self.bot.send_message(
+                chat_id=user_id, 
+                text=templ.call_seller_text(calling_name, f"https://funpay.com/chat/?node={chat_id}"),
+                reply_markup=templ.destroy_kb(),
+                parse_mode="HTML"
+            )
             
     async def log_event(self, text: str, kb: InlineKeyboardMarkup | None = None):
-        """
-        Логирует событие в чат TG бота.
-                
-        :param text: Текст лога.
-        :type text: `str`
-                
-        :param kb: Клавиатура с кнопками.
-        :type kb: `aiogram.types.InlineKeyboardMarkup` or `None`
-        """
         config = sett.get("config")
         chat_id = config["funpay"]["tg_logging"]["chat_id"]
         if not chat_id:
             for user_id in config["telegram"]["bot"]["signed_users"]:
-                await self.bot.send_message(chat_id=user_id, text=text, reply_markup=kb, parse_mode="HTML")
+                await self.bot.send_message(
+                    chat_id=user_id, 
+                    text=text, 
+                    reply_markup=kb, 
+                    parse_mode="HTML"
+                )
         else:
-            await self.bot.send_message(chat_id=chat_id, text=f'{text}\n<span class="tg-spoiler">Переключите чат логов на чат с ботом, чтобы отображалась меню с действиями</span>', reply_markup=None, parse_mode="HTML")
+            await self.bot.send_message(
+                chat_id=chat_id, 
+                text=f'{text}\n<span class="tg-spoiler">Переключите чат логов на чат с ботом, чтобы отображалось меню с действиями</span>', 
+                reply_markup=None, 
+                parse_mode="HTML"
+            )

@@ -13,7 +13,7 @@ from .tgbot import router
 from .meta import *
 
 
-logger = getLogger(f"forms")
+logger = getLogger("forms")
 _module: Module = None
 
 

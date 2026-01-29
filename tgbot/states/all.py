@@ -40,6 +40,7 @@ class CustomCommandsStates(StatesGroup):
 
 class AutoDeliveriesStates(StatesGroup):
     waiting_for_page = State()
-    waiting_for_new_auto_delivery_lot_id = State()
+    waiting_for_new_auto_delivery_lot_link = State()
     waiting_for_new_auto_delivery_message = State()
+    waiting_for_auto_delivery_lot_link = State()
     waiting_for_auto_delivery_message = State()

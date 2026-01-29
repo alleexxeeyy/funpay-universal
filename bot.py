@@ -1,12 +1,7 @@
 import asyncio
-import re
-import string
-import requests
 import traceback
 from colorama import Fore, init as init_colorama
 from logging import getLogger
-
-from FunPayAPI.account import Account
 
 from __init__ import ACCENT_COLOR, VERSION
 from settings import Settings as sett
@@ -16,7 +11,16 @@ from core.utils import (
     install_requirements, 
     patch_requests, 
     init_main_loop, 
-    run_async_in_thread
+    run_async_in_thread,
+    is_golden_key_valid,
+    is_fp_account_working,
+    is_fp_account_banned,
+    is_user_agent_valid,
+    is_proxy_valid,
+    is_proxy_working,
+    is_token_valid,
+    is_tg_bot_exists,
+    is_password_valid
 )
 from core.modules import (
     load_modules, 
@@ -24,10 +28,10 @@ from core.modules import (
     connect_modules
 )
 from core.handlers import call_bot_event
-from services.updater import check_for_updates
+from updater import check_for_updates
 
 
-logger = getLogger(f"universal")
+logger = getLogger("universal")
 
 try:
     main_loop = asyncio.get_running_loop()
@@ -51,95 +55,6 @@ async def start_funpay_bot():
 
 def check_and_configure_config():
     config = sett.get("config")
-
-    def is_golden_key_valid(s: str) -> bool:
-        pattern = r'^[a-z0-9]{32}$'
-        return bool(re.match(pattern, s))
-    
-    def is_fp_account_working() -> bool:
-        try:
-            proxy = {"https": "http://" + config["funpay"]["api"]["proxy"], "http": "http://" + config["funpay"]["api"]["proxy"]} if config["funpay"]["api"]["proxy"] else None
-            Account(
-                golden_key=config["funpay"]["api"]["golden_key"],
-                user_agent=config["funpay"]["api"]["user_agent"],
-                requests_timeout=config["funpay"]["api"]["requests_timeout"],
-                proxy=proxy
-            ).get()
-            return True
-        except Exception:
-            return False
-    
-    def is_fp_account_banned() -> bool:
-        proxy = {"https": "http://" + config["funpay"]["api"]["proxy"], "http": "http://" + config["funpay"]["api"]["proxy"]} if config["funpay"]["api"]["proxy"] else None
-        acc = Account(
-            golden_key=config["funpay"]["api"]["golden_key"],
-            user_agent=config["funpay"]["api"]["user_agent"],
-            requests_timeout=config["funpay"]["api"]["requests_timeout"],
-            proxy=proxy
-        ).get()
-        user = acc.get_user(acc.id)
-        return user.banned
-
-    def is_user_agent_valid(ua: str) -> bool:
-        if not ua or not (10 <= len(ua) <= 512):
-            return False
-        allowed_chars = string.ascii_letters + string.digits + string.punctuation + ' '
-        return all(c in allowed_chars for c in ua)
-
-    def is_proxy_valid(proxy: str) -> bool:
-        ip_pattern = r'(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)'
-        pattern_ip_port = re.compile(
-            rf'^{ip_pattern}\.{ip_pattern}\.{ip_pattern}\.{ip_pattern}:(\d+)$'
-        )
-        pattern_auth_ip_port = re.compile(
-            rf'^[^:@]+:[^:@]+@{ip_pattern}\.{ip_pattern}\.{ip_pattern}\.{ip_pattern}:(\d+)$'
-        )
-        match = pattern_ip_port.match(proxy)
-        if match:
-            port = int(match.group(1))
-            return 1 <= port <= 65535
-        match = pattern_auth_ip_port.match(proxy)
-        if match:
-            port = int(match.group(1))
-            return 1 <= port <= 65535
-        return False
-    
-    def is_proxy_working(proxy: str, timeout: int = 10) -> bool:
-        proxies = {
-            "http": f"http://{proxy}",
-            "https": f"http://{proxy}"
-        }
-        test_url = "https://funpay.com"
-        try:
-            response = requests.get(test_url, proxies=proxies, timeout=timeout)
-            return response.status_code == 200
-        except Exception:
-            return False
-    
-    def is_token_valid(token: str) -> bool:
-        pattern = r'^\d{7,12}:[A-Za-z0-9_-]{35}$'
-        return bool(re.match(pattern, token))
-    
-    def is_tg_bot_exists() -> bool:
-        try:
-            response = requests.get(f"https://api.telegram.org/bot{config['telegram']['api']['token']}/getMe", timeout=5)
-            data = response.json()
-            return data.get("ok", False) is True and data.get("result", {}).get("is_bot", False) is True
-        except Exception:
-            return False
-        
-    def is_password_valid(password: str) -> bool:
-        if len(password) < 6 or len(password) > 64:
-            return False
-        common_passwords = {
-            "123456", "1234567", "12345678", "123456789", "password", "qwerty",
-            "admin", "123123", "111111", "abc123", "letmein", "welcome",
-            "monkey", "login", "root", "pass", "test", "000000", "user",
-            "qwerty123", "iloveyou"
-        }
-        if password.lower() in common_passwords:
-            return False
-        return True
     
     while not config["funpay"]["api"]["golden_key"]:
         while not config["funpay"]["api"]["golden_key"]:
@@ -247,11 +162,16 @@ if __name__ == "__main__":
         patch_requests()
         setup_logger()
         
-        set_title(f"FunPay Universal v{VERSION} by @alleexxeeyy")
+        set_title(f"Playerok Universal v{VERSION} by @alleexxeeyy")
         print(
-            f"\n\n   {ACCENT_COLOR}FunPay Universal {Fore.WHITE}v{Fore.LIGHTWHITE_EX}{VERSION}"
-            f"\n    · {Fore.LIGHTWHITE_EX}https://t.me/alleexxeeyy"
-            f"\n    · {Fore.LIGHTWHITE_EX}https://t.me/alexeyproduction\n\n"
+            f"\n\n"
+            f"\n   {ACCENT_COLOR}FunPay Universal {Fore.WHITE}v{Fore.LIGHTWHITE_EX}{VERSION}"
+            f"\n"
+            f"\n   {Fore.YELLOW}Наши ссылки:"
+            f"\n   {Fore.WHITE}· TG бот: {Fore.LIGHTWHITE_EX}https://t.me/alexey_production_bot"
+            f"\n   {Fore.WHITE}· TG канал: {Fore.LIGHTWHITE_EX}https://t.me/alexeyproduction"
+            f"\n   {Fore.WHITE}· GitHub: {Fore.LIGHTWHITE_EX}https://github.com/alleexxeeyy/funpay-universal"
+            f"\n\n\n"
         )
         
         check_for_updates()
@@ -274,4 +194,3 @@ if __name__ == "__main__":
             f"\n\n{Fore.WHITE}Пожалуйста, попробуйте найти свою проблему в нашей статье, в которой собраны все самые частые ошибки.",
             f"\nСтатья: {Fore.LIGHTWHITE_EX}https://telegra.ph/FunPay-Universal--chastye-oshibki-i-ih-resheniya-08-26 {Fore.WHITE}(CTRL + Клик ЛКМ)\n"
         )
-    raise SystemExit(1)

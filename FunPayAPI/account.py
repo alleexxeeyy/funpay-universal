@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import html
 from typing import TYPE_CHECKING, Literal, Any, Optional, IO
 
 import FunPayAPI.common.enums
@@ -19,6 +21,8 @@ import json
 import time
 import re
 
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from . import types
 from .common import exceptions, utils, enums
 
@@ -104,9 +108,6 @@ class Account:
         self.last_update: int | None = None
         """Последнее время обновления аккаунта."""
 
-        self.interlocutor_ids: dict[int, int] = {}
-        """{id чата: id собеседника}"""
-
         self.__initiated: bool = False
 
         self.__saved_chats: dict[int, types.ChatShortcut] = {}
@@ -127,6 +128,19 @@ class Account:
         """Если сообщение начинается с этого символа, значит оно отправлено ботом."""
         self.__old_bot_character = "⁤"
         """Старое значение self.__bot_character, для корректной маркировки отправки ботом старых сообщений"""
+        self.session = requests.Session()
+        retry_strategy = Retry(
+            total=6,
+            connect=6,
+            read=6,
+            redirect=6,
+            status=6,
+            backoff_factor=1,
+            status_forcelist=[500, 502, 503, 504],
+            allowed_methods={"GET", "POST"}
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("https://", adapter)
 
     def method(self, request_method: Literal["post", "get"], api_method: str, headers: dict, payload: Any,
                exclude_phpsessid: bool = False, raise_not_200: bool = False,
@@ -187,20 +201,28 @@ class Account:
         locale = locale or self.__set_locale
         if request_method == "get" and locale and locale != self.locale:
             link += f'{"&" if "?" in link else "?"}setlocale={locale}'
-        for i in range(10):
-            response = getattr(requests, request_method)(link, headers=headers, data=payload,
-                                                         timeout=self.requests_timeout,
-                                                         proxies=self.proxy or {}, allow_redirects=False)
-            if not (300 <= response.status_code < 400) or 'Location' not in response.headers:
+        kwargs = {"method": request_method,
+                  "headers": headers,
+                  "timeout": self.requests_timeout,
+                  "proxies": self.proxy or {}}
+        i = 0
+        response = None
+        while i < 10 or response.status_code == 429:
+            i += 1
+            response = self.session.request(url=link, data=payload, allow_redirects=False, **kwargs)
+            if response.status_code == 429:
+                self.last_429_err_time = time.time()
+                time.sleep(min(2 ** i, 30))
+                continue
+            elif not (300 <= response.status_code < 400) or 'Location' not in response.headers:
                 break
             link = response.headers['Location']
+            if link.endswith("account/login"):
+                raise exceptions.UnauthorizedError(response)
             update_locale(link)
+
         else:
-            response = getattr(requests, request_method)(link, headers=headers, data=payload,
-                                                         timeout=self.requests_timeout,
-                                                         proxies=self.proxy or {})
-        if response.status_code == 429:
-            self.last_429_err_time = time.time()
+            response = self.session.request(url=link, data=payload, allow_redirects=True, **kwargs)
 
         if response.status_code == 403:
             raise exceptions.UnauthorizedError(response)
@@ -257,6 +279,110 @@ class Account:
         self.html = html_response
         self.__initiated = True
         return self
+
+    def runner_request(self, payload: dict) -> requests.Response:
+        """
+        Отправляет запрос к эндпоинту `runner/` с указанной полезной нагрузкой.
+
+        :param payload: словарь с данными для отправки.
+        :type payload: dict
+
+        :return: объект ответа.
+        :rtype: requests.Response
+        """
+        headers = {
+            "accept": "*/*",
+            "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "x-requested-with": "XMLHttpRequest"
+        }
+        payload["csrf_token"] = self.csrf_token
+        payload["objects"] = json.dumps(payload.get("objects", []))
+        payload["request"] = False if not payload.get("request") else json.dumps(payload["request"])
+        response = self.method("post", "runner/", headers, payload, raise_not_200=True)
+
+        return response
+
+    def get_payload_data(self, chats_data: dict[int | str, str | None] | None | list [int | str] = None,
+               last_order_event_tag: str | None = None,
+               last_msg_event_tag: str | None = None,
+               buyer_viewing_ids: list[int | str] | None = None,
+               request: None | dict = None, include_runner_context: bool = False) -> dict:
+
+        objects = []
+        if chats_data:
+            if include_runner_context and self.runner:
+                tags = self.runner.chat_node_tags
+                msg_ids = self.runner.last_messages_ids
+                users_ids = self.runner.users_ids
+            else:
+                tags, msg_ids, users_ids = {}, {}, {}
+
+            for chat_id in chats_data:
+                literal_chat_id = None
+                if chat_id in users_ids:
+                    user_id = users_ids[chat_id]
+                    id1, id2 = sorted([self.id, user_id])
+                    literal_chat_id = f"users-{id1}-{id2}"
+                objects.append({"type": "chat_node", "id": literal_chat_id or chat_id, "tag": tags.get(chat_id) or "00000000",
+                                "data": {"node": literal_chat_id or chat_id,
+                                         "last_message": msg_ids.get(chat_id) or -1, "content": ""}})
+
+        if last_msg_event_tag:
+            objects.append({
+            "type": "chat_bookmarks",
+            "id": self.id,
+            "tag": last_msg_event_tag,
+            "data": False
+        })
+        if last_order_event_tag:
+            objects.append({
+                "type": "orders_counters",
+                "id": self.id,
+                "tag": last_order_event_tag,
+                "data": False
+            })
+        if buyer_viewing_ids:
+            objects.extend([{"type":"c-p-u", "id": str(i), "tag":"00000000", "data": False}
+                            for i in buyer_viewing_ids])
+        return {
+            "objects": objects,
+            "request": request
+        }
+
+    def abuse_runner(self, chats_data: dict[int | str, str | None] | None = None,
+               last_order_event_tag: str | None = None,
+               last_msg_event_tag: str | None = None,
+               buyer_viewing_ids: list[int | str] | None = None,
+               request: None | dict = None, include_runner_context: bool = False) -> requests.Response:
+        """
+        Формирует и добавляет запрос в очередь Runner, дожидается ответа.
+        ВНИМАНИЕ! В ответе могут присутствовать данные, полученные для других запросов Runner-a
+
+        :param chats_data: словарь с ID чатов и никнеймами собеседников (None, если никнейм неизвестен).
+        :type chats_data: dict[int | str, str | None] | None
+
+        :param last_order_event_tag: тег последнего события заказа, если нужно отслеживать изменения в заказах.
+        :type last_order_event_tag: str | None
+
+        :param last_msg_event_tag: тег последнего события сообщения, если нужно отслеживать список диалогов.
+        :type last_msg_event_tag: str | None
+
+        :param buyer_viewing_ids: список ID покупателей, у которых нужно получить "Покупатель смотрит".
+        :type buyer_viewing_ids: list[int | str] | None
+
+        :param request: дополнительный объект запроса (отправка сообщений).
+        :type request: dict | None
+
+        :return: результат выполнения запроса через `runner.get_result`.
+        :rtype: requests.Response
+        """
+
+        payload_data = self.get_payload_data(chats_data, last_order_event_tag, last_msg_event_tag,
+                                             buyer_viewing_ids, request, include_runner_context = include_runner_context)
+        if self.runner:
+            return self.runner.get_result(payload_data)
+        else:
+            return self.runner_request(payload_data)
 
     def get_subcategory_public_lots(self, subcategory_type: enums.SubCategoryTypes, subcategory_id: int,
                                     locale: Literal["ru", "en", "uk"] | None = None) -> list[types.LotShortcut]:
@@ -493,7 +619,7 @@ class Account:
                                 float(balances["data-balance-total-eur"]), float(balances["data-balance-eur"]))
         return balance
 
-    def get_chat_history(self, chat_id: int | str, last_message_id: int = 99999999999999999999999,
+    def get_chat_history(self, chat_id: int | str, last_message_id: int | None = None,
                          interlocutor_username: Optional[str] = None, from_id: int = 0) -> list[types.Message]:
         """
         Получает историю указанного чата (до 100 последних сообщений).
@@ -502,7 +628,7 @@ class Account:
         :type chat_id: :obj:`int` or :obj:`str`
 
         :param last_message_id: ID сообщения, с которого начинать историю (фильтр FunPay).
-        :type last_message_id: :obj:`int`
+        :type last_message_id: :obj:`int` or None
 
         :param interlocutor_username: никнейм собеседника. Не нужно указывать для получения истории публичного чата.
             Так же не обязательно, но желательно указывать для получения истории личного чата.
@@ -516,6 +642,9 @@ class Account:
         """
         if not self.is_initiated:
             raise exceptions.AccountNotInitiatedError()
+
+        if last_message_id is None:
+            return self.get_chats_histories({chat_id: interlocutor_username}).get(chat_id, [])
 
         headers = {
             "accept": "*/*",
@@ -531,22 +660,81 @@ class Account:
         json_response = response.json()
         if not json_response.get("chat") or not json_response["chat"].get("messages"):
             return []
+        chat_id = json_response["chat"]["node"]["id"]
         if json_response["chat"]["node"]["silent"]:
             interlocutor_id = None
+            is_private = False
         else:
             interlocutors = json_response["chat"]["node"]["name"].split("-")[1:]
             interlocutors.remove(str(self.id))
             interlocutor_id = int(interlocutors[0])
+            is_private = True
+            if not interlocutor_username and (chat_shortcut := self.get_chat_by_id(chat_id)):
+                interlocutor_username = chat_shortcut.name
 
-        return self.__parse_messages(json_response["chat"]["messages"], chat_id, interlocutor_id,
-                                     interlocutor_username, from_id)
+        return self.__parse_messages(json_response["chat"]["messages"], chat_id,
+                                     interlocutor_id,
+                                     interlocutor_username, from_id, is_private)
 
-    def get_chats_histories(self, chats_data: dict[int | str, str | None],
-                            interlocutor_ids: list[int] | None = None) -> dict[int, list[types.Message]]:
+    def parse_chats_histories(self, chats_data: dict[int | str, str | None] | list [int | str],
+                              objects: list[dict]) -> dict[int | str, list[types.Message]]:
+        """
+        Разбирает объекты истории чатов и формирует словарь сообщений по каждому чату.
+
+        Для каждого объекта типа `chat_node`:
+        - проверяет наличие данных,
+        - определяет идентификатор и имя собеседника,
+        - обрабатывает сообщения через `__parse_messages`,
+        - учитывает приватные и "тихие" чаты (`silent`).
+
+        :param chats_data: словарь с ID чатов и никнеймами собеседников (None, если никнейм неизвестен).
+        :type chats_data: dict[int | str, str | None]
+
+        :param objects: список объектов из ответа сервера `runner` для анализа.
+        :type objects: list[dict]
+
+        :return: словарь с историями сообщений по каждому чату в формате {ID чата: список сообщений `types.Message`}.
+        :rtype: dict[int | str, list[types.Message]]
+        """
+
+        result = {}
+        for i in objects:
+            if i.get("type") == "chat_node":
+                if not i.get("data"):
+                    id_ = i.get("id")
+                    if isinstance(id_, str) and id_.isdigit() or isinstance(id_, int):
+                        result_ids = (int(id_), str(id_))
+                    else:
+                        result_ids = (id_, )
+                    for result_id in result_ids:
+                        if result_id in chats_data:
+                            result[result_id] = []
+                    continue
+
+                name = i["data"]["node"]["name"]
+                id_ = i["data"]["node"]["id"]
+                tag = i["tag"]
+                result_ids = {name, str(id_), id_} & set(chats_data.keys() if isinstance(chats_data, dict) else chats_data)
+                for result_id in result_ids:
+                    if i["data"]["node"]["silent"]:
+                        interlocutor_id = None
+                        interlocutor_name = None
+                    else:
+                        interlocutors = name.split("-")[1:]
+                        interlocutors.remove(str(self.id))
+                        interlocutor_id = int(interlocutors[0])
+                        interlocutor_name = chats_data.get(result_id) if isinstance(chats_data, dict) else None
+                        if not interlocutor_name and (chat_shortcut:=self.get_chat_by_id(id_)):
+                            interlocutor_name = chat_shortcut.name
+                    messages = self.__parse_messages(i["data"]["messages"], id_, interlocutor_id,
+                                                     interlocutor_name, is_private=not i["data"]["node"]["silent"], tag=tag)
+                    result[result_id] = messages
+        return result
+
+    def get_chats_histories(self, chats_data: dict[int | str, str | None], include_runner_context: bool = False) -> dict[int | str, list[types.Message]]:
         """
         Получает историю сообщений сразу нескольких чатов
         (до 50 сообщений на личный чат, до 25 сообщений на публичный чат).
-        Прокидывает в Account.runner информацию о том, какие лоты смотрят cобеседники (interlocutor_ids).
 
         :param chats_data: ID чатов и никнеймы собеседников (None, если никнейм неизвестен)\n
             Например: {48392847: "SLLMK", 58392098: "Amongus", 38948728: None}
@@ -555,45 +743,10 @@ class Account:
         :return: словарь с историями чатов в формате {ID чата: [список сообщений]}
         :rtype: :obj:`dict` {:obj:`int`: :obj:`list` of :class:`FunPayAPI.types.Message`}
         """
-        headers = {
-            "accept": "*/*",
-            "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "x-requested-with": "XMLHttpRequest"
-        }
-        chats = [{"type": "chat_node", "id": i, "tag": "00000000",
-                  "data": {"node": i, "last_message": -1, "content": ""}} for i in chats_data]
-        buyers = [{"type": "c-p-u",
-                   "id": str(buyer),
-                   "tag": utils.random_tag(),
-                   "data": False} for buyer in interlocutor_ids or []]
-        payload = {
-            "objects": json.dumps([*chats, *buyers]),
-            "request": False,
-            "csrf_token": self.csrf_token
-        }
-        response = self.method("post", "runner/", headers, payload, raise_not_200=True)
-        json_response = response.json()
+        response = self.abuse_runner(chats_data=chats_data, include_runner_context=include_runner_context)
+        objects = response.json()["objects"]
+        return self.parse_chats_histories(chats_data, objects)
 
-        result = {}
-        for i in json_response["objects"]:
-            if i.get("type") == "c-p-u":
-                bv = self.parse_buyer_viewing(i)
-                self.runner.buyers_viewing[bv.buyer_id] = bv
-            elif i.get("type") == "chat_node":
-                if not i.get("data"):
-                    result[i.get("id")] = []
-                    continue
-                if i["data"]["node"]["silent"]:
-                    interlocutor_id = None
-                    interlocutor_name = None
-                else:
-                    interlocutors = i["data"]["node"]["name"].split("-")[1:]
-                    interlocutors.remove(str(self.id))
-                    interlocutor_id = int(interlocutors[0])
-                    interlocutor_name = chats_data[i.get("id")]
-                messages = self.__parse_messages(i["data"]["messages"], i.get("id"), interlocutor_id, interlocutor_name)
-                result[i.get("id")] = messages
-        return result
 
     def upload_image(self, image: str | IO[bytes], type_: Literal["chat", "offer"] = "chat") -> int:
         """
@@ -687,11 +840,6 @@ class Account:
         if not self.is_initiated:
             raise exceptions.AccountNotInitiatedError()
 
-        headers = {
-            "accept": "*/*",
-            "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "x-requested-with": "XMLHttpRequest"
-        }
         request = {
             "action": "chat_message",
             "data": {"node": chat_id, "last_message": -1, "content": text}
@@ -703,21 +851,9 @@ class Account:
         else:
             request["data"]["content"] = f"{self.__bot_character}{text}" if text else ""
 
-        objects = [
-            {
-                "type": "chat_node",
-                "id": chat_id,
-                "tag": "00000000",
-                "data": {"node": chat_id, "last_message": -1, "content": ""}
-            }
-        ]
-        payload = {
-            "objects": "" if leave_as_unread else json.dumps(objects),
-            "request": json.dumps(request),
-            "csrf_token": self.csrf_token
-        }
+        chats_data = None if leave_as_unread else {chat_id: chat_name}
 
-        response = self.method("post", "runner/", headers, payload, raise_not_200=True)
+        response = self.abuse_runner(chats_data=chats_data, request=request)
         json_response = response.json()
         if not (resp := json_response.get("response")):
             raise exceptions.MessageNotDeliveredError(response, None, chat_id)
@@ -732,7 +868,11 @@ class Account:
                                 "You cannot message multiple users too frequently."):
                 self.last_multiuser_flood_err_time = time.time()
             raise exceptions.MessageNotDeliveredError(response, error_text, chat_id)
-        if leave_as_unread:
+        obj = next(iter([i for i in json_response["objects"] if (i["type"] == "chat_node" and (chat_id in (i["data"]["node"]["id"],
+                                                                   str(i["data"]["node"]["id"]),
+                                                                   i["data"]["node"]["name"])))]), None)
+        is_private_chat = True
+        if obj is None:
             message_text = text
             fake_html = f"""
             <div class="chat-msg-item" id="message-0000000000">
@@ -747,11 +887,15 @@ class Account:
                                         fake_html, None,
                                         None)
         else:
-            mes = json_response["objects"][0]["data"]["messages"][-1]
+            tag = obj["tag"]
+            mes = obj["data"]["messages"][-1]
             parser = BeautifulSoup(mes["html"].replace("<br>", "\n"), "lxml")
             image_name = None
             image_link = None
             message_text = None
+            chat_id = obj["data"]["node"]["id"]
+            is_private_chat = not obj["data"]["node"]["silent"]
+
             try:
                 if image_tag := parser.find("a", {"class": "chat-img-link"}):
                     image_name = image_tag.find("img")
@@ -766,8 +910,8 @@ class Account:
                 raise e
             message_obj = types.Message(int(mes["id"]), message_text, chat_id, chat_name, interlocutor_id,
                                         self.username, self.id,
-                                        mes["html"], image_link, image_name)
-        if self.runner and isinstance(chat_id, int):
+                                        mes["html"], image_link, image_name, tag=tag)
+        if self.runner and is_private_chat and isinstance(chat_id, int):
             if add_to_ignore_list and message_obj.id:
                 self.runner.mark_as_by_bot(chat_id, message_obj.id)
             if update_last_saved_message:
@@ -844,7 +988,7 @@ class Account:
         payload = {
             "authorId": self.id,
             "text": f"{text}{self.__bot_character}" if text else text,
-            "rating": rating,
+            "rating": rating or "",
             "csrf_token": self.csrf_token,
             "orderId": order_id
         }
@@ -1176,7 +1320,7 @@ class Account:
             a = chat_panel.find("a")
             text, link = a.text, a["href"]
         if with_history:
-            history = self.get_chat_history(chat_id, interlocutor_username=name)
+            history = self.get_chats_histories({chat_id: name}).get(chat_id, [])
         else:
             history = []
         return types.Chat(chat_id, name, link, text, html_response, history)
@@ -1192,6 +1336,8 @@ class Account:
         :rtype: :class:`FunPayAPI.types.OrderShortcut`
         """
         # todo взаимодействие с покупками
+        if self.runner.saved_orders is not None:
+            return self.get_sales(id=order_id)[1][0]
         return self.runner.saved_orders.get(order_id, self.get_sales(id=order_id)[1][0])
 
     def get_order(self, order_id: str, locale: Literal["ru", "en", "uk"] | None = None) -> types.Order:
@@ -1476,27 +1622,8 @@ class Account:
             if subcategories:
                 subcategory = subcategories.get(subcategory_name)
 
-            now = datetime.now()
             order_date_text = div.find("div", {"class": "tc-date-time"}).text
-            if any(today in order_date_text for today in ("сегодня", "сьогодні", "today")):  # сегодня, ЧЧ:ММ
-                h, m = order_date_text.split(", ")[1].split(":")
-                order_date = datetime(now.year, now.month, now.day, int(h), int(m))
-            elif any(yesterday in order_date_text for yesterday in ("вчера", "вчора", "yesterday")):  # вчера, ЧЧ:ММ
-                h, m = order_date_text.split(", ")[1].split(":")
-                temp = now - timedelta(days=1)
-                order_date = datetime(temp.year, temp.month, temp.day, int(h), int(m))
-            elif order_date_text.count(" ") == 2:  # ДД месяца, ЧЧ:ММ
-                split = order_date_text.split(", ")
-                day, month = split[0].split()
-                day, month = int(day), utils.MONTHS[month]
-                h, m = split[1].split(":")
-                order_date = datetime(now.year, month, day, int(h), int(m))
-            else:  # ДД месяца ГГГГ, ЧЧ:ММ
-                split = order_date_text.split(", ")
-                day, month, year = split[0].split()
-                day, month, year = int(day), utils.MONTHS[month], int(year)
-                h, m = split[1].split(":")
-                order_date = datetime(year, month, day, int(h), int(m))
+            order_date = utils.parse_funpay_datetime(order_date_text)
             id1, id2 = sorted([buyer_id, self.id])
             chat_id = f"users-{id1}-{id2}"
             order_obj = types.OrderShortcut(order_id, description, price, currency, buyer_username, buyer_id, chat_id,
@@ -1534,23 +1661,8 @@ class Account:
         :return: объекты чатов (не больше 50).
         :rtype: :obj:`list` of :class:`FunPayAPI.types.ChatShortcut`
         """
-        chats = {
-            "type": "chat_bookmarks",
-            "id": self.id,
-            "tag": utils.random_tag(),
-            "data": False
-        }
-        payload = {
-            "objects": json.dumps([chats]),
-            "request": False,
-            "csrf_token": self.csrf_token
-        }
-        headers = {
-            "accept": "*/*",
-            "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "x-requested-with": "XMLHttpRequest"
-        }
-        response = self.method("post", "https://funpay.com/runner/", headers, payload, raise_not_200=True)
+
+        response = self.abuse_runner(last_msg_event_tag=utils.random_tag())
         json_response = response.json()
 
         msgs = ""
@@ -1714,8 +1826,10 @@ class Account:
         error_message = bs.find("p", class_="lead")
         if error_message:
             raise exceptions.LotParsingError(response, error_message.text, lot_id)
+        bs = bs.find("form", class_="form-offer-editor")
         result = {}
-        result.update({field["name"]: field.get("value") or "" for field in bs.find_all("input")})
+        result.update(
+            {field["name"]: field.get("value") or "" for field in bs.find_all("input") if field["name"] != "query"})
         result.update({field["name"]: field.text or "" for field in bs.find_all("textarea")})
         result.update({
             field["name"]: field.find("option", selected=True)["value"]
@@ -1737,7 +1851,8 @@ class Account:
             payment_methods.append(PaymentMethod(pm.find("th").text, pm_price, pm_currency, i))
         calc_result = CalcResult(types.SubCategoryTypes.COMMON, subcategory.id, payment_methods,
                                  float(result["price"]), None, types.Currency.UNKNOWN, currency)
-        return types.LotFields(lot_id, result, subcategory, currency, calc_result)
+        db_amount = json.loads(html.unescape(bs.get("data-offer"))).get("amount")
+        return types.LotFields(lot_id, result, subcategory, currency, calc_result, db_amount)
 
     def get_chip_fields(self, subcategory_id: int) -> types.ChipFields:
         if not self.is_initiated:
@@ -1751,7 +1866,8 @@ class Account:
         result.update({field["name"]: "on" for field in bs.find_all("input", {"type": "checkbox"}, checked=True)})
         return types.ChipFields(self.id, subcategory_id, result)
 
-    def save_offer(self, offer_fields: types.LotFields | types.ChipFields):
+    def save_offer(self, offer_fields: types.LotFields | types.ChipFields,
+                   locale: Literal["ru", "en", "uk"] | None = None):
         """
         Сохраняет лот на FunPay.
 
@@ -1766,17 +1882,16 @@ class Account:
             "x-requested-with": "XMLHttpRequest",
         }
         offer_fields.csrf_token = self.csrf_token
+        fields = offer_fields.renew_fields().fields
 
         if isinstance(offer_fields, types.LotFields):
             id_ = offer_fields.lot_id
-            fields = offer_fields.renew_fields().fields
-            fields["location"] = "trade"
             api_method = "lots/offerSave"
         else:
             id_ = offer_fields.subcategory_id
-            fields = offer_fields.renew_fields().fields
             api_method = "chips/saveOffers"
-        response = self.method("post", api_method, headers, fields, raise_not_200=True)
+
+        response = self.method("post", api_method, headers, fields, raise_not_200=True, locale=locale)
         json_response = response.json()
         errors_dict = {}
         if (errors := json_response.get("errors")) or json_response.get("error"):
@@ -1786,11 +1901,11 @@ class Account:
 
             raise exceptions.LotSavingError(response, json_response.get("error"), id_, errors_dict)
 
-    def save_chip(self, chip_fields: types.ChipFields):
-        self.save_offer(chip_fields)
+    def save_chip(self, chip_fields: types.ChipFields, locale: Literal["ru", "en", "uk"] | None = None):
+        self.save_offer(chip_fields, locale)
 
-    def save_lot(self, lot_fields: types.LotFields):
-        self.save_offer(lot_fields)
+    def save_lot(self, lot_fields: types.LotFields, locale: Literal["ru", "en", "uk"] | None = None):
+        self.save_offer(lot_fields, locale)
 
     def delete_lot(self, lot_id: int) -> None:
         """
@@ -1837,6 +1952,72 @@ class Account:
                 return price2 / price1, now_currency
             else:
                 return price1 / price2, now_currency
+
+    def get_buyer_viewing(self, buyer_id: int) -> types.BuyerViewing:
+        json_result = self.abuse_runner(buyer_viewing_ids=[buyer_id,]).json()
+        for obj in json_result["objects"]:
+            if obj["type"] != "c-p-u" or obj["id"] != int(buyer_id):
+                continue
+            return self.__parse_buyer_viewing(obj)
+        return types.BuyerViewing(buyer_id, None, None, None, None)
+
+    def get_buyers_viewing(self, *ids) -> dict[int, types.BuyerViewing]:
+        json_result = self.abuse_runner(buyer_viewing_ids=list(ids)).json()
+        result = {}
+        for obj in json_result["objects"]:
+            if obj["type"] != "c-p-u" or obj["id"] not in ids:
+                continue
+            result[obj["id"]] = self.__parse_buyer_viewing(obj)
+        return result
+
+    def get_wallets(self) -> list[types.Wallet]:
+        """Получение сохраненных кошельков."""
+        response = self.method("get", "account/wallets", {}, {}, raise_not_200=True)
+        bs = BeautifulSoup(response.content.decode(), "lxml")
+        bs = bs.find("form", class_="details-editor")
+        result = []
+        for el in bs.find_all("div", class_="form-group"):
+            data_n = int(el.get("data-n"))
+            detail_id = int(el.find("input", {"name": f"details[{data_n}][detail_id]"})["value"])
+            if not detail_id:
+                continue
+            is_masked = bool(int(el.find("input", {"name": f"details[{data_n}][is_masked]"})["value"]))
+            data = el.find("input", {"name": f"details[{data_n}][data]"})["value"]
+            type_id = el.find("select", {"name": f"details[{data_n}][type_id]"}).find("option", selected=True)
+            result.append(types.Wallet(type_id["value"], data, data_n, detail_id, is_masked, type_id.text))
+        return result
+
+    def save_wallets(self, wallets: list[types.Wallet]):
+        """Сохранение кошельков."""
+        payload = {"csrf_token": self.csrf_token, "cat_id": "wallets"}
+        max_n = max([i.data_n for i in wallets if i.data_n is not None], default=-1) + 1
+
+        for wallet in wallets:
+            if wallet.data_n is None:
+                i = max_n
+                max_n += 1
+            else:
+                i = wallet.data_n
+            payload.update({f"details[{i}][detail_id]": wallet.detail_id or 0,
+                            f"details[{i}][is_masked]": int(wallet.is_masked)})
+            if not wallet.is_masked:
+                payload[f"details[{i}][type_id]"] = wallet.type_id
+                payload[f"details[{i}][data]"] =  wallet.data
+
+        payload.update({f"details[{max_n}][detail_id]": 0,
+                        f"details[{max_n}][is_masked]": 0,
+                        f"details[{max_n}][type_id]": "",
+                        f"details[{max_n}][data]": ""})
+        headers = {
+            "accept": "*/*",
+            "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "x-requested-with": "XMLHttpRequest",
+        }
+        r = self.method("post", "account/details", headers, payload, raise_not_200=True)
+        if r.json().get("error"):
+            raise Exception(r.json().get("msg"))
+
+
 
     def get_category(self, category_id: int) -> types.Category | None:
         """
@@ -1976,11 +2157,13 @@ class Account:
 
     def __parse_messages(self, json_messages: dict, chat_id: int | str,
                          interlocutor_id: Optional[int] = None, interlocutor_username: Optional[str] = None,
-                         from_id: int = 0) -> list[types.Message]:
+                         from_id: int = 0, is_private: bool | None = None, tag: str | None = None) -> list[types.Message]:
         messages = []
         ids = {self.id: self.username, 0: "FunPay"}
         badges = {}
-        if interlocutor_id is not None:
+        mb_chat_is_private = (is_private or interlocutor_id or interlocutor_username
+                              or (is_private is None and self.chat_id_private(chat_id)))
+        if None not in (interlocutor_id, interlocutor_username):
             ids[interlocutor_id] = interlocutor_username
 
         for i in json_messages:
@@ -1998,13 +2181,16 @@ class Account:
                 if ids.get(author_id) is None:
                     author = author_div.find("a").text.strip()
                     ids[author_id] = author
-                    if self.chat_id_private(chat_id) and author_id == interlocutor_id and not interlocutor_username:
-                        interlocutor_username = author
-                        ids[interlocutor_id] = interlocutor_username
+                    if mb_chat_is_private:
+                        if author_id == interlocutor_id and not interlocutor_username:
+                            interlocutor_username = author
+                        elif interlocutor_username == author and not interlocutor_id:
+                            interlocutor_id = author_id
+
             by_bot = False
             by_vertex = False
             image_name = None
-            if self.chat_id_private(chat_id) and (image_tag := parser.find("a", {"class": "chat-img-link"})):
+            if mb_chat_is_private and (image_tag := parser.find("a", {"class": "chat-img-link"})):
                 image_name = image_tag.find("img")
                 image_name = image_name.get('alt') if image_name else None
                 image_link = image_tag.get("href")
@@ -2031,7 +2217,9 @@ class Account:
                 #     by_vertex = True
 
             message_obj = types.Message(i["id"], message_text, chat_id, interlocutor_username, interlocutor_id,
-                                        None, author_id, i["html"], image_link, image_name, determine_msg_type=False)
+                                        None, author_id, i["html"], image_link, image_name,
+                                        determine_msg_type=False,
+                                        tag=tag)
             message_obj.by_bot = by_bot
             message_obj.by_vertex = by_vertex
             message_obj.type = types.MessageTypes.NON_SYSTEM if author_id != 0 else message_obj.get_message_type()
@@ -2041,6 +2229,7 @@ class Account:
         for i in messages:
             i.author = ids.get(i.author_id)
             i.chat_name = interlocutor_username
+            i.interlocutor_id = interlocutor_id
             i.badge = badges.get(i.author_id) if badges.get(i.author_id) != 0 else None
             parser = BeautifulSoup(i.html, "lxml")
             if i.badge:
@@ -2109,13 +2298,13 @@ class Account:
             logger.debug("TRACEBACK", exc_info=True)
 
     @staticmethod
-    def parse_buyer_viewing(json_responce: dict) -> types.BuyerViewing:
-        buyer_id = json_responce.get("id")
-        if not json_responce["data"]:
+    def __parse_buyer_viewing(json_buyer_viewing: dict) -> types.BuyerViewing:
+        buyer_id = json_buyer_viewing.get("id")
+        if not json_buyer_viewing["data"]:
             return types.BuyerViewing(buyer_id, None, None, None, None)
 
-        tag = json_responce["tag"]
-        html = json_responce["data"]["html"]
+        tag = json_buyer_viewing["tag"]
+        html = json_buyer_viewing["data"]["html"]
         if html:
             html = html["desktop"]
             element = BeautifulSoup(html, "lxml").find("a")

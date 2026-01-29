@@ -36,10 +36,10 @@ CONFIG = SettingsFile(
             "auto_deliveries": {
                 "enabled": True
             },
-            "auto_raising_lots": {
+            "auto_raise_lots": {
                 "enabled": True
             },
-            "auto_reviews_replies": {
+            "auto_review_replies": {
                 "enabled": True
             },
             "auto_tickets": {

@@ -39,11 +39,10 @@ def do_action_text(placeholder: str):
     return txt
 
 
-def log_text(title: str, text: str, by: str = "funpayuniversal"):
+def log_text(title: str, text: str):
     txt = textwrap.dedent(f"""
         <b>{title}</b>
         \n{text}
-        \n<i>{by}</i>
     """)
     return txt
 

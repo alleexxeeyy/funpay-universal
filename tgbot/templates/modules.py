@@ -3,7 +3,7 @@ import textwrap
 from uuid import UUID
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from core.modules import Module, get_modules, get_module_by_uuid
+from core.modules import get_modules
 
 from .. import callback_datas as calls
 
@@ -11,10 +11,9 @@ from .. import callback_datas as calls
 def modules_text():
     modules = get_modules()
     txt = textwrap.dedent(f"""
-        🔌 <b>Модули</b>
-        Всего <b>{len(modules)}</b> загруженных модулей
+        <b>🔌 Модули</b>
 
-        Перемещайтесь по разделам ниже. Нажмите на название модуля, чтобы перейти в его управление ↓
+        Всего <b>{len(modules)}</b> подключенных модулей:
     """)
     return txt
 
@@ -41,7 +40,7 @@ def modules_kb(page: int = 0):
         btn_back = InlineKeyboardButton(text="←", callback_data=calls.ModulesPagination(page=page-1).pack()) if page > 0 else InlineKeyboardButton(text="🛑", callback_data="123")
         buttons_row.append(btn_back)
 
-        btn_pages = InlineKeyboardButton(text=f"{page+1}/{total_pages}", callback_data="enter_module_page")
+        btn_pages = InlineKeyboardButton(text=f"{page+1}/{total_pages}", callback_data="enter_modules_page")
         buttons_row.append(btn_pages)
 
         btn_next = InlineKeyboardButton(text="→", callback_data=calls.ModulesPagination(page=page+1).pack()) if page < total_pages - 1 else InlineKeyboardButton(text="🛑", callback_data="123")
@@ -53,46 +52,3 @@ def modules_kb(page: int = 0):
     
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     return kb
-
-
-def module_page_text(module_uuid: UUID):
-    module: Module = get_module_by_uuid(module_uuid)
-    if not module: raise Exception("Не удалось найти модуль")
-    txt = textwrap.dedent(f"""
-        🔧 <b>Управление модулем</b>
-
-        <b>Модуль</b> <code>{module.meta.name}</code>:          
-        ┣ UUID: <b>{module.uuid}</b>
-        ┣ Версия: <b>{module.meta.version}</b>
-        ┣ Описание: <blockquote>{module.meta.description}</blockquote>
-        ┣ Авторы: <b>{module.meta.authors}</b>
-        ┗ Ссылки: <b>{module.meta.links}</b>
-
-        🔌 <b>Состояние:</b> {'🟢 Включен' if module.enabled else '🔴 Выключен'}
-
-        Выберите действие для управления ↓
-    """)
-    return txt
-
-
-def module_page_kb(module_uuid: UUID, page: int = 0):
-    module: Module = get_module_by_uuid(module_uuid)
-    if not module: raise Exception("Не удалось найти модуль")
-    rows = [
-        [InlineKeyboardButton(text="🔴 Выключить" if module.enabled else "🟢 Включить", callback_data="switch_module_enabled")],
-        [InlineKeyboardButton(text="♻️ Перезагрузить", callback_data="reload_module")],
-        [
-        InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.ModulesPagination(page=page).pack()),
-        InlineKeyboardButton(text="🔄️ Обновить", callback_data=calls.ModulePage(uuid=module_uuid).pack())
-        ]
-    ]
-    kb = InlineKeyboardMarkup(inline_keyboard=rows)
-    return kb
-
-
-def module_page_float_text(placeholder: str):
-    txt = textwrap.dedent(f"""
-        🔧 <b>Управление модулем</b>
-        \n{placeholder}
-    """)
-    return txt

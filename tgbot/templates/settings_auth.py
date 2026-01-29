@@ -8,30 +8,29 @@ from .. import callback_datas as calls
 
 def settings_auth_text():
     config = sett.get("config")
-    golden_key = (config["funpay"]["api"]["golden_key"][:5] + "*" * 5) or "❌ Не задано"
+    
+    golden_key = (config["funpay"]["api"]["golden_key"][:5] + "*****") or "❌ Не задано"
     user_agent = config["funpay"]["api"]["user_agent"] or "❌ Не задано"
+    
     txt = textwrap.dedent(f"""
-        ⚙️ <b>Настройки → 🔑 Авторизация</b>
+        <b>🔑 Авторизация</b>
 
-        🔑 <b>golden_key:</b> {golden_key}
-        🎩 <b>user_agent:</b> {user_agent}
-
-        Выберите параметр для изменения ↓
+        <b>🔑 Golden Key:</b> {golden_key}
+        <b>🎩 User Agent:</b> {user_agent}
     """)
     return txt
 
 
 def settings_auth_kb():
     config = sett.get("config")
+    
     golden_key = (config["funpay"]["api"]["golden_key"][:5] + "*" * 5) or "❌ Не задано"
     user_agent = config["funpay"]["api"]["user_agent"] or "❌ Не задано"
+    
     rows = [
-        [InlineKeyboardButton(text=f"🔑 golden_key: {golden_key}", callback_data="enter_golden_key")],
-        [InlineKeyboardButton(text=f"🎩 user_agent: {user_agent}", callback_data="enter_user_agent")],
-        [
-        InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.SettingsNavigation(to="default").pack()),
-        InlineKeyboardButton(text="🔄️ Обновить", callback_data=calls.SettingsNavigation(to="authorization").pack())
-        ]
+        [InlineKeyboardButton(text=f"🔑 Golden Key: {golden_key}", callback_data="enter_golden_key")],
+        [InlineKeyboardButton(text=f"🎩 User Agent: {user_agent}", callback_data="enter_user_agent")],
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.SettingsNavigation(to="default").pack())]
     ]
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     return kb
@@ -39,7 +38,7 @@ def settings_auth_kb():
 
 def settings_auth_float_text(placeholder: str):
     txt = textwrap.dedent(f"""
-        ⚙️ <b>Настройки → 🔑 Авторизация</b>
+        <b>🔑 Авторизация</b>
         \n{placeholder}
     """)
     return txt
