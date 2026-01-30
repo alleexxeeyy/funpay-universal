@@ -190,7 +190,7 @@ def patch_requests():
             try: delay = float(retry_hdr) if retry_hdr else min(120.0, 5.0 * (2 ** attempt))
             except: delay = min(120.0, 5.0 * (2 ** attempt))
             
-            logger.warning(f"{Fore.LIGHTYELLOW_EX}{url} {Fore.WHITE}— {Fore.YELLOW}{err}. {Fore.WHITE}Пробую отправить запрос снова через {delay} сек.")
+            logger.debug(f"{url} — {err}. Пробую отправить запрос снова через {delay} сек.")
             delay += random.uniform(0.2, 0.8)  # небольшой джиттер
             time.sleep(delay)
 
