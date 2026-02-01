@@ -200,6 +200,7 @@ if __name__ == "__main__":
         
         main_loop.run_until_complete(start_telegram_bot())
         main_loop.run_until_complete(start_funpay_bot())
+        main_loop.create_task(clear_logs_task())
 
         asyncio.run(call_bot_event("ON_INIT"))
 
