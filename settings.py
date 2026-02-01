@@ -68,6 +68,9 @@ CONFIG = SettingsFile(
                 "password": "",
                 "signed_users": []
             }
+        },
+        "logs": {
+            "max_file_size": 30
         }
     }
 )

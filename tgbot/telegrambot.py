@@ -57,7 +57,9 @@ class TelegramBot:
     async def _set_short_description(self):
         try:
             short_description = textwrap.dedent(f"""
-                📣 @alexeyproduction
+                FunPay Universal — бесплатный бот-помощник для funpay.com
+
+                📢 @alexeyproduction
                 🤖 @alexey_production_bot
                 🧑‍💻 @alleexxeeyy
             """)
@@ -69,20 +71,22 @@ class TelegramBot:
         try:
             description = textwrap.dedent(f"""            
                 🟢 Вечный онлайн
-                ⬆️ Авто-поднятие
-                📦 Авто-выдача
-                ❗ Команды
+                ⬆️ Авто-поднятие лотов
+                🚀 Авто-выдача товаров
+                ❗ Кастомные команды
                 ✨ Авто-ответы на отзывы
                 💬 Вызов продавца
                 📞 Авто-создание тикетов
+                📊 Подробная статистика
+                📲 Уведомления в Telegram
                 🖌️ Кастомизация
                 🔌 Плагины 
                                                      
                 ⬇️ Скачать бота: https://github.com/alleexxeeyy/funpay-universal
                 
-                📣 Канал — @alexeyproduction
-                🤖 Бот — @alexey_production_bot
-                🧑‍💻 Автор — @alleexxeeyy
+                📢 Канал: @alexeyproduction
+                🤖 Бот: @alexey_production_bot
+                🧑‍💻 Автор: @alleexxeeyy
             """)
             await self.bot.set_my_description(description=description)
         except:
@@ -99,7 +103,7 @@ class TelegramBot:
         await call_bot_event("ON_TELEGRAM_BOT_INIT", [self])
         
         me = await self.bot.get_me()
-        logger.info(f"{Fore.CYAN}Telegram бот {Fore.LIGHTCYAN_EX}@{me.username} {Fore.CYAN}запущен и активен")
+        logger.info(f"{Fore.LIGHTBLUE_EX}Telegram бот {Fore.LIGHTWHITE_EX}@{me.username} {Fore.LIGHTBLUE_EX}запущен и активен")
         await self.dp.start_polling(self.bot, skip_updates=True, handle_signals=False)
         
 

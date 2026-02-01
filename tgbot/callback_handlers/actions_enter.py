@@ -375,3 +375,19 @@ async def callback_enter_enter_auto_tickets_create_interval(callback: CallbackQu
         ), 
         reply_markup=templ.back_kb(calls.SettingsNavigation(to="tickets").pack())
     )
+
+
+@router.callback_query(F.data == "enter_logs_max_file_size")
+async def callback_enter_logs_max_file_size(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(states.SettingsStates.waiting_for_logs_max_file_size)
+    config = sett.get("config")
+    max_file_size = config["logs"]["max_file_size"] or "❌ Не указано"
+    await throw_float_message(
+        state=state, 
+        message=callback.message, 
+        text=templ.logs_float_text(
+            f"📄 Введите новый <b>максимальный размер файла логов</b> (в мегабайтах) ↓"
+            f"\n・ Текущее: <b>{max_file_size} MB</b>"
+        ), 
+        reply_markup=templ.back_kb(calls.MenuNavigation(to="logs").pack())
+    )

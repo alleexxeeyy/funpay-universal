@@ -6,6 +6,7 @@ from .modules import *
 from .module_page import *
 from .profile import *
 from .stats import *
+from .logs import *
 
 from .settings import *
 from .settings_auth import *

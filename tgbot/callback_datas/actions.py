@@ -9,8 +9,13 @@ class RememberOrderId(CallbackData, prefix="reor"):
     or_id: str
     do: str
 
+
 class DeleteIncludedRaiseCategory(CallbackData, prefix="delinra"):
     index: int
 
 class DeleteExcludedRaiseCategory(CallbackData, prefix="delexra"):
     index: int
+
+
+class SendLogsFile(CallbackData, prefix="selogs"):
+    lines: int

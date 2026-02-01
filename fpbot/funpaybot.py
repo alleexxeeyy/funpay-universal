@@ -578,7 +578,6 @@ class FunPayBot:
 
 
     async def run_bot(self):
-        self.logger.info(f"{Fore.GREEN}FunPay бот запущен и активен")
         self.logger.info("")
         self.logger.info(f"{ACCENT_COLOR}───────────────────────────────────────")
         self.logger.info(f"{ACCENT_COLOR}Информация об аккаунте:")
@@ -615,6 +614,6 @@ class FunPayBot:
                 await call_funpay_event(event.type, [self, event])
 
         run_async_in_thread(runner_loop)
-        self.logger.info(f"Слушатель событий запущен")
+        self.logger.info(f"{Fore.YELLOW}FunPay бот запущен и активен")
 
         await call_bot_event("ON_FUNPAY_BOT_INIT", [self])
