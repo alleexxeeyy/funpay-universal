@@ -1751,7 +1751,8 @@ class Account:
         result.update({field["name"]: "on" for field in bs.find_all("input", {"type": "checkbox"}, checked=True)})
         return types.ChipFields(self.id, subcategory_id, result)
 
-    def save_offer(self, offer_fields: types.LotFields | types.ChipFields):
+    def save_offer(self, offer_fields: types.LotFields | types.ChipFields,
+                   locale: Literal["ru", "en", "uk"] | None = None):
         """
         Сохраняет лот на FunPay.
 
@@ -1766,17 +1767,16 @@ class Account:
             "x-requested-with": "XMLHttpRequest",
         }
         offer_fields.csrf_token = self.csrf_token
+        fields = offer_fields.renew_fields().fields
 
         if isinstance(offer_fields, types.LotFields):
             id_ = offer_fields.lot_id
-            fields = offer_fields.renew_fields().fields
-            fields["location"] = "trade"
             api_method = "lots/offerSave"
         else:
             id_ = offer_fields.subcategory_id
-            fields = offer_fields.renew_fields().fields
             api_method = "chips/saveOffers"
-        response = self.method("post", api_method, headers, fields, raise_not_200=True)
+
+        response = self.method("post", api_method, headers, fields, raise_not_200=True, locale=locale)
         json_response = response.json()
         errors_dict = {}
         if (errors := json_response.get("errors")) or json_response.get("error"):

@@ -838,12 +838,12 @@ class ChipFields:
         """
         self.__fields["game"] = str(self.game_id)
         self.__fields["chip"] = str(self.subcategory_id)
-        self.__fields["options[chip_min_sum]"] = str(self.min_sum) if self.min_sum is not None else ""
+        self.__fields["options[chip_min_sum]"] = str(int(self.min_sum)) if self.min_sum is not None else ""
         self.__fields["csrf_token"] = self.csrf_token
         for chip_offer in self.chip_offers.values():
             key = chip_offer.key
-            self.__fields[f"{key}[amount]"] = str(chip_offer.amount) if chip_offer.amount is not None else ""
-            self.__fields[f"{key}[price]"] = str(chip_offer.price) if chip_offer.price is not None else ""
+            self.__fields[f"{key}[amount]"] = str(int(chip_offer.amount)) if chip_offer.amount is not None else ""
+            self.__fields[f"{key}[price]"] = str(int(chip_offer.price)) if chip_offer.price is not None else ""
             if chip_offer.active:
                 self.__fields[f"{key}[active]"] = "on"
             else:

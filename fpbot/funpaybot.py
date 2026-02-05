@@ -318,7 +318,7 @@ class FunPayBot:
         self.logger.info(f"{Fore.YELLOW}Новый заказ #{order.id}:")
         self.logger.info(f" · Покупатель: {Fore.LIGHTWHITE_EX}{order.buyer_username}")
         self.logger.info(f" · Товар: {Fore.LIGHTWHITE_EX}{order.description}")
-        self.logger.info(f" · Количество: {Fore.LIGHTWHITE_EX}{order.amount or order.parse_amount() or 0}")
+        self.logger.info(f" · Количество: {Fore.LIGHTWHITE_EX}{order.amount or '?'}")
         self.logger.info(f" · Сумма: {Fore.LIGHTWHITE_EX}{order.price} {self.account.currency.name}")
         self.logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
     
