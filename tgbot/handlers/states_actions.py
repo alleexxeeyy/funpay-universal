@@ -12,7 +12,7 @@ from ..helpful import throw_float_message
 router = Router()
 
 
-@router.message(states.ActionsStates.waiting_for_message_text, F.text | F.photo)
+@router.message(states.ActionsStates.waiting_for_message_content, F.text | F.photo)
 async def handler_waiting_for_message_text(message: types.Message, state: FSMContext):
     try: 
         await state.set_state(None)
@@ -30,7 +30,7 @@ async def handler_waiting_for_message_text(message: types.Message, state: FSMCon
         if message.text:
             if len(message.text.strip()) <= 0:
                 raise Exception("❌ Слишком короткий текст")
-            fpbot.send_message(chat_id=chat.id, text=message.text.strip())
+            fpbot.account.send_message(chat_id=chat.id, text=message.text.strip())
         
         elif message.photo:
             photo = message.photo[-1]

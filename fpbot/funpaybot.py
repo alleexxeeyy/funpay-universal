@@ -290,7 +290,13 @@ class FunPayBot:
         elif len(ticketed_orders) >= 0:
             self.logger.info(f"{ACCENT_COLOR}Создал {Fore.LIGHTCYAN_EX}{len(calculate_orders(ticketed_orders))} тикета(-ов) в тех. поддержку {ACCENT_COLOR}на закрытие {Fore.LIGHTCYAN_EX}{len(ticketed_orders)} заказов")
         next_time = last_time + timedelta(seconds=self.config["funpay"]["auto_tickets"]["interval"])
-        self.logger.info(f"Следующая попытка будет {Fore.LIGHTWHITE_EX}{next_time.strftime(f'%d.%m{Fore.WHITE} в {Fore.LIGHTWHITE_EX}%H:%M')}")
+        
+        dm = next_time.strftime('%d.%m в %H:%M')
+        hm = next_time.strftime('%H:%M')
+        self.logger.info(
+            f"Следующая попытка будет "
+            f"{Fore.LIGHTWHITE_EX}{dm}{Fore.WHITE} в {Fore.LIGHTWHITE_EX}{hm}"
+        )
 
     
     def log_new_message(self, message: types.Message):
