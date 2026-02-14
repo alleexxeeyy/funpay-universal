@@ -102,27 +102,31 @@ class FunPayBot:
     def get_lot_by_title(self, title: str, subcategory: types.SubCategory | None = None,
                          subcategory_id: int | None = None, max_attempts: int = 3) -> types.LotShortcut:
         """
-        Получает лот по названию заказа.
+        Получает лот по названию.
 
-        :param title: Краткое описание заказа.
+        :param title: Название лота.
         :type title: `str`
 
-        :param subcategory: Подкатегория товара, _опционально_.
+        :param subcategory: Подкатегория лота, _опционально_.
         :type subcategory: `FunPayAPI.types.SubCategory` or `None`
 
-        :param subcategory_id: ID подкатегории товара, _опционально_.
+        :param subcategory_id: ID подкатегории лота, _опционально_.
         :type subcategory_id: `FunPayAPI.types.SubCategory` or `None`
 
         :return: Объект лота.
         :rtype: `FunPayAPI.types.LotShortcut`
         """
-        user = self.account.get_user(self.account.id)
-        lots = user.get_lots()
-        subcategory_id = subcategory_id if subcategory_id else subcategory.id if subcategory else None
+        subcat_id = subcategory_id if subcategory_id else subcategory.id if subcategory else None
+        
+        if any((subcategory, subcategory_id)):
+            lots = self.account.get_my_subcategory_lots(subcat_id)
+        else:
+            user = self.account.get_user(self.account.id)
+            lots = user.get_lots()
         cleaned_title = (" ".join(re.sub(r"[^\w\s]", " ", title).split())).lower()
 
         for lot in lots:
-            if subcategory_id and lot.subcategory.id != subcategory_id:
+            if subcat_id and lot.subcategory.id != subcat_id:
                 continue
 
             cleaned_lot_title = (" ".join(re.sub(r"[^\w\s]", " ", lot.title).split())).lower()
@@ -133,7 +137,7 @@ class FunPayBot:
             ):
                 return lot
             
-        self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось получить лот по названию заказа «{title}»")
+        self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось получить лот по названию «{title}»")
     
     def get_lot_by_order_title(self, title: str, subcategory: types.SubCategory | None = None,
                                subcategory_id: int | None = None) -> types.LotShortcut:
