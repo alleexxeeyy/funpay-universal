@@ -367,7 +367,7 @@ class FunPayBot:
             while True:
                 cur_name = self.account.currency.name if self.account.currency != Currency.UNKNOWN else 'RUB'
                 set_title(
-                    f"FunPay Universal v{VERSION} | {self.account.username}:"
+                    f"FunPay Universal v{VERSION} | {self.account.username}: "
                     f"{self.account.total_balance} {cur_name}. "
                     f"Активных заказов: {self.account.active_sales}"
                 )
@@ -453,7 +453,10 @@ class FunPayBot:
                 get_telegram_bot_loop()
             )
 
-        if self.config["funpay"]["auto_review_replies"]["enabled"]:
+        if (
+            order.buyer_id != self.account.id
+            and self.config["funpay"]["auto_review_replies"]["enabled"]
+        ):
             self.account.send_review(
                 order_id=review_order_id, 
                 text=self.msg("order_review_reply", 
