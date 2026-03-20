@@ -172,6 +172,7 @@ def install_requirements(requirements_path: str):
                 subprocess.check_call([
                     sys.executable, "-m", "pip", "install", "-r", requirements_path
                 ])
+                return
     except Exception as e:
         logger.error(f"Не удалось установить зависимости из файла \"{requirements_path}\": {e}")
 
@@ -347,7 +348,9 @@ def is_token_valid(token: str) -> bool:
 def is_tg_bot_exists() -> bool:
     try:
         config = sett.get("config")
+        token = config["telegram"]["api"]["token"]
         proxy = config["telegram"]["api"]["proxy"]
+        
         if proxy:
             proxies = {
                 "http": f"http://{proxy}",
@@ -355,11 +358,13 @@ def is_tg_bot_exists() -> bool:
             }
         else:
             proxies = None
+        
         response = requests.get(
-            f"https://api.telegram.org/bot{config['telegram']['api']['token']}/getMe", 
+            f"https://api.telegram.org/bot{token}/getMe", 
             proxies=proxies,
             timeout=5
         )
+        
         data = response.json()
         return data.get("ok", False) is True and data.get("result", {}).get("is_bot", False) is True
     except Exception:

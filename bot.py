@@ -115,8 +115,9 @@ def check_and_configure_config():
         
         while not config["funpay"]["api"]["proxy"]:
             print(
-                f"\n{Fore.WHITE}Введите {Fore.LIGHTBLUE_EX}IPv4 HTTP Прокси {Fore.WHITE}для FunPay аккаунта в формате user:password@ip:port или ip:port, "
-                f"если он без авторизации. Если вы не знаете что это, или не хотите устанавливать прокси - пропустите этот параметр, нажав Enter."
+                f"\n{Fore.WHITE}Введите {Fore.LIGHTBLUE_EX}IPv4 HTTP Прокси {Fore.WHITE}для FunPay аккаунта. "
+                f"Формат: user:password@ip:port или ip:port, если он без авторизации. "
+                f"Если вы не знаете что это, или не хотите устанавливать прокси - пропустите этот параметр, нажав Enter."
                 f"\n  {Fore.WHITE}· Пример: DRjcQTm3Yc:m8GnUN8Q9L@46.161.30.187:8000"
             )
             proxy = input(f"  {Fore.WHITE}↳ {Fore.LIGHTWHITE_EX}").strip()
@@ -134,24 +135,26 @@ def check_and_configure_config():
                 )
 
     while not config["telegram"]["api"]["token"]:
-        print(
-            f"\n{Fore.WHITE}Введите {Fore.CYAN}Токен вашего Telegram бота{Fore.WHITE}. Бота нужно создать у @BotFather."
-            f"\n  {Fore.WHITE}· Пример: 7257913369:AAG2KjLL3-zvvfSQFSVhaTb4w7tR2iXsJXM"
-        )
-        token = input(f"  {Fore.WHITE}↳ {Fore.LIGHTWHITE_EX}").strip()
-        if is_token_valid(token):
-            config["telegram"]["api"]["token"] = token
-            sett.set("config", config)
-            print(f"\n{Fore.GREEN}Токен Telegram бота успешно сохранён в конфиг.")
-        else:
+        while not config["telegram"]["api"]["token"]:
             print(
-                f"\n{Fore.LIGHTRED_EX}Похоже, что вы ввели некорректный токен. "
-                f"Убедитесь, что он соответствует формату и попробуйте ещё раз."
+                f"\n{Fore.WHITE}Введите {Fore.CYAN}Токен вашего Telegram бота{Fore.WHITE}. Бота нужно создать у @BotFather."
+                f"\n  {Fore.WHITE}· Пример: 7257913369:AAG2KjLL3-zvvfSQFSVhaTb4w7tR2iXsJXM"
             )
+            token = input(f"  {Fore.WHITE}↳ {Fore.LIGHTWHITE_EX}").strip()
+            if is_token_valid(token):
+                config["telegram"]["api"]["token"] = token
+                sett.set("config", config)
+                print(f"\n{Fore.GREEN}Токен Telegram бота успешно сохранён в конфиг.")
+            else:
+                print(
+                    f"\n{Fore.LIGHTRED_EX}Похоже, что вы ввели некорректный токен. "
+                    f"Убедитесь, что он соответствует формату и попробуйте ещё раз."
+                )
 
         while not config["telegram"]["api"]["proxy"]:
             print(
-                f"\n{Fore.WHITE}Введите {Fore.LIGHTBLUE_EX}IPv4 HTTP Прокси {Fore.WHITE}для Telegram бота. Формат: user:password@ip:port или ip:port. "
+                f"\n{Fore.WHITE}Введите {Fore.LIGHTBLUE_EX}IPv4 HTTP Прокси {Fore.WHITE}для Telegram бота. "
+                f"Формат: user:password@ip:port или ip:port, если он без авторизации. "
                 f"Если вы не знаете что это, или не хотите устанавливать прокси - пропустите этот параметр, нажав Enter."
                 f"\n  {Fore.WHITE}· Пример: DRjcQTm3Yc:m8GnUN8Q9L@46.161.30.187:8000"
             )
@@ -197,7 +200,7 @@ def check_and_configure_config():
         sett.set("config", config)
         return check_and_configure_config()
     elif config["funpay"]["api"]["proxy"]:
-        logger.info(f"{Fore.WHITE}FunPay прокси успешно работает.")
+        logger.info(f"{Fore.LIGHTYELLOW_EX}FunPay прокси успешно работает.")
 
     if not is_fp_account_working():
         print(
@@ -210,7 +213,7 @@ def check_and_configure_config():
         sett.set("config", config)
         return check_and_configure_config()
     else:
-        logger.info(f"{Fore.WHITE}FunPay аккаунт успешно авторизован.")
+        logger.info(f"{Fore.LIGHTYELLOW_EX}FunPay аккаунт успешно авторизован.")
 
     if is_fp_account_banned():
         print(
@@ -225,7 +228,7 @@ def check_and_configure_config():
 
     if config["telegram"]["api"]["proxy"] and not is_proxy_working(
         config["telegram"]["api"]["proxy"], 
-        "http://api.telegram.org/"
+        "https://api.telegram.org/"
     ):
         print(
             f"{Fore.LIGHTRED_EX}\nПохоже, что прокси для Telegram бота не работает. "
@@ -236,7 +239,7 @@ def check_and_configure_config():
         sett.set("config", config)
         return check_and_configure_config()
     elif config["telegram"]["api"]["proxy"]:
-        logger.info(f"{Fore.WHITE}Telegram прокси успешно работает.")
+        logger.info(f"{Fore.LIGHTYELLOW_EX}Telegram прокси успешно работает.")
 
     if not is_tg_bot_exists():
         print(
@@ -248,7 +251,7 @@ def check_and_configure_config():
         sett.set("config", config)
         return check_and_configure_config()
     else:
-        logger.info(f"{Fore.WHITE}Telegram бот успешно работает.")
+        logger.info(f"{Fore.LIGHTYELLOW_EX}Telegram бот успешно работает.")
 
 
 if __name__ == "__main__":
