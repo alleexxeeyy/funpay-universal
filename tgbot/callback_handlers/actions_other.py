@@ -24,10 +24,18 @@ async def callback_destroy(callback: CallbackQuery):
     await callback.message.delete()
 
 
-@router.callback_query(F.data == "clean_proxy")
-async def callback_clean_proxy(callback: CallbackQuery, state: FSMContext):
+@router.callback_query(F.data == "clean_fp_proxy")
+async def callback_clean_fp_proxy(callback: CallbackQuery, state: FSMContext):
     config = sett.get("config")
     config["funpay"]["api"]["proxy"] = ""
+    sett.set("config", config)
+    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="conn"), state)
+
+
+@router.callback_query(F.data == "clean_tg_proxy")
+async def callback_clean_tg_proxy(callback: CallbackQuery, state: FSMContext):
+    config = sett.get("config")
+    config["telegram"]["api"]["proxy"] = ""
     sett.set("config", config)
     return await callback_settings_navigation(callback, calls.SettingsNavigation(to="conn"), state)
 

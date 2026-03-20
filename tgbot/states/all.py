@@ -16,7 +16,8 @@ class SettingsStates(StatesGroup):
 
     waiting_for_requests_timeout = State()
     waiting_for_runner_requests_delay = State()
-    waiting_for_proxy = State()
+    waiting_for_fp_proxy = State()
+    waiting_for_tg_proxy = State()
 
     waiting_for_auto_tickets_orders_per_ticket = State()
     waiting_for_auto_tickets_min_order_age = State()

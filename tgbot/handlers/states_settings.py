@@ -70,8 +70,8 @@ async def handler_waiting_for_user_agent(message: types.Message, state: FSMConte
         )
 
 
-@router.message(states.SettingsStates.waiting_for_proxy, F.text)
-async def handler_waiting_for_proxy(message: types.Message, state: FSMContext):
+@router.message(states.SettingsStates.waiting_for_fp_proxy, F.text)
+async def handler_waiting_for_fp_proxy(message: types.Message, state: FSMContext):
     try:
         await state.set_state(None)
         if len(message.text.strip()) <= 3:
@@ -88,7 +88,37 @@ async def handler_waiting_for_proxy(message: types.Message, state: FSMContext):
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_auth_float_text(f"✅ <b>Прокси</b> был успешно изменён на <b>{message.text.strip()}</b>"),
+            text=templ.settings_auth_float_text(f"✅ <b>Прокси для FunPay</b> был успешно изменён на <b>{message.text.strip()}</b>"),
+            reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack())
+        )
+    except Exception as e:
+        await throw_float_message(
+            state=state,
+            message=message,
+            text=templ.settings_auth_float_text(e), 
+            reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack())
+        )
+
+
+@router.message(states.SettingsStates.waiting_for_tg_proxy, F.text)
+async def handler_waiting_for_tg_proxy(message: types.Message, state: FSMContext):
+    try:
+        await state.set_state(None)
+        if len(message.text.strip()) <= 3:
+            raise Exception("❌ Слишком короткое значение")
+        if not is_proxy_valid(message.text.strip()):
+            raise Exception("❌ Неверный формат прокси. Правильный формат: user:pass@ip:port или ip:port")
+        if not is_proxy_working(message.text.strip(), "http://api.telegram.org/"):
+            raise Exception("❌ Указанный вами прокси не работает. Нет подключения к api.telegram.org")
+
+        config = sett.get("config")
+        config["telegram"]["api"]["proxy"] = message.text.strip()
+        sett.set("config", config)
+        
+        await throw_float_message(
+            state=state,
+            message=message,
+            text=templ.settings_auth_float_text(f"✅ <b>Прокси для Telegram</b> был успешно изменён на <b>{message.text.strip()}</b>"),
             reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack())
         )
     except Exception as e:

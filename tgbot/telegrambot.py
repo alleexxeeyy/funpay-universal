@@ -5,6 +5,7 @@ import logging
 from colorama import Fore
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, InlineKeyboardMarkup
+from aiogram.client.session.aiohttp import AiohttpSession
 
 from settings import Settings as sett
 from core.modules import get_modules
@@ -14,7 +15,7 @@ from . import router as main_router
 from . import templates as templ
 
 
-logger = logging.getLogger(f"universal.telegram")
+logger = logging.getLogger("universal.telegram")
 
 
 def get_telegram_bot() -> TelegramBot | None:
@@ -39,7 +40,15 @@ class TelegramBot:
         logging.getLogger("aiogram.dispatcher").setLevel(logging.CRITICAL)
         
         config = sett.get("config")
-        self.bot = Bot(token=config["telegram"]["api"]["token"])
+        self.token = config["telegram"]["api"]["token"]
+        self.proxy = config["telegram"]["api"]["proxy"]
+
+        if self.proxy:
+            session = AiohttpSession(proxy=f"http://{self.proxy}")
+        else:
+            session = None
+
+        self.bot = Bot(token=self.token, session=session)
         self.dp = Dispatcher()
 
         for module in get_modules():
@@ -104,7 +113,30 @@ class TelegramBot:
         await call_bot_event("ON_TELEGRAM_BOT_INIT", [self])
         
         me = await self.bot.get_me()
+        logger.info("")
         logger.info(f"{Fore.LIGHTBLUE_EX}Telegram бот {Fore.LIGHTWHITE_EX}@{me.username} {Fore.LIGHTBLUE_EX}запущен и активен")
+        logger.info("")
+        
+        if self.proxy:
+            if "@" in self.proxy:
+                user, password = self.proxy.split("@")[0].split(":")
+                ip, port = self.proxy.split("@")[1].split(":")
+            else:
+                user, password = None, None
+                ip, port = self.proxy.split(":")
+            
+            ip = ".".join([("*" * len(nums)) if i >= 3 else nums for i, nums in enumerate(ip.split("."), start=1)])
+            port = f"{port[:3]}**"
+            user = f"{user[:3]}*****" if user else "-"
+            password = f"{password[:3]}*****" if password else "-"
+
+            logger.info(f"{Fore.LIGHTBLUE_EX}───────────────────────────────────────")
+            logger.info(f"{Fore.LIGHTBLUE_EX}Информация о прокси:")
+            logger.info(f" · IP: {Fore.LIGHTWHITE_EX}{ip}:{port}")
+            logger.info(f" · Юзер: {Fore.LIGHTWHITE_EX}{user}")
+            logger.info(f" · Пароль: {Fore.LIGHTWHITE_EX}{password}")
+            logger.info(f"{Fore.LIGHTBLUE_EX}───────────────────────────────────────")
+
         await self.dp.start_polling(self.bot, skip_updates=True, handle_signals=False)
         
 

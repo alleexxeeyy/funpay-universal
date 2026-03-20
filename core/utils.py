@@ -5,6 +5,7 @@ import ctypes
 import logging
 import pkg_resources
 import subprocess
+import shlex
 import requests
 import random
 import time
@@ -126,12 +127,18 @@ def is_package_installed(requirement_string: str) -> bool:
     Проверяет, установлена ли библиотека.
 
     :param requirement_string: Строка пакета из файла зависимостей.
-    :type requirement_string: `str`
+    :type requirement_string: str
     """
     try:
-        pkg_resources.require(requirement_string)
+        parts = shlex.split(requirement_string)
+        if not parts:
+            return True
+
+        requirement = parts[0]
+        pkg_resources.require(requirement)
+
         return True
-    except (pkg_resources.DistributionNotFound, pkg_resources.VersionConflict):
+    except:
         return False
 
 
@@ -140,24 +147,33 @@ def install_requirements(requirements_path: str):
     Устанавливает зависимости из файла.
 
     :param requirements_path: Путь к файлу зависимостей.
-    :type requirements_path: `str`
+    :type requirements_path: str
     """
     try:
         if not os.path.exists(requirements_path):
             return
+
         with open(requirements_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
-        missing_packages = []
+
         for line in lines:
-            pkg = line.strip()
-            if not pkg or pkg.startswith("#"):
+            line = line.strip()
+            if not line or line.startswith("#"):
                 continue
-            if not is_package_installed(pkg):
-                missing_packages.append(pkg)
-        if missing_packages:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", *missing_packages])
-    except:
-        logger.error(f"{Fore.LIGHTRED_EX}Не удалось установить зависимости из файла \"{requirements_path}\"")
+
+            parts = shlex.split(line)
+            if not parts:
+                continue
+
+            pkg_name = parts[0]
+            extra_args = parts[1:]
+
+            if not is_package_installed(pkg_name):
+                subprocess.check_call([
+                    sys.executable, "-m", "pip", "install", "-r", requirements_path
+                ])
+    except Exception as e:
+        logger.error(f"Не удалось установить зависимости из файла \"{requirements_path}\": {e}")
 
 
 def patch_requests():
@@ -245,9 +261,11 @@ def run_forever_in_thread(func: callable, args: list = [], kwargs: dict = {}):
 
     Thread(target=run, daemon=True).start()
 
+
 def is_golden_key_valid(s: str) -> bool:
     pattern = r'^[a-z0-9]{32}$'
     return bool(re.match(pattern, s))
+
 
 def is_fp_account_working() -> bool:
     try:
@@ -266,6 +284,7 @@ def is_fp_account_working() -> bool:
     except Exception:
         return False
 
+
 def is_fp_account_banned() -> bool:
     config = sett.get("config")
     proxy = {
@@ -281,11 +300,13 @@ def is_fp_account_banned() -> bool:
     user = acc.get_user(acc.id)
     return user.banned
 
+
 def is_user_agent_valid(ua: str) -> bool:
     if not ua or not (10 <= len(ua) <= 512):
         return False
     allowed_chars = string.ascii_letters + string.digits + string.punctuation + ' '
     return all(c in allowed_chars for c in ua)
+
 
 def is_proxy_valid(proxy: str) -> bool:
     ip_pattern = r'(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)'
@@ -305,31 +326,46 @@ def is_proxy_valid(proxy: str) -> bool:
         return 1 <= port <= 65535
     return False
 
-def is_proxy_working(proxy: str, timeout: int = 10) -> bool:
+
+def is_proxy_working(proxy: str, test_url="https://funpay.com", timeout=10) -> bool:
     proxies = {
         "http": f"http://{proxy}",
         "https": f"http://{proxy}"
     }
-    test_url = "https://funpay.com"
     try:
         response = requests.get(test_url, proxies=proxies, timeout=timeout)
-        return response.status_code == 200
+        return response.status_code < 404
     except Exception:
         return False
+
 
 def is_token_valid(token: str) -> bool:
     pattern = r'^\d{7,12}:[A-Za-z0-9_-]{35}$'
     return bool(re.match(pattern, token))
 
+
 def is_tg_bot_exists() -> bool:
     try:
         config = sett.get("config")
-        response = requests.get(f"https://api.telegram.org/bot{config['telegram']['api']['token']}/getMe", timeout=5)
+        proxy = config["telegram"]["api"]["proxy"]
+        if proxy:
+            proxies = {
+                "http": f"http://{proxy}",
+                "https": f"http://{proxy}",
+            }
+        else:
+            proxies = None
+        response = requests.get(
+            f"https://api.telegram.org/bot{config['telegram']['api']['token']}/getMe", 
+            proxies=proxies,
+            timeout=5
+        )
         data = response.json()
         return data.get("ok", False) is True and data.get("result", {}).get("is_bot", False) is True
     except Exception:
         return False
     
+
 def is_password_valid(password: str) -> bool:
     if len(password) < 6 or len(password) > 64:
         return False

@@ -42,6 +42,9 @@ from support_api import FunPaySupportAPI
 from .stats import get_stats, set_stats
 
 
+logger = getLogger("universal.funpay")
+
+
 def get_funpay_bot() -> FunPayBot | None:
     if hasattr(FunPayBot, "instance"):
         return getattr(FunPayBot, "instance")
@@ -54,8 +57,6 @@ class FunPayBot:
         return getattr(cls, "instance")
     
     def __init__(self):
-        self.logger = getLogger("universal.funpay")
-
         self.config = sett.get("config")
         self.messages = sett.get("messages")
         self.custom_commands = sett.get("custom_commands")
@@ -137,7 +138,7 @@ class FunPayBot:
             ):
                 return lot
             
-        self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось получить лот по названию «{title}»")
+        logger.error(f"{Fore.LIGHTRED_EX}Не удалось получить лот по названию «{title}»")
     
     def get_lot_by_order_title(self, title: str, subcategory: types.SubCategory | None = None,
                                subcategory_id: int | None = None) -> types.LotShortcut:
@@ -201,10 +202,10 @@ class FunPayBot:
                 continue
             except Exception as e:
                 text = text.replace('\n', ' ').strip()
-                self.logger.error(f"{Fore.LIGHTRED_EX}Ошибка при отправке сообщения {Fore.WHITE}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}: {Fore.WHITE}{e}")
+                logger.error(f"{Fore.LIGHTRED_EX}Ошибка при отправке сообщения {Fore.WHITE}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}: {Fore.WHITE}{e}")
                 return None
         text = text.replace('\n', ' ').strip()
-        self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось отправить сообщение {Fore.WHITE}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}")
+        logger.error(f"{Fore.LIGHTRED_EX}Не удалось отправить сообщение {Fore.WHITE}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}")
 
     
     def refresh_account(self):
@@ -213,10 +214,10 @@ class FunPayBot:
     def check_banned(self):
         user = self.account.get_user(self.account.id)
         if user.banned:
-            self.logger.critical(f"")
-            self.logger.critical(f"{Fore.LIGHTRED_EX}Ваш FunPay аккаунт был заблокирован! К сожалению, я не могу продолжать работу на заблокированном аккаунте...")
-            self.logger.critical(f"Напишите в тех. поддержку FunPay, чтобы узнать причину бана и как можно быстрее решить эту проблему.")
-            self.logger.critical(f"")
+            logger.critical(f"")
+            logger.critical(f"{Fore.LIGHTRED_EX}Ваш FunPay аккаунт был заблокирован! К сожалению, я не могу продолжать работу на заблокированном аккаунте...")
+            logger.critical(f"Напишите в тех. поддержку FunPay, чтобы узнать причину бана и как можно быстрее решить эту проблему.")
+            logger.critical(f"")
             shutdown()
 
     def raise_lots(self) -> int:
@@ -248,10 +249,10 @@ class FunPayBot:
                 current_next_time = (datetime.fromisoformat(self.categories_raise_time[category]) - datetime.now()).seconds
                 next_time = current_next_time if current_next_time < next_time else next_time
             if len(raised_categories) > 0:
-                self.logger.info(f"{Fore.YELLOW}Подняты лоты категорий: {Fore.LIGHTWHITE_EX}{f'{Fore.WHITE}, {Fore.LIGHTWHITE_EX}'.join(map(str, raised_categories))}")
+                logger.info(f"{Fore.YELLOW}Подняты категории: {Fore.LIGHTWHITE_EX}{f'{Fore.WHITE}, {Fore.LIGHTWHITE_EX}'.join(map(str, raised_categories))}")
             return next_time
         except Exception as e:
-            self.logger.error(f"{Fore.LIGHTRED_EX}Ошибка при поднятии лотов: {Fore.WHITE}{e}")
+            logger.error(f"{Fore.LIGHTRED_EX}Ошибка при поднятии лотов: {Fore.WHITE}{e}")
             return 0
 
     def create_tickets(self):
@@ -259,10 +260,13 @@ class FunPayBot:
         self.latest_events_times["create_tickets"] = last_time.isoformat()
         data.set("latest_events_times", self.latest_events_times)
         support_api = FunPaySupportAPI(self.account).get()
-        self.logger.info(f"{Fore.WHITE}Создаю тикеты в тех. поддержку на закрытие заказов...")
+        logger.info(f"{Fore.WHITE}Создаю тикеты в тех. поддержку на закрытие заказов...")
 
         def calculate_orders(all_orders, orders_per_ticket=25):
-            return [all_orders[i:i+orders_per_ticket] for i in range(0, len(all_orders), orders_per_ticket)]
+            return [
+                all_orders[i:i+orders_per_ticket] 
+                for i in range(0, len(all_orders), orders_per_ticket)
+            ]
 
         all_order_ids: list[str] = []
         next_start_from = None
@@ -279,6 +283,7 @@ class FunPayBot:
         
         order_ids = calculate_orders([order_id for order_id in all_order_ids], self.config["funpay"]["auto_tickets"]["orders_per_ticket"])
         ticketed_orders = []
+        
         resp = {}
         for order_ids_per_ticket in order_ids:
             formatted_order_ids = ", ".join(order_ids_per_ticket)
@@ -286,18 +291,24 @@ class FunPayBot:
             if resp.get("error") or not resp.get("action") or resp["action"]["message"] != "Ваша заявка отправлена.":
                 break
             ticketed_orders.extend(order_ids_per_ticket)
-            self.logger.info(f"{Fore.LIGHTWHITE_EX}{resp['action']['url'].split('/')[-1]} (https://support.funpay.com{resp['action']['url']}) {Fore.WHITE}— тикет создан для {Fore.LIGHTCYAN_EX}{len(order_ids_per_ticket)} заказов")
+            logger.info(f"{Fore.LIGHTWHITE_EX}https://support.funpay.com{resp['action']['url']}){Fore.WHITE}— {Fore.YELLOW}тикет создан для {Fore.LIGHTYELLOW_EX}{len(order_ids_per_ticket)} заказов")
         self.latest_events_times["create_tickets"] = datetime.now().isoformat()
         
-        if len(ticketed_orders) == 0:
-            self.logger.error(f"{Fore.LIGHTRED_EX}Не удалось создать тикеты в тех. поддержку по причине: {Fore.WHITE}{resp.get('error', 'Неизвестная ошибка.')}")
+        error = resp.get("error")
+        if error:
+            logger.error(f"{Fore.LIGHTRED_EX}Ошибка при создании тикетов в тех. поддержку: {Fore.WHITE}{error}")
+        elif len(ticketed_orders) == 0:
+            logger.error(f"{Fore.LIGHTRED_EX}Нету подходящих заказов для создания тикетов в тех. поддержку")
         elif len(ticketed_orders) >= 0:
-            self.logger.info(f"{ACCENT_COLOR}Создал {Fore.LIGHTCYAN_EX}{len(calculate_orders(ticketed_orders))} тикета(-ов) в тех. поддержку {ACCENT_COLOR}на закрытие {Fore.LIGHTCYAN_EX}{len(ticketed_orders)} заказов")
+            logger.info(
+                f"{Fore.YELLOW}Создал {Fore.LIGHTYELLOW_EX}{len(calculate_orders(ticketed_orders))} "
+                f"{Fore.YELLOW}тикета(-ов) в тех. поддержку на закрытие {Fore.LIGHTYELLOW_EX}{len(ticketed_orders)} заказов"
+            )
         next_time = last_time + timedelta(seconds=self.config["funpay"]["auto_tickets"]["interval"])
         
-        dm = next_time.strftime('%d.%m в %H:%M')
+        dm = next_time.strftime('%d.%m')
         hm = next_time.strftime('%H:%M')
-        self.logger.info(
+        logger.info(
             f"Следующая попытка будет "
             f"{Fore.LIGHTWHITE_EX}{dm}{Fore.WHITE} в {Fore.LIGHTWHITE_EX}{hm}"
         )
@@ -305,8 +316,8 @@ class FunPayBot:
     
     def log_new_message(self, message: types.Message):
         ch_header = f"Новое сообщение в чате с {message.chat_name}:"
-        self.logger.info(f"{ACCENT_COLOR}{ch_header.replace(message.chat_name, f'{Fore.LIGHTCYAN_EX}{message.chat_name}')}")
-        self.logger.info(f"{ACCENT_COLOR}│ {Fore.LIGHTWHITE_EX}{message.author}:")
+        logger.info(f"{ACCENT_COLOR}{ch_header.replace(message.chat_name, f'{Fore.LIGHTCYAN_EX}{message.chat_name}')}")
+        logger.info(f"{ACCENT_COLOR}│ {Fore.LIGHTWHITE_EX}{message.author}:")
         max_width = shutil.get_terminal_size((80, 20)).columns - 40
         longest_line_len = 0
         text = ""
@@ -314,41 +325,41 @@ class FunPayBot:
         elif message.image_link is not None: text = f"{Fore.LIGHTMAGENTA_EX}Изображение {Fore.WHITE}({message.image_link})"
         for raw_line in text.split("\n"):
             if not raw_line.strip():
-                self.logger.info(f"{ACCENT_COLOR}│")
+                logger.info(f"{ACCENT_COLOR}│")
                 continue
             wrapped_lines = textwrap.wrap(raw_line, width=max_width)
             for wrapped in wrapped_lines:
-                self.logger.info(f"{ACCENT_COLOR}│ {Fore.WHITE}{wrapped}")
+                logger.info(f"{ACCENT_COLOR}│ {Fore.WHITE}{wrapped}")
                 longest_line_len = max(longest_line_len, len(wrapped.strip()))
         underline_len = max(len(ch_header)-1, longest_line_len+2)
-        self.logger.info(f"{ACCENT_COLOR}└{'─'*underline_len}")
+        logger.info(f"{ACCENT_COLOR}└{'─'*underline_len}")
     
     def log_new_order(self, order: types.OrderShortcut):
-        self.logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
-        self.logger.info(f"{Fore.YELLOW}Новый заказ #{order.id}:")
-        self.logger.info(f" · Покупатель: {Fore.LIGHTWHITE_EX}{order.buyer_username}")
-        self.logger.info(f" · Товар: {Fore.LIGHTWHITE_EX}{order.description}")
-        self.logger.info(f" · Количество: {Fore.LIGHTWHITE_EX}{order.amount or '?'}")
-        self.logger.info(f" · Сумма: {Fore.LIGHTWHITE_EX}{order.price} {self.account.currency.name}")
-        self.logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
+        logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
+        logger.info(f"{Fore.YELLOW}Новый заказ #{order.id}:")
+        logger.info(f" · Покупатель: {Fore.LIGHTWHITE_EX}{order.buyer_username}")
+        logger.info(f" · Товар: {Fore.LIGHTWHITE_EX}{order.description}")
+        logger.info(f" · Количество: {Fore.LIGHTWHITE_EX}{order.amount or '?'}")
+        logger.info(f" · Сумма: {Fore.LIGHTWHITE_EX}{order.price} {self.account.currency.name}")
+        logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
     
     def log_order_status_changed(self, order: types.OrderShortcut, status_frmtd: str = "Неизвестный"):
-        self.logger.info(f"{Fore.WHITE}───────────────────────────────────────")
-        self.logger.info(f"{Fore.WHITE}Статус заказа {Fore.LIGHTWHITE_EX}#{order.id} {Fore.WHITE}изменился:")
-        self.logger.info(f" · Статус: {Fore.LIGHTWHITE_EX}{status_frmtd}")
-        self.logger.info(f" · Покупатель: {Fore.LIGHTWHITE_EX}{order.buyer_username}")
-        self.logger.info(f" · Товар: {Fore.LIGHTWHITE_EX}{order.description}")
-        self.logger.info(f" · Количество: {Fore.LIGHTWHITE_EX}{order.amount or order.parse_amount() or 0}")
-        self.logger.info(f" · Сумма: {Fore.LIGHTWHITE_EX}{order.price} {self.account.currency.name}")
-        self.logger.info(f"{Fore.WHITE}───────────────────────────────────────")
+        logger.info(f"{Fore.WHITE}───────────────────────────────────────")
+        logger.info(f"{Fore.WHITE}Статус заказа {Fore.LIGHTWHITE_EX}#{order.id} {Fore.WHITE}изменился:")
+        logger.info(f" · Статус: {Fore.LIGHTWHITE_EX}{status_frmtd}")
+        logger.info(f" · Покупатель: {Fore.LIGHTWHITE_EX}{order.buyer_username}")
+        logger.info(f" · Товар: {Fore.LIGHTWHITE_EX}{order.description}")
+        logger.info(f" · Количество: {Fore.LIGHTWHITE_EX}{order.amount or order.parse_amount() or 0}")
+        logger.info(f" · Сумма: {Fore.LIGHTWHITE_EX}{order.price} {self.account.currency.name}")
+        logger.info(f"{Fore.WHITE}───────────────────────────────────────")
     
     def log_new_review(self, review: types.Review):
-        self.logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
-        self.logger.info(f"{Fore.YELLOW}Новый отзыв по заказу #{review.order_id}:")
-        self.logger.info(f" · Оценка: {Fore.LIGHTYELLOW_EX}{'★' * review.stars or 5} ({review.stars or 5})")
-        self.logger.info(f" · Текст: {Fore.LIGHTWHITE_EX}{review.text}")
-        self.logger.info(f" · Оставил: {Fore.LIGHTWHITE_EX}{review.author}")
-        self.logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
+        logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
+        logger.info(f"{Fore.YELLOW}Новый отзыв по заказу #{review.order_id}:")
+        logger.info(f" · Оценка: {Fore.LIGHTYELLOW_EX}{'★' * review.stars or 5} ({review.stars or 5})")
+        logger.info(f" · Текст: {Fore.LIGHTWHITE_EX}{review.text}")
+        logger.info(f" · Оставил: {Fore.LIGHTWHITE_EX}{review.author}")
+        logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
 
 
     def _event_datetime(self, latest_event_time, event_interval):
@@ -591,30 +602,38 @@ class FunPayBot:
 
 
     async def run_bot(self):
-        self.logger.info("")
-        self.logger.info(f"{ACCENT_COLOR}───────────────────────────────────────")
-        self.logger.info(f"{ACCENT_COLOR}Информация об аккаунте:")
-        self.logger.info(f" · ID: {Fore.LIGHTWHITE_EX}{self.account.id}")
-        self.logger.info(f" · Никнейм: {Fore.LIGHTWHITE_EX}{self.account.username}")
-        self.logger.info(f" · Баланс: {Fore.LIGHTWHITE_EX}{self.account.total_balance} {self.account.currency.name if self.account.currency != Currency.UNKNOWN else 'RUB'}")
-        self.logger.info(f" · Активные продажи: {Fore.LIGHTWHITE_EX}{self.account.active_sales}")
-        self.logger.info(f" · Активные покупки: {Fore.LIGHTWHITE_EX}{self.account.active_purchases}")
-        self.logger.info(f"{ACCENT_COLOR}───────────────────────────────────────")
-        self.logger.info("")
-        if self.config["funpay"]["api"]["proxy"]:
-            user, password = self.config["funpay"]["api"]["proxy"].split("@")[0].split(":") if "@" in self.config["funpay"]["api"]["proxy"] else self.config["funpay"]["api"]["proxy"]
-            ip, port = self.config["funpay"]["api"]["proxy"].split("@")[1].split(":") if "@" in self.config["funpay"]["api"]["proxy"] else self.config["funpay"]["api"]["proxy"]
+        logger.info("")
+        logger.info(f"{ACCENT_COLOR}───────────────────────────────────────")
+        logger.info(f"{ACCENT_COLOR}Информация об аккаунте:")
+        logger.info(f" · ID: {Fore.LIGHTWHITE_EX}{self.account.id}")
+        logger.info(f" · Никнейм: {Fore.LIGHTWHITE_EX}{self.account.username}")
+        logger.info(f" · Баланс: {Fore.LIGHTWHITE_EX}{self.account.total_balance} {self.account.currency.name if self.account.currency != Currency.UNKNOWN else 'RUB'}")
+        logger.info(f" · Активные продажи: {Fore.LIGHTWHITE_EX}{self.account.active_sales}")
+        logger.info(f" · Активные покупки: {Fore.LIGHTWHITE_EX}{self.account.active_purchases}")
+        logger.info(f"{ACCENT_COLOR}───────────────────────────────────────")
+        logger.info("")
+        
+        proxy = self.config["funpay"]["api"]["proxy"]
+        if proxy:
+            if "@" in proxy:
+                user, password = proxy.split("@")[0].split(":")
+                ip, port = proxy.split("@")[1].split(":")
+            else:
+                user, password = None, None
+                ip, port = proxy.split(":")
+            
             ip = ".".join([("*" * len(nums)) if i >= 3 else nums for i, nums in enumerate(ip.split("."), start=1)])
             port = f"{port[:3]}**"
-            user = f"{user[:3]}*****" if user else "Без авторизации"
-            password = f"{password[:3]}*****" if password else "Без авторизации"
-            self.logger.info(f"{ACCENT_COLOR}───────────────────────────────────────")
-            self.logger.info(f"{ACCENT_COLOR}Информация о прокси:")
-            self.logger.info(f" · IP: {Fore.LIGHTWHITE_EX}{ip}:{port}")
-            self.logger.info(f" · Юзер: {Fore.LIGHTWHITE_EX}{user}")
-            self.logger.info(f" · Пароль: {Fore.LIGHTWHITE_EX}{password}")
-            self.logger.info(f"{ACCENT_COLOR}───────────────────────────────────────")
-            self.logger.info("")
+            user = f"{user[:3]}*****" if user else "-"
+            password = f"{password[:3]}*****" if password else "-"
+
+            logger.info(f"{ACCENT_COLOR}───────────────────────────────────────")
+            logger.info(f"{ACCENT_COLOR}Информация о прокси:")
+            logger.info(f" · IP: {Fore.LIGHTWHITE_EX}{ip}:{port}")
+            logger.info(f" · Юзер: {Fore.LIGHTWHITE_EX}{user}")
+            logger.info(f" · Пароль: {Fore.LIGHTWHITE_EX}{password}")
+            logger.info(f"{ACCENT_COLOR}───────────────────────────────────────")
+            logger.info("")
             
         add_bot_event_handler("ON_FUNPAY_BOT_INIT", FunPayBot._on_funpay_bot_init, 0)
         add_funpay_event_handler(EventTypes.NEW_MESSAGE, FunPayBot._on_new_message, 0)
@@ -627,6 +646,6 @@ class FunPayBot:
                 await call_funpay_event(event.type, [self, event])
 
         run_async_in_thread(runner_loop)
-        self.logger.info(f"{Fore.YELLOW}FunPay бот запущен и активен")
+        logger.info(f"{Fore.YELLOW}FunPay бот запущен и активен")
 
         await call_bot_event("ON_FUNPAY_BOT_INIT", [self])

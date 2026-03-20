@@ -47,16 +47,32 @@ async def callback_enter_user_agent(callback: CallbackQuery, state: FSMContext):
     )
 
 
-@router.callback_query(F.data == "enter_proxy")
-async def callback_enter_proxy(callback: CallbackQuery, state: FSMContext):
-    await state.set_state(states.SettingsStates.waiting_for_proxy)
+@router.callback_query(F.data == "enter_fp_proxy")
+async def callback_enter_fp_proxy(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(states.SettingsStates.waiting_for_fp_proxy)
     config = sett.get("config")
     proxy = config["funpay"]["api"]["proxy"] or "❌ Не задано"
     await throw_float_message(
         state=state, 
         message=callback.message, 
         text=templ.settings_conn_float_text(
-            "🌐 Введите новый <b>прокси-сервер</b> (формат: user:pass@ip:port или ip:port) ↓"
+            "🌐 Введите новый HTTP <b>прокси для FunPay</b> (формат: user:pass@ip:port или ip:port) ↓"
+            f"\n・ Текущее: <code>{proxy}</code>"
+        ), 
+        reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack())
+    )
+
+
+@router.callback_query(F.data == "enter_tg_proxy")
+async def callback_enter_tg_proxy(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(states.SettingsStates.waiting_for_tg_proxy)
+    config = sett.get("config")
+    proxy = config["telegram"]["api"]["proxy"] or "❌ Не задано"
+    await throw_float_message(
+        state=state, 
+        message=callback.message, 
+        text=templ.settings_conn_float_text(
+            "🌐 Введите новый HTTP <b>прокси для Telegram</b> (формат: user:pass@ip:port или ip:port) ↓"
             f"\n・ Текущее: <code>{proxy}</code>"
         ), 
         reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack())
