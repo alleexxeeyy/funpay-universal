@@ -54,6 +54,7 @@ class TelegramBot:
         for module in get_modules():
             for router in module.telegram_bot_routers:
                 main_router.include_router(router)
+        
         self.dp.include_router(main_router)
 
 
