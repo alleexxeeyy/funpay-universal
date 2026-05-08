@@ -1,5 +1,3 @@
-from .events import *
-from .instruction import *
 from .main import *
 from .menu import *
 from .modules import *
@@ -8,16 +6,18 @@ from .profile import *
 from .stats import *
 from .logs import *
 
-from .settings import *
-from .settings_auth import *
-from .settings_comms import *
-from .settings_comm_page import *
-from .settings_conn import *
-from .settings_delivs import *
-from .settings_deliv_page import *
-from .settings_logger import *
-from .settings_lots import *
-from .settings_mess import *
-from .settings_mess_page import *
-from .settings_other import *
-from .settings_tickets import *
+from .auth import *
+from .comms import *
+from .comm_page import *
+from .conn import *
+from .delivs import *
+from .deliv_page import *
+from .notifications import *
+from .mess import *
+from .mess_page import *
+from .other import *
+from .tickets import *
+from .signed_users import *
+
+from .fast_replies import *
+from .sel_fast_reply import *

@@ -16,45 +16,45 @@ from ..helpful import throw_float_message
 router = Router()
 
 
-@router.callback_query(F.data == "switch_tg_logging_enabled")
-async def callback_switch_tg_logging_enabled(callback: CallbackQuery, state: FSMContext):
+@router.callback_query(F.data == "switch_notifications_enabled")
+async def callback_switch_notifications_enabled(callback: CallbackQuery, state: FSMContext):
     config = sett.get("config")
-    config["funpay"]["tg_logging"]["enabled"] = not config["funpay"]["tg_logging"]["enabled"]
+    config["funpay"]["notifications"]["enabled"] = not config["funpay"]["notifications"]["enabled"]
     sett.set("config", config)
-    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="logger"), state)
+    return await callback_menu_navigation(
+        callback, calls.MenuNavigation(to="notifications"), state
+    )
 
 
-@router.callback_query(F.data.contains("switch_tg_logging_event"))
-async def callback_switch_tg_logging_event(callback: CallbackQuery, state: FSMContext):
-    event = str(callback.data).split("switch_tg_logging_event_")[1]
+@router.callback_query(F.data.contains("switch_notifications_event"))
+async def callback_switch_notifications_event(callback: CallbackQuery, state: FSMContext):
+    event = str(callback.data).split("switch_notifications_event_")[1]
     config = sett.get("config")
-    config["funpay"]["tg_logging"]["events"][event] = not config["funpay"]["tg_logging"]["events"][event]
+    config["funpay"]["notifications"]["events"][event] = not config["funpay"]["notifications"]["events"][event]
     sett.set("config", config)
-    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="logger"), state)
+    return await callback_menu_navigation(
+        callback, calls.MenuNavigation(to="notifications"), state
+    )
+
+
+@router.callback_query(F.data == "switch_auto_raise_lots_enabled")
+async def callback_switch_auto_raise_lots_enabled(callback: CallbackQuery, state: FSMContext):
+    config = sett.get("config")
+    config["funpay"]["auto_raise_lots"] = not config["funpay"]["auto_raise_lots"]
+    sett.set("config", config)
+    return await callback_menu_navigation(
+        callback, calls.MenuNavigation(to="other"), state
+    )
 
 
 @router.callback_query(F.data == "switch_auto_review_replies_enabled")
 async def callback_switch_auto_review_replies_enabled(callback: CallbackQuery, state: FSMContext):
     config = sett.get("config")
-    config["funpay"]["auto_review_replies"]["enabled"] = not config["funpay"]["auto_review_replies"]["enabled"]
+    config["funpay"]["auto_review_replies"] = not config["funpay"]["auto_review_replies"]
     sett.set("config", config)
-    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="other"), state)
-
-
-@router.callback_query(F.data == "switch_custom_commands_enabled")
-async def callback_switch_custom_commands_enabled(callback: CallbackQuery, state: FSMContext):
-    config = sett.get("config")
-    config["funpay"]["custom_commands"]["enabled"] = not config["funpay"]["custom_commands"]["enabled"]
-    sett.set("config", config)
-    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="other"), state)
-
-
-@router.callback_query(F.data == "switch_auto_deliveries_enabled")
-async def callback_switch_auto_deliveries_enabled(callback: CallbackQuery, state: FSMContext):
-    config = sett.get("config")
-    config["funpay"]["auto_deliveries"]["enabled"] = not config["funpay"]["auto_deliveries"]["enabled"]
-    sett.set("config", config)
-    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="other"), state)
+    return await callback_menu_navigation(
+        callback, calls.MenuNavigation(to="other"), state
+    )
 
 
 @router.callback_query(F.data == "switch_watermark_enabled")
@@ -62,7 +62,9 @@ async def callback_switch_watermark_enabled(callback: CallbackQuery, state: FSMC
     config = sett.get("config")
     config["funpay"]["watermark"]["enabled"] = not config["funpay"]["watermark"]["enabled"]
     sett.set("config", config)
-    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="other"), state)
+    return await callback_menu_navigation(
+        callback, calls.MenuNavigation(to="other"), state
+    )
 
 
 @router.callback_query(F.data == "switch_auto_raise_lots_enabled")
@@ -70,7 +72,9 @@ async def callback_switch_auto_raise_lots_enabled(callback: CallbackQuery, state
     config = sett.get("config")
     config["funpay"]["auto_raise_lots"]["enabled"] = not config["funpay"]["auto_raise_lots"]["enabled"]
     sett.set("config", config)
-    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="lots"), state)
+    return await callback_menu_navigation(
+        callback, calls.MenuNavigation(to="lots"), state
+    )
 
 
 @router.callback_query(F.data == "switch_auto_raise_lots_all")
@@ -78,7 +82,9 @@ async def callback_switch_auto_raise_lots_all(callback: CallbackQuery, state: FS
     config = sett.get("config")
     config["funpay"]["auto_raise_lots"]["all"] = not config["funpay"]["auto_raise_lots"]["all"]
     sett.set("config", config)
-    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="lots"), state)
+    return await callback_menu_navigation(
+        callback, calls.MenuNavigation(to="lots"), state
+    )
 
 
 @router.callback_query(F.data == "switch_auto_tickets_enabled")
@@ -86,7 +92,9 @@ async def callback_switch_auto_tickets_enabled(callback: CallbackQuery, state: F
     config = sett.get("config")
     config["funpay"]["auto_tickets"]["enabled"] = not config["funpay"]["auto_tickets"]["enabled"]
     sett.set("config", config)
-    return await callback_settings_navigation(callback, calls.SettingsNavigation(to="tickets"), state)
+    return await callback_menu_navigation(
+        callback, calls.MenuNavigation(to="tickets"), state
+    )
 
 
 @router.callback_query(F.data == "switch_message_enabled")
@@ -102,14 +110,16 @@ async def callback_switch_message_enabled(callback: CallbackQuery, state: FSMCon
         messages[message_id]["enabled"] = not messages[message_id]["enabled"]
         sett.set("messages", messages)
         
-        return await callback_message_page(callback, calls.MessagePage(message_id=message_id), state)
+        return await callback_message_page(
+            callback, calls.MessagePage(message_id=message_id), state
+        )
     except Exception as e:
         data = await state.get_data()
         last_page = data.get("last_page", 0)
         await throw_float_message(
             state=state, 
             message=callback.message, 
-            text=templ.settings_mess_float_text(e), 
+            text=templ.mess_float_text(e), 
             reply_markup=templ.back_kb(calls.MessagesPagination(page=last_page).pack())
         )
 
@@ -130,7 +140,9 @@ async def callback_switch_module_enabled(callback: CallbackQuery, state: FSMCont
             raise Exception("❌ Модуль с этим UUID не был найден, повторите процесс с самого начала")
 
         await disable_module(module_uuid) if module.enabled else await enable_module(module_uuid)
-        return await callback_module_page(callback, calls.ModulePage(uuid=module_uuid), state)
+        return await callback_module_page(
+            callback, calls.ModulePage(uuid=module_uuid), state
+        )
     except Exception as e:
         data = await state.get_data()
         last_page = data.get("last_page", 0)

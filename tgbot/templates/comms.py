@@ -7,17 +7,16 @@ from settings import Settings as sett
 from .. import callback_datas as calls
 
 
-def settings_comms_text():
+def comms_text():
     custom_commands = sett.get("custom_commands")
     txt = textwrap.dedent(f"""
         <b>❗ Команды</b>
-
         Всего <b>{len(custom_commands)}</b> команд:
     """)
     return txt
 
 
-def settings_comms_kb(page: int = 0):
+def comms_kb(page: int = 0):
     custom_commands = sett.get("custom_commands")
     rows = []
     items_per_page = 7
@@ -36,26 +35,26 @@ def settings_comms_kb(page: int = 0):
         
     if total_pages > 1:
         buttons_row = []
-        btn_back = InlineKeyboardButton(text="←", callback_data=calls.CustomCommandsPagination(page=page-1).pack()) if page > 0 else InlineKeyboardButton(text="🛑",callback_data="123")
+        btn_back = InlineKeyboardButton(text="←", callback_data=calls.CustomCommandsPagination(page=page-1).pack()) if page > 0 else InlineKeyboardButton(text="🛑",callback_data="null_answer")
         buttons_row.append(btn_back)
     
-        btn_pages = InlineKeyboardButton(text=f"{page+1}/{total_pages}",callback_data="enter_custom_commands_page")
+        btn_pages = InlineKeyboardButton(text=f"{page+1}/{total_pages}",callback_data="null_answer")
         buttons_row.append(btn_pages)
         
-        btn_next = InlineKeyboardButton(text="→", callback_data=calls.CustomCommandsPagination(page=page+1).pack()) if page < total_pages - 1 else InlineKeyboardButton(text="🛑", callback_data="123")
+        btn_next = InlineKeyboardButton(text="→", callback_data=calls.CustomCommandsPagination(page=page+1).pack()) if page < total_pages - 1 else InlineKeyboardButton(text="🛑", callback_data="null_answer")
         buttons_row.append(btn_next)
         rows.append(buttons_row)
 
     rows.append([InlineKeyboardButton(text="➕ Добавить",callback_data="enter_new_custom_command")])
     rows.append([
-        InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.SettingsNavigation(to="default").pack())
+        InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.MenuNavigation(to="default").pack())
     ])
     
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     return kb
 
 
-def settings_comms_float_text(placeholder: str):
+def comms_float_text(placeholder: str):
     txt = textwrap.dedent(f"""
         <b>❗ Команды</b>
         \n{placeholder}
@@ -63,7 +62,7 @@ def settings_comms_float_text(placeholder: str):
     return txt
 
 
-def settings_new_comm_float_text(placeholder: str):
+def new_comm_float_text(placeholder: str):
     txt = textwrap.dedent(f"""
         <b>➕❗ Добавление команды</b>
         \n{placeholder}

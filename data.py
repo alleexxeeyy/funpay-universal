@@ -20,14 +20,12 @@ CATEGORIES_RAISE_TIME = DataFile(
     path="bot_data/categories_raise_time.json",
     default={}
 )
-LATEST_EVENTS_TIMES = DataFile(
-    name="latest_events_times",
-    path="bot_data/latest_events_times.json",
-    default={
-        "create_tickets": None
-    }
+CACHED_ORDERS = DataFile(
+    name="cached_orders",
+    path="bot_data/cached_orders.json",
+    default={}
 )
-DATA = [INITIALIZED_USERS, CATEGORIES_RAISE_TIME, LATEST_EVENTS_TIMES]
+DATA = [INITIALIZED_USERS, CATEGORIES_RAISE_TIME, CACHED_ORDERS]
 
 
 def get_json(path: str, default: dict | list) -> dict:

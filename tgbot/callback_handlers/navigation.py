@@ -4,7 +4,9 @@ from aiogram.fsm.context import FSMContext
 
 from .. import templates as templ
 from .. import callback_datas as calls
-from ..helpful import throw_float_message
+from ..helpful import throw_float_message, do_auth
+
+from settings import Settings as sett
 
 
 router = Router()
@@ -13,44 +15,66 @@ router = Router()
 @router.callback_query(calls.MenuNavigation.filter())
 async def callback_menu_navigation(callback: CallbackQuery, callback_data: calls.MenuNavigation, state: FSMContext):
     await state.set_state(None)
+    
+    config = sett.get("config")
+    if callback.from_user.id not in config["telegram"]["bot"]["signed_users"]:
+        return await do_auth(callback.message, state)
+
+    await state.set_state(None)
     to = callback_data.to
+    
     if to == "default":
-        await throw_float_message(state, callback.message, templ.menu_text(), templ.menu_kb(), callback)
+        await throw_float_message(
+            state, callback.message, templ.menu_text(), templ.menu_kb(), callback
+        )
     elif to == "events":
-        await throw_float_message(state, callback.message, templ.events_text(), templ.events_kb(), callback)
+        await throw_float_message(
+            state, callback.message, templ.events_text(), templ.events_kb(), callback
+        )
     elif to == "stats":
-        await throw_float_message(state, callback.message, templ.stats_text(), templ.stats_kb(), callback)
+        await throw_float_message(
+            state, callback.message, templ.stats_text(), templ.stats_kb(), callback
+        )
     elif to == "profile":
-        await throw_float_message(state, callback.message, templ.profile_text(), templ.profile_kb(), callback)
+        await throw_float_message(
+            state, callback.message, templ.profile_text(), templ.profile_kb(), callback
+        )
     elif to == "logs":
-        await throw_float_message(state, callback.message, templ.logs_text(), templ.logs_kb(), callback)
+        await throw_float_message(
+            state, callback.message, templ.logs_text(), templ.logs_kb(), callback
+        )
 
-
-@router.callback_query(calls.InstructionNavigation.filter())
-async def callback_instruction_navgiation(callback: CallbackQuery, callback_data: calls.InstructionNavigation, state: FSMContext):
-    await state.set_state(None)
-    to = callback_data.to
-    if to == "default":
-        await throw_float_message(state, callback.message, templ.instruction_text(), templ.instruction_kb(), callback)
-    elif to == "commands":
-        await throw_float_message(state, callback.message, templ.instruction_comms_text(), templ.instruction_comms_kb(), callback)
-
-
-@router.callback_query(calls.SettingsNavigation.filter())
-async def callback_settings_navigation(callback: CallbackQuery, callback_data: calls.SettingsNavigation, state: FSMContext):
-    await state.set_state(None)
-    to = callback_data.to
-    if to == "default":
-        await throw_float_message(state, callback.message, templ.settings_text(), templ.settings_kb(), callback)
     elif to == "auth":
-        await throw_float_message(state, callback.message, templ.settings_auth_text(), templ.settings_auth_kb(), callback)
+        await throw_float_message(
+            state, callback.message, templ.auth_text(), templ.auth_kb(), callback
+        )
     elif to == "conn":
-        await throw_float_message(state, callback.message, templ.settings_conn_text(), templ.settings_conn_kb(), callback)
+        await throw_float_message(
+            state, callback.message, templ.conn_text(), templ.conn_kb(), callback
+        )
     elif to == "lots":
-        await throw_float_message(state, callback.message, templ.settings_lots_text(), templ.settings_lots_kb(), callback)
-    elif to == "logger":
-        await throw_float_message(state, callback.message, templ.settings_logger_text(), templ.settings_logger_kb(), callback)
+        await throw_float_message(
+            state, callback.message, templ.lots_text(), templ.lots_kb(), callback
+        )
+    elif to == "notifications":
+        await throw_float_message(
+            state, callback.message, templ.notifications_text(), templ.notifications_kb(), callback
+        )
     elif to == "tickets":
-        await throw_float_message(state, callback.message, templ.settings_tickets_text(), templ.settings_tickets_kb(), callback)
+        await throw_float_message(
+            state, callback.message, templ.tickets_text(), templ.tickets_kb(), callback
+        )
     elif to == "other":
-        await throw_float_message(state, callback.message, templ.settings_other_text(), templ.settings_other_kb(), callback)
+        await throw_float_message(
+            state, callback.message, templ.other_text(), templ.other_kb(), callback
+        )
+
+
+@router.callback_query(calls.StatsNavigation.filter())
+async def callback_stats_navigation(callback: CallbackQuery, callback_data: calls.StatsNavigation, state: FSMContext):
+    await state.set_state(None)
+    to = callback_data.to
+    
+    await throw_float_message(
+        state, callback.message, templ.stats_text(to), templ.stats_kb(to), callback
+    )

@@ -23,15 +23,15 @@ async def handler_waiting_for_messages_page(message: types.Message, state: FSMCo
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_mess_text(),
-            reply_markup=templ.settings_mess_kb(int(message.text)-1)
+            text=templ.mess_text(),
+            reply_markup=templ.mess_kb(int(message.text)-1)
         )
     except Exception as e:
         data = await state.get_data()
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_mess_float_text(e),
+            text=templ.mess_float_text(e),
             reply_markup=templ.back_kb(calls.MessagesPagination(page=data.get("last_page", 0)).pack())
         )
         
@@ -48,10 +48,11 @@ async def handler_waiting_for_message_text(message: types.Message, state: FSMCon
         message_split_lines = message.text.strip().split('\n')
         messages[data["message_id"]]["text"] = message_split_lines
         sett.set("messages", messages)
+        
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_mess_page_float_text(f"✅ <b>Текст сообщения</b> <code>{data['message_id']}</code> был успешно изменён на <blockquote>{message.text.strip()}</blockquote>"),
+            text=templ.mess_page_float_text(f"✅ <b>Текст сообщения</b> <code>{data['message_id']}</code> был успешно изменён на <blockquote>{message.text.strip()}</blockquote>"),
             reply_markup=templ.back_kb(calls.MessagePage(message_id=data.get("message_id")).pack())
         )
     except Exception as e:
@@ -59,6 +60,6 @@ async def handler_waiting_for_message_text(message: types.Message, state: FSMCon
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_mess_page_float_text(e), 
+            text=templ.mess_page_float_text(e), 
             reply_markup=templ.back_kb(calls.MessagePage(message_id=data.get("message_id")).pack())
         )

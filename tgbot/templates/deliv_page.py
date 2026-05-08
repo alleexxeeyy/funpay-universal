@@ -7,7 +7,7 @@ from settings import Settings as sett
 from .. import callback_datas as calls
 
 
-def settings_deliv_page_text(lot_id: int, lot: LotFields):
+def deliv_page_text(lot_id: int, lot: LotFields):
     auto_deliveries = sett.get("auto_deliveries")
     
     auto_delivery_message = "\n".join(auto_deliveries[str(lot_id)]) or "❌ Не задано"
@@ -23,7 +23,7 @@ def settings_deliv_page_text(lot_id: int, lot: LotFields):
     return txt
 
 
-def settings_deliv_page_kb(lot_id: int, lot: LotFields, page=0):
+def deliv_page_kb(lot_id: int, lot: LotFields, page=0):
     auto_deliveries = sett.get("auto_deliveries")
     
     auto_delivery_message = "\n".join(auto_deliveries[str(lot_id)]) or "❌ Не задано"
@@ -40,7 +40,7 @@ def settings_deliv_page_kb(lot_id: int, lot: LotFields, page=0):
     return kb
 
 
-def settings_deliv_page_float_text(placeholder: str):
+def deliv_page_float_text(placeholder: str):
     txt = textwrap.dedent(f"""
         <b>📄🚀 Страница авто-выдачи</b>
         \n{placeholder}

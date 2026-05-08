@@ -7,21 +7,22 @@ from settings import Settings as sett
 from .. import callback_datas as calls
 
 
-def settings_delivs_text():
+def delivs_text():
     auto_deliveries = sett.get("auto_deliveries")
     txt = textwrap.dedent(f"""
         <b>🚀 Авто-выдача</b>
-
         Всего <b>{len(auto_deliveries)}</b> лотов с авто-выдачей:
     """)
     return txt
 
 
-def settings_delivs_kb(page: int = 0):
-    from fpbot.funpaybot import get_funpay_bot
+def delivs_kb(page: int = 0):
     auto_deliveries = sett.get("auto_deliveries")
+    
     try:
-        user = get_funpay_bot().account.get_user(get_funpay_bot().account.id)
+        from fpbot.funpaybot import get_funpay_bot as fpbot
+        acc = fpbot().account
+        user = acc.get_user(acc.id)
         lots = user.get_lots()
     except:
         lots = []
@@ -38,10 +39,14 @@ def settings_delivs_kb(page: int = 0):
     end_offset = start_offset + items_per_page
 
     for lot_id in list(auto_deliveries.keys())[start_offset:end_offset]:
-        try: lot_title = [lot for lot in lots if int(lot.id) == int(lot_id)][0].title
-        except: lot_title = lot_id
+        lot_title = "❌"
+        lot = next((lot for lot in lots if int(lot.id) == int(lot_id)), None)
+        if lot:
+            lot_title = lot.title
+        
         lot_title_frmtd = lot_title[:48] + ("..." if len(lot_title) > 48 else "")
         auto_delivery_text = "\n".join(auto_deliveries[lot_id])
+        
         rows.append([InlineKeyboardButton(
             text=f"«{lot_title_frmtd}» → {auto_delivery_text}", 
             callback_data=calls.AutoDeliveryPage(lot_id=lot_id).pack()
@@ -49,26 +54,26 @@ def settings_delivs_kb(page: int = 0):
 
     if total_pages > 1:
         buttons_row = []
-        btn_back = InlineKeyboardButton(text="←", callback_data=calls.AutoDeliveriesPagination(page=page-1).pack()) if page > 0 else InlineKeyboardButton(text="🛑", callback_data="123")
+        btn_back = InlineKeyboardButton(text="←", callback_data=calls.AutoDeliveriesPagination(page=page-1).pack()) if page > 0 else InlineKeyboardButton(text="🛑", callback_data="null_answer")
         buttons_row.append(btn_back)
 
-        btn_pages = InlineKeyboardButton(text=f"{page+1}/{total_pages}", callback_data="enter_auto_deliveries_page")
+        btn_pages = InlineKeyboardButton(text=f"{page+1}/{total_pages}", callback_data="null_answer")
         buttons_row.append(btn_pages)
 
-        btn_next = InlineKeyboardButton(text="→", callback_data=calls.AutoDeliveriesPagination(page=page+1).pack()) if page < total_pages - 1 else InlineKeyboardButton(text="🛑", callback_data="123")
+        btn_next = InlineKeyboardButton(text="→", callback_data=calls.AutoDeliveriesPagination(page=page+1).pack()) if page < total_pages - 1 else InlineKeyboardButton(text="🛑", callback_data="null_answer")
         buttons_row.append(btn_next)
         rows.append(buttons_row)
         
     rows.append([InlineKeyboardButton(text="➕ Добавить", callback_data="enter_new_auto_delivery_lot_link")])
     rows.append([
-        InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.SettingsNavigation(to="default").pack()),
+        InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.MenuNavigation(to="default").pack()),
     ])
 
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     return kb
 
 
-def settings_delivs_float_text(placeholder: str):
+def delivs_float_text(placeholder: str):
     txt = textwrap.dedent(f"""
         <b>🚀 Авто-выдача</b>
         \n{placeholder}
@@ -76,7 +81,7 @@ def settings_delivs_float_text(placeholder: str):
     return txt
 
 
-def settings_new_deliv_float_text(placeholder: str):
+def new_deliv_float_text(placeholder: str):
     txt = textwrap.dedent(f"""
         <b>➕🚀 Добавление авто-выдачи</b>
         \n{placeholder}

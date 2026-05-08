@@ -8,6 +8,7 @@ from .actions_confirm import router as actions_confirm_router
 from .actions_enter import router as actions_enter_router
 from .actions_other import router as actions_other_router
 from .actions_switch import router as actions_switch_router
+from .actions_funpay import router as actions_funpay_router
 
 router = Router()
 router.include_routers(
@@ -17,5 +18,6 @@ router.include_routers(
     actions_confirm_router,
     actions_enter_router,
     actions_other_router,
-    actions_switch_router
+    actions_switch_router,
+    actions_funpay_router,
 )

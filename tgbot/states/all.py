@@ -3,11 +3,15 @@ from aiogram.fsm.state import State, StatesGroup
 
 class SystemStates(StatesGroup):
     waiting_for_password = State()
+    waiting_for_current_password = State()
+    waiting_for_new_password = State()
 
 
 class ActionsStates(StatesGroup):
-    waiting_for_message_content = State()
-    waiting_for_review_answer_text = State()
+    waiting_for_fast_answer_message = State()
+    waiting_for_chat_answer_message = State()
+
+    waiting_for_fast_review_answer = State()
 
 
 class SettingsStates(StatesGroup):
@@ -23,8 +27,11 @@ class SettingsStates(StatesGroup):
     waiting_for_auto_tickets_min_order_age = State()
     waiting_for_auto_tickets_create_interval = State()
 
-    waiting_for_tg_logging_chat_id = State()
+    waiting_for_notifications_chat_id = State()
     waiting_for_watermark_value = State()
+
+    waiting_for_new_fast_reply_text = State()
+    waiting_for_fast_reply_text = State()
 
     waiting_for_logs_max_file_size = State()
 

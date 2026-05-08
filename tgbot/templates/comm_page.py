@@ -7,7 +7,7 @@ from settings import Settings as sett
 from .. import callback_datas as calls
 
 
-def settings_comm_page_text(command: str):
+def comm_page_text(command: str):
     custom_commands = sett.get("custom_commands")
     command_text = "\n".join(custom_commands[command]) or "❌ Не задано"
     
@@ -20,7 +20,7 @@ def settings_comm_page_text(command: str):
     return txt
 
 
-def settings_comm_page_kb(command: str, page: int = 0):
+def comm_page_kb(command: str, page: int = 0):
     custom_commands = sett.get("custom_commands")
     command_text = "\n".join(custom_commands[command]) or "❌ Не задано"
     
@@ -33,7 +33,7 @@ def settings_comm_page_kb(command: str, page: int = 0):
     return kb
 
 
-def settings_comm_page_float_text(placeholder: str):
+def comm_page_float_text(placeholder: str):
     txt = textwrap.dedent(f"""
         <b>📄❗ Страница команды</b>
         \n{placeholder}

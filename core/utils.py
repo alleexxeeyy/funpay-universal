@@ -27,36 +27,32 @@ _main_loop = None
 
 
 def init_main_loop(loop):
-    """Инициализирует основной loop событий."""
     global _main_loop 
     _main_loop = loop
 
 
 def get_main_loop():
-    """Получает основной loop событий."""
     return _main_loop
 
 
 def shutdown():
-    """Завершает работу программы (завершает все задачи основного loop`а)."""
     for task in asyncio.all_tasks(_main_loop):
         task.cancel()
     _main_loop.call_soon_threadsafe(_main_loop.stop)
 
 
-def restart():
-    """Перезагружает программу."""
+def restart(from_tg=False):
     python = sys.executable
-    os.execv(python, [python] + sys.argv)
+    args = sys.argv.copy()
+
+    if from_tg:
+        args.append("--from_tg")
+
+    logger.info("Перезапуск бота...")
+    os.execv(python, [python] + args)
 
 
 def set_title(title: str):
-    """
-    Устанавливает заголовок консоли.
-
-    :param title: Заголовок.
-    :type title: `str`
-    """
     if sys.platform == "win32":
         ctypes.windll.kernel32.SetConsoleTitleW(title)
     elif sys.platform.startswith("linux"):
@@ -68,12 +64,6 @@ def set_title(title: str):
 
 
 def setup_logger(log_file: str = "logs/latest.log"):
-    """
-    Настраивает логгер.
-
-    :param log_file: Путь к файлу логов.
-    :type log_file: `str`
-    """
     class ShortLevelFormatter(ColoredFormatter):
         def format(self, record):
             record.shortLevel = record.levelname[0]
@@ -123,12 +113,6 @@ def setup_logger(log_file: str = "logs/latest.log"):
     
 
 def is_package_installed(requirement_string: str) -> bool:
-    """
-    Проверяет, установлена ли библиотека.
-
-    :param requirement_string: Строка пакета из файла зависимостей.
-    :type requirement_string: str
-    """
     try:
         parts = shlex.split(requirement_string)
         if not parts:
@@ -143,12 +127,6 @@ def is_package_installed(requirement_string: str) -> bool:
 
 
 def install_requirements(requirements_path: str):
-    """
-    Устанавливает зависимости из файла.
-
-    :param requirements_path: Путь к файлу зависимостей.
-    :type requirements_path: str
-    """
     try:
         if not os.path.exists(requirements_path):
             return
@@ -178,7 +156,6 @@ def install_requirements(requirements_path: str):
 
 
 def patch_requests():
-    """Патчит стандартные requests на кастомные с обработкой ошибок."""
     _orig_request = requests.Session.request
     
     def _request(self, method, url, **kwargs):  # type: ignore
@@ -215,18 +192,6 @@ def patch_requests():
 
 
 def run_async_in_thread(func: callable, args: list = [], kwargs: dict = {}):
-    """ 
-    Запускает функцию асинхронно в новом потоке и в новом лупе.
-
-    :param func: Функция.
-    :type func: `callable`
-
-    :param args: Аргументы функции.
-    :type args: `list`
-
-    :param kwargs: Аргументы функции по ключам.
-    :type kwargs: `dict`
-    """
     def run():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -239,18 +204,6 @@ def run_async_in_thread(func: callable, args: list = [], kwargs: dict = {}):
 
 
 def run_forever_in_thread(func: callable, args: list = [], kwargs: dict = {}):
-    """ 
-    Запускает функцию в бесконечном лупе в новом потоке.
-
-    :param func: Функция.
-    :type func: `callable`
-
-    :param args: Аргументы функции.
-    :type args: `list`
-
-    :param kwargs: Аргументы функции по ключам.
-    :type kwargs: `dict`
-    """
     def run():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -261,125 +214,3 @@ def run_forever_in_thread(func: callable, args: list = [], kwargs: dict = {}):
             loop.close()
 
     Thread(target=run, daemon=True).start()
-
-
-def is_golden_key_valid(s: str) -> bool:
-    pattern = r'^[a-z0-9]{32}$'
-    return bool(re.match(pattern, s))
-
-
-def is_fp_account_working() -> bool:
-    try:
-        config = sett.get("config")
-        proxy = {
-            "https": "http://" + config["funpay"]["api"]["proxy"], 
-            "http": "http://" + config["funpay"]["api"]["proxy"]
-        } if config["funpay"]["api"]["proxy"] else None
-        Account(
-            golden_key=config["funpay"]["api"]["golden_key"],
-            user_agent=config["funpay"]["api"]["user_agent"],
-            requests_timeout=config["funpay"]["api"]["requests_timeout"],
-            proxy=proxy
-        ).get()
-        return True
-    except Exception:
-        return False
-
-
-def is_fp_account_banned() -> bool:
-    config = sett.get("config")
-    proxy = {
-        "https": "http://" + config["funpay"]["api"]["proxy"], 
-        "http": "http://" + config["funpay"]["api"]["proxy"]
-    } if config["funpay"]["api"]["proxy"] else None
-    acc = Account(
-        golden_key=config["funpay"]["api"]["golden_key"],
-        user_agent=config["funpay"]["api"]["user_agent"],
-        requests_timeout=config["funpay"]["api"]["requests_timeout"],
-        proxy=proxy
-    ).get()
-    user = acc.get_user(acc.id)
-    return user.banned
-
-
-def is_user_agent_valid(ua: str) -> bool:
-    if not ua or not (10 <= len(ua) <= 512):
-        return False
-    allowed_chars = string.ascii_letters + string.digits + string.punctuation + ' '
-    return all(c in allowed_chars for c in ua)
-
-
-def is_proxy_valid(proxy: str) -> bool:
-    ip_pattern = r'(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)'
-    pattern_ip_port = re.compile(
-        rf'^{ip_pattern}\.{ip_pattern}\.{ip_pattern}\.{ip_pattern}:(\d+)$'
-    )
-    pattern_auth_ip_port = re.compile(
-        rf'^[^:@]+:[^:@]+@{ip_pattern}\.{ip_pattern}\.{ip_pattern}\.{ip_pattern}:(\d+)$'
-    )
-    match = pattern_ip_port.match(proxy)
-    if match:
-        port = int(match.group(1))
-        return 1 <= port <= 65535
-    match = pattern_auth_ip_port.match(proxy)
-    if match:
-        port = int(match.group(1))
-        return 1 <= port <= 65535
-    return False
-
-
-def is_proxy_working(proxy: str, test_url="https://funpay.com", timeout=10) -> bool:
-    proxies = {
-        "http": f"http://{proxy}",
-        "https": f"http://{proxy}"
-    }
-    try:
-        response = requests.get(test_url, proxies=proxies, timeout=timeout)
-        return response.status_code < 404
-    except Exception:
-        return False
-
-
-def is_token_valid(token: str) -> bool:
-    pattern = r'^\d{7,12}:[A-Za-z0-9_-]{35}$'
-    return bool(re.match(pattern, token))
-
-
-def is_tg_bot_exists() -> bool:
-    try:
-        config = sett.get("config")
-        token = config["telegram"]["api"]["token"]
-        proxy = config["telegram"]["api"]["proxy"]
-        
-        if proxy:
-            proxies = {
-                "http": f"http://{proxy}",
-                "https": f"http://{proxy}",
-            }
-        else:
-            proxies = None
-        
-        response = requests.get(
-            f"https://api.telegram.org/bot{token}/getMe", 
-            proxies=proxies,
-            timeout=5
-        )
-        
-        data = response.json()
-        return data.get("ok", False) is True and data.get("result", {}).get("is_bot", False) is True
-    except Exception:
-        return False
-    
-
-def is_password_valid(password: str) -> bool:
-    if len(password) < 6 or len(password) > 64:
-        return False
-    common_passwords = {
-        "123456", "1234567", "12345678", "123456789", "password", "qwerty",
-        "admin", "123123", "111111", "abc123", "letmein", "welcome",
-        "monkey", "login", "root", "pass", "test", "000000", "user",
-        "qwerty123", "iloveyou"
-    }
-    if password.lower() in common_passwords:
-        return False
-    return True

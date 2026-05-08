@@ -7,14 +7,13 @@ from FunPayAPI import Account
 
 
 class FunPaySupportAPI:
-    def __init__(self, funpay_account: Account):
-        self.funpay_account: Account = funpay_account
-        self.golden_key = funpay_account.golden_key
-        self.user_agent = funpay_account.user_agent
-        self.requests_timeout = funpay_account.requests_timeout
+    def __init__(self, account: Account):
+        self.account = account
+        self.golden_key = account.golden_key
+        self.user_agent = account.user_agent
+        self.requests_timeout = account.requests_timeout
 
         self.app_data = {}
-
         self.csrf_token = ""
         self.phpsessid = ""
 
@@ -78,7 +77,7 @@ class FunPaySupportAPI:
             "X-Requested-With": "XMLHttpRequest"
         }
         payload = {
-            "ticket[fields][1]": self.funpay_account.username,
+            "ticket[fields][1]": self.account.username,
             "ticket[fields][2]": order_id if order_id else "",
             "ticket[fields][3]": "2",
             "ticket[fields][5]": "201",

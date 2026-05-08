@@ -7,8 +7,5 @@ class SystemNavigation(CallbackData, prefix="sysnav"):
 class MenuNavigation(CallbackData, prefix="mennav"):
     to: str
 
-class SettingsNavigation(CallbackData, prefix="setnav"):
-    to: str
-
-class InstructionNavigation(CallbackData, prefix="insnav"):
+class StatsNavigation(CallbackData, prefix="stnav"):
     to: str

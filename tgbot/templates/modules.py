@@ -12,7 +12,6 @@ def modules_text():
     modules = get_modules()
     txt = textwrap.dedent(f"""
         <b>🔌 Модули</b>
-
         Всего <b>{len(modules)}</b> подключенных модулей:
     """)
     return txt
@@ -37,13 +36,13 @@ def modules_kb(page: int = 0):
     if total_pages > 1:
         buttons_row = []
 
-        btn_back = InlineKeyboardButton(text="←", callback_data=calls.ModulesPagination(page=page-1).pack()) if page > 0 else InlineKeyboardButton(text="🛑", callback_data="123")
+        btn_back = InlineKeyboardButton(text="←", callback_data=calls.ModulesPagination(page=page-1).pack()) if page > 0 else InlineKeyboardButton(text="🛑", callback_data="null_answer")
         buttons_row.append(btn_back)
 
-        btn_pages = InlineKeyboardButton(text=f"{page+1}/{total_pages}", callback_data="enter_modules_page")
+        btn_pages = InlineKeyboardButton(text=f"{page+1}/{total_pages}", callback_data="null_answer")
         buttons_row.append(btn_pages)
 
-        btn_next = InlineKeyboardButton(text="→", callback_data=calls.ModulesPagination(page=page+1).pack()) if page < total_pages - 1 else InlineKeyboardButton(text="🛑", callback_data="123")
+        btn_next = InlineKeyboardButton(text="→", callback_data=calls.ModulesPagination(page=page+1).pack()) if page < total_pages - 1 else InlineKeyboardButton(text="🛑", callback_data="null_answer")
         buttons_row.append(btn_next)
 
         rows.append(buttons_row)

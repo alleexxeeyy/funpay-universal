@@ -5,19 +5,21 @@ from .. import callback_datas as calls
 
 
 def profile_text():
-    from fpbot.funpaybot import get_funpay_bot
-    account = get_funpay_bot().funpay_account
-    profile = account.get_user(account.id)
+    from fpbot.funpaybot import get_funpay_bot as fpbot
+    
+    acc = fpbot().account
+    profile = acc.get_user(acc.id)
+    
     txt = textwrap.dedent(f"""
         <b>👤 Мой профиль</b>
 
         <b>🆔 ID:</b> {profile.id}
-        <b>🏷️ Никнейм:</b> {profile.username}
-        <b>💰 Баланс:</b> {account.total_balance} {account.currency.name}
+        <b>🏷️ Никнейм:</b> {profile.username} <a href="{profile.profile_photo}">(аватар)</a>
+        <b>💰 Баланс:</b> {acc.total_balance} {acc.currency.name}
 
-        <b>📄 Активные лоты:</b> {len(profile.get_lots())}
-        <b>🛍️ Активные покупки:</b> {account.active_purchases}
-        <b>🛒 Активные продажи:</b> {account.active_sales}
+        <b>📝 Активные лоты:</b> {len(profile.get_lots())}
+        <b>🛍️ Активные покупки:</b> {acc.active_purchases}
+        <b>🛒 Активные продажи:</b> {acc.active_sales}
     """)
     return txt
 

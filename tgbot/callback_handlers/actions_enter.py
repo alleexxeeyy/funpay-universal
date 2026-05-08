@@ -15,6 +15,49 @@ from ..helpful import throw_float_message
 router = Router()
 
 
+@router.callback_query(calls.EnterFastReplyText.filter())
+async def callback_enter_fast_reply_text(callback: CallbackQuery, callback_data: calls.EnterFastReplyText, state: FSMContext):
+    await state.set_state(None)
+    
+    index = callback_data.index
+    await state.update_data(fast_reply_index=index)
+
+    data = await state.get_data()
+    last_page = data.get("last_page", 0)
+
+    fast_replies = sett.get("fast_replies")
+    text = fast_replies[index]
+    
+    await state.set_state(states.SettingsStates.waiting_for_fast_reply_text)
+    await throw_float_message(
+        state=state,
+        message=callback.message,
+        text=templ.fast_replies_float_text(
+            f"💬 Введите новый <b>текст сообщения</b> быстрого ответа:"
+            f"\n\n・ <b>Текущий:</b> <blockquote>{text}</blockquote>"
+        ),
+        reply_markup=templ.back_kb(calls.FastRepliesPagination(page=last_page).pack()),
+        callback=callback
+    )
+
+
+@router.callback_query(F.data == "enter_new_fast_reply_text")
+async def callback_enter_new_fast_reply_text(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(states.SettingsStates.waiting_for_new_fast_reply_text)
+
+    data = await state.get_data()
+    last_page = data.get("last_page", 0)
+
+    await throw_float_message(
+        state=state,
+        message=callback.message,
+        text=templ.new_fast_reply_text(
+            f"💬 Введите <b>текст сообщения</b> быстрого ответа:"
+        ),
+        reply_markup=templ.back_kb(calls.FastRepliesPagination(page=last_page).pack())
+    )
+
+
 @router.callback_query(F.data == "enter_golden_key")
 async def callback_enter_golden_key(callback: CallbackQuery, state: FSMContext):
     await state.set_state(states.SettingsStates.waiting_for_golden_key)
@@ -23,11 +66,11 @@ async def callback_enter_golden_key(callback: CallbackQuery, state: FSMContext):
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_auth_float_text(
-            "🔑 Введите новый <b>golden_key</b> вашего аккаунта ↓"
-            f"\n・ Текущее: <code>{golden_key}</code>"
+        text=templ.auth_float_text(
+            "🔑 Введите новый <b>golden_key</b> вашего аккаунта:"
+            f"\n\n・ <b>Текущее:</b> <code>{golden_key}</code>"
         ), 
-        reply_markup=templ.back_kb(calls.SettingsNavigation(to="auth").pack())
+        reply_markup=templ.back_kb(calls.MenuNavigation(to="auth").pack())
     )
 
 
@@ -39,11 +82,11 @@ async def callback_enter_user_agent(callback: CallbackQuery, state: FSMContext):
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_auth_float_text(
-            "🎩 Введите новый <b>user_agent</b> вашего браузера ↓"
-            f"\n・ Текущее: <code>{user_agent}</code>"
+        text=templ.auth_float_text(
+            "🎩 Введите новый <b>user_agent</b> вашего браузера:"
+            f"\n\n・ <b>Текущее:</b> <code>{user_agent}</code>"
         ), 
-        reply_markup=templ.back_kb(calls.SettingsNavigation(to="auth").pack())
+        reply_markup=templ.back_kb(calls.MenuNavigation(to="auth").pack())
     )
 
 
@@ -55,11 +98,11 @@ async def callback_enter_fp_proxy(callback: CallbackQuery, state: FSMContext):
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_conn_float_text(
-            "🌐 Введите новый HTTP <b>прокси для FunPay</b> (формат: user:pass@ip:port или ip:port) ↓"
-            f"\n・ Текущее: <code>{proxy}</code>"
+        text=templ.conn_float_text(
+            "🌐 Введите новый HTTP <b>прокси для FunPay</b> (формат: user:pass@ip:port или ip:port):"
+            f"\n\n・ <b>Текущее:</b> <code>{proxy}</code>"
         ), 
-        reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack())
+        reply_markup=templ.back_kb(calls.MenuNavigation(to="conn").pack())
     )
 
 
@@ -71,11 +114,11 @@ async def callback_enter_tg_proxy(callback: CallbackQuery, state: FSMContext):
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_conn_float_text(
-            "🌐 Введите новый HTTP <b>прокси для Telegram</b> (формат: user:pass@ip:port или ip:port) ↓"
-            f"\n・ Текущее: <code>{proxy}</code>"
+        text=templ.conn_float_text(
+            "🌐 Введите новый HTTP <b>прокси для Telegram</b> (формат: user:pass@ip:port или ip:port):"
+            f"\n\n・ <b>Текущее:</b> <code>{proxy}</code>"
         ), 
-        reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack())
+        reply_markup=templ.back_kb(calls.MenuNavigation(to="conn").pack())
     )
 
 
@@ -87,11 +130,11 @@ async def callback_enter_funpayapi_requests_timeout(callback: CallbackQuery, sta
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_conn_float_text(
-            "🛜 Введите новый <b>таймаут подключения</b> (в секундах) ↓"
-            f"\n・ Текущее: <code>{requests_timeout}</code>"
+        text=templ.conn_float_text(
+            "📶 Введите новый <b>таймаут подключения</b> (в секундах):"
+            f"\n\n・ <b>Текущее:</b> <code>{requests_timeout}</code> сек."
         ), 
-        reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack())
+        reply_markup=templ.back_kb(calls.MenuNavigation(to="conn").pack())
     )
 
 
@@ -103,11 +146,11 @@ async def callback_enter_funpayapi_runner_requests_delay(callback: CallbackQuery
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_conn_float_text(
-            "⏱️ Введите новую <b>периодичность запросов</b> (в секундах) ↓"
-            f"\n・ Текущее: <code>{requests_delay}</code>"
+        text=templ.conn_float_text(
+            "⏱️ Введите новую <b>периодичность запросов</b> (в секундах):"
+            f"\n\n・ <b>Текущее:</b> <code>{requests_delay}</code> сек."
         ), 
-        reply_markup=templ.back_kb(calls.SettingsNavigation(to="conn").pack())
+        reply_markup=templ.back_kb(calls.MenuNavigation(to="conn").pack())
     )
 
 
@@ -119,11 +162,11 @@ async def callback_enter_watermark_value(callback: CallbackQuery, state: FSMCont
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_other_float_text(
-            "✍️©️ Введите новый <b>водяной знак</b> под сообщениями ↓"
-            f"\n・ Текущее: <code>{watermark_value}</code>"
+        text=templ.other_float_text(
+            "✍️©️ Введите новый <b>водяной знак</b> под сообщениями:"
+            f"\n\n・ <b>Текущее:</b> <code>{watermark_value}</code>"
         ), 
-        reply_markup=templ.back_kb(calls.SettingsNavigation(to="other").pack())
+        reply_markup=templ.back_kb(calls.MenuNavigation(to="other").pack())
     )
 
 
@@ -135,8 +178,8 @@ async def callback_enter_custom_commands_page(callback: CallbackQuery, state: FS
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_comms_float_text(
-            "📃 Введите номер страницы для перехода ↓"
+        text=templ.comms_float_text(
+            "📃 Введите номер страницы для перехода:"
         ), 
         reply_markup=templ.back_kb(calls.CustomCommandsPagination(page=last_page).pack())
     )
@@ -150,8 +193,8 @@ async def callback_enter_new_custom_command(callback: CallbackQuery, state: FSMC
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_new_comm_float_text(
-            "⌨️ Введите <b>новую команду</b> (например, <code>!тест</code>) ↓"
+        text=templ.new_comm_float_text(
+            "⌨️ Введите <b>новую команду</b> (например, <code>!тест</code>):"
         ), 
         reply_markup=templ.back_kb(calls.CustomCommandsPagination(page=last_page).pack())
     )
@@ -171,9 +214,9 @@ async def callback_enter_custom_command_answer(callback: CallbackQuery, state: F
         await throw_float_message(
             state=state, 
             message=callback.message, 
-            text=templ.settings_comm_page_float_text(
-                f"💬 Введите новый <b>текст ответа</b> команды <code>{custom_command}</code> ↓"
-                f"\n・ Текущее: <blockquote>{custom_command_answer}</blockquote>"
+            text=templ.comm_page_float_text(
+                f"💬 Введите новый <b>текст ответа</b> команды <code>{custom_command}</code>:"
+                f"\n\n・ <b>Текущее:</b> <blockquote>{custom_command_answer}</blockquote>"
             ), 
             reply_markup=templ.back_kb(calls.CustomCommandPage(command=custom_command).pack())
         )
@@ -183,7 +226,7 @@ async def callback_enter_custom_command_answer(callback: CallbackQuery, state: F
         await throw_float_message(
             state=state, 
             message=callback.message, 
-            text=templ.settings_comm_page_float_text(e), 
+            text=templ.comm_page_float_text(e), 
             reply_markup=templ.back_kb(calls.CustomCommandsPagination(page=last_page).pack())
         )
 
@@ -196,8 +239,8 @@ async def callback_enter_auto_deliveries_page(callback: CallbackQuery, state: FS
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_deliv_float_text(
-            "📃 Введите номер страницы для перехода ↓"
+        text=templ.deliv_float_text(
+            "📃 Введите номер страницы для перехода:"
         ), 
         reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=last_page).pack())
     )
@@ -211,8 +254,8 @@ async def callback_enter_new_auto_delivery_lot_link(callback: CallbackQuery, sta
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_new_deliv_float_text(
-            "🔗 Введите <b>ссылку на лот</b>, на который нужно добавить авто-выдачу ↓"
+        text=templ.new_deliv_float_text(
+            "🔗 Введите <b>ссылку на лот</b>, на который нужно добавить авто-выдачу:"
         ), 
         reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=last_page).pack())
     )
@@ -234,9 +277,9 @@ async def callback_enter_auto_delivery_lot_link(callback: CallbackQuery, state: 
         await throw_float_message(
             state=state, 
             message=callback.message, 
-            text=templ.settings_deliv_page_float_text(
-                f"🔗 Введите новую <b>ссылку на лот</b> авто-выдачи"
-                f'\n・ Текущий: <a href="https://funpay.com/lots/offer?id={lot_id}">{lot_title}</a>'
+            text=templ.deliv_page_float_text(
+                f"🔗 Введите новую <b>ссылку на лот</b> авто-выдачи:"
+                f'\n\n・ <b>Текущий:</b> <a href="https://funpay.com/lots/offer?id={lot_id}">{lot_title}</a>'
             ), 
             reply_markup=templ.back_kb(calls.AutoDeliveryPage(lot_id=lot_id).pack())
         )
@@ -246,7 +289,7 @@ async def callback_enter_auto_delivery_lot_link(callback: CallbackQuery, state: 
         await throw_float_message(
             state=state, 
             message=callback.message, 
-            text=templ.settings_deliv_page_float_text(e), 
+            text=templ.deliv_page_float_text(e), 
             reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=last_page).pack())
         )
 
@@ -265,9 +308,9 @@ async def callback_enter_auto_delivery_message(callback: CallbackQuery, state: F
         await throw_float_message(
             state=state, 
             message=callback.message, 
-            text=templ.settings_deliv_page_float_text(
-                f"💬 Введите новое <b>сообщение после покупки</b> лота <code>{auto_delivery_lot_id}</code>"
-                f"\n・ Текущее: <blockquote>{auto_delivery_message}</blockquote>"
+            text=templ.deliv_page_float_text(
+                f"💬 Введите новое <b>сообщение после покупки</b> лота <code>{auto_delivery_lot_id}</code>:"
+                f"\n\n・ <b>Текущее:</b> <blockquote>{auto_delivery_message}</blockquote>"
             ), 
             reply_markup=templ.back_kb(calls.AutoDeliveryPage(lot_id=auto_delivery_lot_id).pack())
         )
@@ -277,7 +320,7 @@ async def callback_enter_auto_delivery_message(callback: CallbackQuery, state: F
         await throw_float_message(
             state=state, 
             message=callback.message, 
-            text=templ.settings_deliv_page_float_text(e), 
+            text=templ.deliv_page_float_text(e), 
             reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=last_page).pack())
         )
 
@@ -290,8 +333,8 @@ async def callback_enter_messages_page(callback: CallbackQuery, state: FSMContex
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_mess_float_text(
-            "📃 Введите номер страницы для перехода ↓"
+        text=templ.mess_float_text(
+            "📃 Введите номер страницы для перехода:"
         ), 
         reply_markup=templ.back_kb(calls.MessagesPagination(page=last_page).pack())
     )
@@ -312,9 +355,9 @@ async def callback_enter_message_text(callback: CallbackQuery, state: FSMContext
         await throw_float_message(
             state=state, 
             message=callback.message, 
-            text=templ.settings_mess_float_text(
-                f"💬 Введите новый <b>текст сообщения</b> <code>{message_id}</code> ↓"
-                f"\n・ Текущее: <blockquote>{mess_text}</blockquote>"
+            text=templ.mess_float_text(
+                f"💬 Введите новый <b>текст сообщения</b> <code>{message_id}</code>:"
+                f"\n\n・ <b>Текущее:</b> <blockquote>{mess_text}</blockquote>"
             ), 
             reply_markup=templ.back_kb(calls.MessagesPagination(page=last_page).pack())
         )
@@ -324,24 +367,24 @@ async def callback_enter_message_text(callback: CallbackQuery, state: FSMContext
         await throw_float_message(
             state=state, 
             message=callback.message, 
-            text=templ.settings_mess_float_text(e), 
+            text=templ.mess_float_text(e), 
             reply_markup=templ.back_kb(calls.MessagesPagination(page=last_page).pack())
         )
 
 
-@router.callback_query(F.data == "enter_tg_logging_chat_id")
-async def callback_enter_tg_logging_chat_id(callback: CallbackQuery, state: FSMContext):
-    await state.set_state(states.SettingsStates.waiting_for_tg_logging_chat_id)
+@router.callback_query(F.data == "enter_notifications_chat_id")
+async def callback_enter_notifications_chat_id(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(states.SettingsStates.waiting_for_notifications_chat_id)
     config = sett.get("config")
-    tg_logging_chat_id = config["funpay"]["tg_logging"]["chat_id"] or "✔️ Ваш чат с ботом"
+    notifications_chat_id = config["funpay"]["notifications"]["chat_id"] or "Текущий"
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_logger_float_text(
-            "💬 Введите новый <b>ID чата для логов</b> (вы можете указать как цифровой ID, так и юзернейм чата) ↓"
-            f"\n・ Текущее: <code>{tg_logging_chat_id}</code>"
+        text=templ.notifications_float_text(
+            "💬 Введите новый <b>ID чата для логов</b> (вы можете указать как цифровой ID, так и юзернейм чата):"
+            f"\n\n・ <b>Текущее:</b> <code>{notifications_chat_id}</code>"
         ), 
-        reply_markup=templ.back_kb(calls.SettingsNavigation(to="logger").pack())
+        reply_markup=templ.back_kb(calls.MenuNavigation(to="notifications").pack())
     )
 
 
@@ -353,11 +396,11 @@ async def callback_enter_auto_tickets_orders_per_ticket(callback: CallbackQuery,
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_tickets_float_text(
-            "📋 Введите новое <b>кол-во заказов в одном тикете</b> ↓"
-            f"\n・ Текущее: <code>{auto_tickets_orders_per_ticket}</code>"
+        text=templ.tickets_float_text(
+            "📋 Введите новое <b>кол-во заказов в одном тикете</b>:"
+            f"\n\n・ <b>Текущее:</b> <code>{auto_tickets_orders_per_ticket}</code>"
         ), 
-        reply_markup=templ.back_kb(calls.SettingsNavigation(to="tickets").pack())
+        reply_markup=templ.back_kb(calls.MenuNavigation(to="tickets").pack())
     )
 
 
@@ -369,11 +412,11 @@ async def callback_enter_auto_tickets_min_order_age(callback: CallbackQuery, sta
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_tickets_float_text(
-            "👴 Введите новый <b>минимальный возраст заказов</b> (в секундах) ↓"
-            f"\n・ Текущее: <code>{auto_tickets_min_order_age}</code>"
+        text=templ.tickets_float_text(
+            "👴 Введите новый <b>мин. возраст заказов</b> (в секундах):"
+            f"\n\n・ <b>Текущее:</b> <code>{auto_tickets_min_order_age}</code> сек."
         ), 
-        reply_markup=templ.back_kb(calls.SettingsNavigation(to="tickets").pack())
+        reply_markup=templ.back_kb(calls.MenuNavigation(to="tickets").pack())
     )
 
 
@@ -385,11 +428,11 @@ async def callback_enter_enter_auto_tickets_create_interval(callback: CallbackQu
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_tickets_float_text(
-            "⏱️ Введите новый <b>интервал создания тикетов</b> (в секундах) ↓"
-            f"\n・ Текущее: <code>{auto_tickets_create_interval}</code>"
+        text=templ.tickets_float_text(
+            "⏱️ Введите новый <b>интервал создания тикетов</b> (в секундах):"
+            f"\n\n・ <b>Текущее:</b> <code>{auto_tickets_create_interval}</code> сек."
         ), 
-        reply_markup=templ.back_kb(calls.SettingsNavigation(to="tickets").pack())
+        reply_markup=templ.back_kb(calls.MenuNavigation(to="tickets").pack())
     )
 
 
@@ -402,8 +445,23 @@ async def callback_enter_logs_max_file_size(callback: CallbackQuery, state: FSMC
         state=state, 
         message=callback.message, 
         text=templ.logs_float_text(
-            f"📄 Введите новый <b>максимальный размер файла логов</b> (в мегабайтах) ↓"
-            f"\n・ Текущее: <b>{max_file_size} MB</b>"
+            f"📄 Введите новый <b>максимальный размер файла логов</b> (в мегабайтах):"
+            f"\n\n・ <b>Текущее:</b> <b>{max_file_size} MB</b>"
         ), 
         reply_markup=templ.back_kb(calls.MenuNavigation(to="logs").pack())
+    )
+
+
+@router.callback_query(F.data == "enter_current_password")
+async def callback_enter_current_password(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(states.SystemStates.waiting_for_current_password)
+
+    data = await state.get_data()
+    last_page = data.get("last_page", 0)
+    
+    await throw_float_message(
+        state=state,
+        message=callback.message,
+        text=templ.signed_users_float_text("🔒 Введите <b>текущий ключ-пароль</b> от бота:"),
+        reply_markup=templ.back_kb(calls.SignedUsersPagination(page=last_page).pack())
     )

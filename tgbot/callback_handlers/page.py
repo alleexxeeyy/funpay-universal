@@ -22,8 +22,8 @@ async def callback_custom_command_page(callback: CallbackQuery, callback_data: c
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_comm_page_text(command), 
-        reply_markup=templ.settings_comm_page_kb(command, last_page), 
+        text=templ.comm_page_text(command), 
+        reply_markup=templ.comm_page_kb(command, last_page), 
         callback=callback
     )
 
@@ -47,8 +47,8 @@ async def callback_auto_delivery_page(callback: CallbackQuery, callback_data: ca
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_deliv_page_text(lot_id, lot), 
-        reply_markup=templ.settings_deliv_page_kb(lot_id, lot, last_page), 
+        text=templ.deliv_page_text(lot_id, lot), 
+        reply_markup=templ.deliv_page_kb(lot_id, lot, last_page), 
         callback=callback
     )
     
@@ -65,8 +65,8 @@ async def callback_message_page(callback: CallbackQuery, callback_data: calls.Me
     await throw_float_message(
         state=state, 
         message=callback.message, 
-        text=templ.settings_mess_page_text(message_id), 
-        reply_markup=templ.settings_mess_page_kb(message_id, last_page), 
+        text=templ.mess_page_text(message_id), 
+        reply_markup=templ.mess_page_kb(message_id, last_page), 
         callback=callback
     )
 

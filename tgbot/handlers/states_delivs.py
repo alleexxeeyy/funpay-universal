@@ -23,15 +23,15 @@ async def handler_waiting_for_auto_deliveries_page(message: types.Message, state
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_delivs_float_text(f"📃 Введите номер страницы для перехода ↓"),
-            reply_markup=templ.settings_delivs_kb(int(message.text)-1)
+            text=templ.delivs_float_text(f"📃 Введите номер страницы для перехода ↓"),
+            reply_markup=templ.delivs_kb(int(message.text)-1)
         )
     except Exception as e:
         data = await state.get_data()
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_delivs_float_text(e), 
+            text=templ.delivs_float_text(e), 
             reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=data.get("last_page", 0)).pack())
         )
         
@@ -67,7 +67,7 @@ async def handler_waiting_for_new_auto_delivery_lot_link(message: types.Message,
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_new_deliv_float_text(f"💬 Введите <b>сообщение авто-выдачи</b>, которое будет писаться после покупки лота ↓"),
+            text=templ.new_deliv_float_text(f"💬 Введите <b>сообщение авто-выдачи</b>, которое будет писаться после покупки лота ↓"),
             reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=data.get("last_page", 0)).pack())
         )
     except Exception as e:
@@ -75,7 +75,7 @@ async def handler_waiting_for_new_auto_delivery_lot_link(message: types.Message,
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_new_deliv_float_text(e), 
+            text=templ.new_deliv_float_text(e), 
             reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=data.get("last_page", 0)).pack())
         )
         
@@ -100,9 +100,9 @@ async def handler_waiting_for_new_auto_delivery_message(message: types.Message, 
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_new_deliv_float_text(
+            text=templ.new_deliv_float_text(
                 f"✔️ Подтвердите <b>добавление авто-выдачи:</b>"
-                f'\n<b>· Лот:</b> <a href="https://funpay.com/lots/offer?id={lot_id}">{lot_title}</a>'
+                f'\n\n<b>· Лот:</b> <a href="https://funpay.com/lots/offer?id={lot_id}">{lot_title}</a>'
                 f"\n<b>· Сообщение:</b> {msg}"
             ),
             reply_markup=templ.confirm_kb(
@@ -116,7 +116,7 @@ async def handler_waiting_for_new_auto_delivery_message(message: types.Message, 
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_new_deliv_float_text(e), 
+            text=templ.new_deliv_float_text(e), 
             reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=last_page).pack())
         )
 
@@ -150,7 +150,7 @@ async def handler_waiting_for_auto_delivery_lot_link(message: types.Message, sta
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_deliv_page_float_text(
+            text=templ.deliv_page_float_text(
                 f"✅ <b>Лот авто-выдачи</b> был успешно изменён на: "
                 f'<a href="https://funpay.com/lots/offer?id={lot_id}">{lot.title_ru}</a>'
             ),
@@ -161,7 +161,7 @@ async def handler_waiting_for_auto_delivery_lot_link(message: types.Message, sta
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_deliv_page_float_text(e), 
+            text=templ.deliv_page_float_text(e), 
             reply_markup=templ.back_kb(calls.AutoDeliveryPage(lot_id=data.get("auto_delivery_lot_id")).pack())
         )
 
@@ -182,7 +182,7 @@ async def handler_waiting_for_auto_delivery_message(message: types.Message, stat
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_deliv_page_float_text(f"✅ <b>Сообщение авто-выдачи</b> лота <code>{data['auto_delivery_lot_id']}</code> было успешно изменено на: <blockquote>{message.text.strip()}</blockquote>"),
+            text=templ.deliv_page_float_text(f"✅ <b>Сообщение авто-выдачи</b> лота <code>{data['auto_delivery_lot_id']}</code> было успешно изменено на: <blockquote>{message.text.strip()}</blockquote>"),
             reply_markup=templ.back_kb(calls.AutoDeliveryPage(lot_id=data.get("auto_delivery_lot_id")).pack())
         )
     except Exception as e:
@@ -190,6 +190,6 @@ async def handler_waiting_for_auto_delivery_message(message: types.Message, stat
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.settings_deliv_page_float_text(e), 
+            text=templ.deliv_page_float_text(e), 
             reply_markup=templ.back_kb(calls.AutoDeliveryPage(lot_id=data.get("auto_delivery_lot_id")).pack())
         )

@@ -30,25 +30,16 @@ CONFIG = SettingsFile(
                 "enabled": True,
                 "value": "©️ 𝗙𝘂𝗻𝗣𝗮𝘆 𝗨𝗻𝗶𝘃𝗲𝗿𝘀𝗮𝗹",
             },
-            "custom_commands": {
-                "enabled": True
-            },
-            "auto_deliveries": {
-                "enabled": True
-            },
-            "auto_raise_lots": {
-                "enabled": True
-            },
-            "auto_review_replies": {
-                "enabled": True
-            },
+            "auto_raise_lots": True,
+            "auto_review_replies": True,
             "auto_tickets": {
                 "enabled": True,
                 "orders_per_ticket": 25,
                 "min_order_age": 86400,
-                "interval": 86400
+                "interval": 86400,
+                "last_time": ""
             },
-            "tg_logging": {
+            "notifications": {
                 "enabled": True,
                 "chat_id": "",
                 "events": {
@@ -56,7 +47,8 @@ CONFIG = SettingsFile(
                     "new_system_message": True,
                     "new_order": True,
                     "order_status_changed": True,
-                    "new_review": True
+                    "new_review": True,
+                    "ticket_created": True
                 }
             }
         },
@@ -71,7 +63,7 @@ CONFIG = SettingsFile(
             }
         },
         "logs": {
-            "max_file_size": 200
+            "max_file_size": 300
         }
     }
 )
@@ -85,22 +77,13 @@ MESSAGES = SettingsFile(
             "text": [
                 "👋 Привет, {username}, я бот-помощник 𝗙𝘂𝗻𝗣𝗮𝘆 𝗨𝗻𝗶𝘃𝗲𝗿𝘀𝗮𝗹",
                 "",
-                "💡 Если вы хотите поговорить с продавцом, напишите команду !продавец, чтобы я пригласил его в этот диалог",
-                "",
-                "Чтобы узнать все мои команды, напишите !команды"
+                "💡 Если вы хотите поговорить с продавцом, напишите команду !продавец, чтобы я пригласил его в этот диалог"
             ]
         },
         "cmd_error": {
             "enabled": True,
             "text": [
                 "❌ При вводе команды произошла ошибка: {error}"
-            ]
-        },
-        "cmd_commands": {
-            "enabled": True,
-            "text": [
-                "🕹️ Основные команды:",
-                "・ !продавец — уведомить и позвать продавца в этот чат"
             ]
         },
         "cmd_seller": {
@@ -153,7 +136,13 @@ AUTO_DELIVERIES = SettingsFile(
     need_restore=False,
     default={}
 )
-DATA = [CONFIG, MESSAGES, CUSTOM_COMMANDS, AUTO_DELIVERIES]
+FAST_REPLIES = SettingsFile(
+    name="fast_replies",
+    path="bot_settings/fast_replies.json",
+    need_restore=False,
+    default=[]
+)
+DATA = [CONFIG, MESSAGES, CUSTOM_COMMANDS, AUTO_DELIVERIES, FAST_REPLIES]
 
 
 def validate_config(config, default):
