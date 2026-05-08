@@ -2,7 +2,6 @@ from aiogram import Router
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
-from playerokapi.enums import ItemDealStatuses
 from settings import Settings as sett
 
 from .. import templates as templ
