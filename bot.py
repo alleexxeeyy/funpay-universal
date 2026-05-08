@@ -32,7 +32,14 @@ except RuntimeError:
     main_loop = asyncio.new_event_loop()
     asyncio.set_event_loop(main_loop)
 
-init_colorama()
+# На Linux без TTY (systemd) colorama падает при init() с wrap=True (по умолчанию),
+# потому что пытается использовать Windows WinTerm объект которого нет.
+# Если TTY есть — обычный init, если нет — отключаем wrap.
+if sys.stdout.isatty():
+    init_colorama()
+else:
+    init_colorama(strip=True, convert=False)
+    
 init_main_loop(main_loop)
 
 

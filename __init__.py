@@ -1,5 +1,5 @@
 from colorama import Fore
 
-VERSION = "1.11.2"
+VERSION = "1.11.3"
 SKIP_UPDATES = False
 ACCENT_COLOR = Fore.CYAN

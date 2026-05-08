@@ -175,6 +175,11 @@ class _FakeWinTerm:
     def reset_all(self, *a, **k): pass
     def style(self, *a, **k): pass
 _a32.winterm = _FakeWinTerm()
+_orig_osc = _a32.AnsiToWin32.convert_osc
+def _safe_osc(self, text):
+    try: return _orig_osc(self, text)
+    except (AttributeError, TypeError): return text
+_a32.AnsiToWin32.convert_osc = _safe_osc
 import colorama
 colorama.init()
 import runpy, sys
@@ -340,6 +345,11 @@ class _FakeWinTerm:
     def reset_all(self, *a, **k): pass
     def style(self, *a, **k): pass
 _a32.winterm = _FakeWinTerm()
+_orig_osc = _a32.AnsiToWin32.convert_osc
+def _safe_osc(self, text):
+    try: return _orig_osc(self, text)
+    except (AttributeError, TypeError): return text
+_a32.AnsiToWin32.convert_osc = _safe_osc
 import colorama; colorama.init()
 import sys; sys.path.insert(0, '/root/funpayuniversal')
 from utils import configure_config

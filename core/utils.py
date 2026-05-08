@@ -11,15 +11,10 @@ import random
 import time
 import asyncio
 import re
-import string
 import requests
 from colorlog import ColoredFormatter
-from colorama import Fore
 from threading import Thread
 from logging import getLogger
-
-from FunPayAPI.account import Account
-from settings import Settings as sett
 
 
 logger = getLogger("universal.utils")
