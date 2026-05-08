@@ -146,7 +146,7 @@ def is_password_valid(password: str) -> bool:
     return True
 
 
-def check_and_configure_config():
+def configure_config():
     config = sett.get("config")
 
     needs_setup = (
@@ -307,7 +307,7 @@ def check_and_configure_config():
         config["funpay"]["api"]["user_agent"] = ""
         config["funpay"]["api"]["proxy"] = ""
         sett.set("config", config)
-        return check_and_configure_config()
+        return configure_config()
     elif config["funpay"]["api"]["proxy"]:
         logger.info(f"{Fore.LIGHTYELLOW_EX}FunPay прокси успешно работает.")
 
@@ -320,7 +320,7 @@ def check_and_configure_config():
         config["funpay"]["api"]["user_agent"] = ""
         config["funpay"]["api"]["proxy"] = ""
         sett.set("config", config)
-        return check_and_configure_config()
+        return configure_config()
     else:
         logger.info(f"{Fore.LIGHTYELLOW_EX}FunPay аккаунт успешно авторизован.")
 
@@ -333,7 +333,7 @@ def check_and_configure_config():
         config["funpay"]["api"]["user_agent"] = ""
         config["funpay"]["api"]["proxy"] = ""
         sett.set("config", config)
-        return check_and_configure_config()
+        return configure_config()
 
     if config["telegram"]["api"]["proxy"] and not is_proxy_working(
         config["telegram"]["api"]["proxy"], 
@@ -346,7 +346,7 @@ def check_and_configure_config():
         config["telegram"]["api"]["token"] = ""
         config["telegram"]["api"]["proxy"] = ""
         sett.set("config", config)
-        return check_and_configure_config()
+        return configure_config()
     elif config["telegram"]["api"]["proxy"]:
         logger.info(f"{Fore.LIGHTYELLOW_EX}Telegram прокси успешно работает.")
 
@@ -358,7 +358,7 @@ def check_and_configure_config():
         config["telegram"]["api"]["token"] = ""
         config["telegram"]["api"]["proxy"] = ""
         sett.set("config", config)
-        return check_and_configure_config()
+        return configure_config()
     else:
         logger.info(f"{Fore.LIGHTYELLOW_EX}Telegram бот успешно работает.")
 

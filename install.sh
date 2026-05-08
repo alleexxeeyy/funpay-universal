@@ -43,7 +43,7 @@ clear
 echo ""
 echo -e "  ${CYAN}${BOLD}███████╗██████╗  ${NC}"
 echo -e "  ${CYAN}${BOLD}██╔════╝██╔══██╗ ${NC}  ${WHITE}${BOLD}FunPay Universal${NC}"
-echo -e "  ${CYAN}${BOLD}█████╗  ██████╔╝ ${NC}  ${GRAY}Установщик v1.0${NC}"
+echo -e "  ${CYAN}${BOLD}█████╗  ██████╔╝ ${NC}  ${GRAY}Установщик${NC}"
 echo -e "  ${CYAN}${BOLD}██╔══╝  ██╔═══╝  ${NC}"
 echo -e "  ${CYAN}${BOLD}██║     ██║      ${NC}  ${GRAY}github.com/alleexxeeyy/funpay-universal${NC}"
 echo -e "  ${CYAN}${BOLD}╚═╝     ╚═╝      ${NC}"
@@ -76,7 +76,7 @@ echo ""
 echo -e "  ${WHITE}Откуда установить бота?${NC}"
 echo ""
 echo -e "  ${CYAN}${BOLD}1${NC}  ${WHITE}Скачать с GitHub${NC}  ${GRAY}(рекомендуется)${NC}"
-echo -e "  ${CYAN}${BOLD}2${NC}  ${WHITE}Использовать файлы с сервера${NC}  ${GRAY}(уже загружены вручную)${NC}"
+echo -e "  ${CYAN}${BOLD}2${NC}  ${WHITE}Из локальных файлов${NC}  ${GRAY}(бот уже загружен вручную)${NC}"
 echo ""
 read -rp "$(echo -e "  ${CYAN}›${NC} Ваш выбор [1/2]: ")" SOURCE_CHOICE
 

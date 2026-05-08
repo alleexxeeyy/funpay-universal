@@ -21,7 +21,7 @@ from core.modules import (
 )
 from core.handlers import call_bot_event
 from updater import check_for_updates
-from utils import check_and_configure_config
+from utils import configure_config
 
 
 logger = getLogger("universal")
@@ -83,7 +83,7 @@ if __name__ == "__main__":
         )
         
         check_for_updates()
-        check_and_configure_config()
+        configure_config()
 
         modules = load_modules()
         set_modules(modules)
