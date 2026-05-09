@@ -327,7 +327,7 @@ class FunPayBot:
             and self.config["funpay"]["notifications"]["events"]["new_review"]
         ):
             self.log_to_tg(
-                log_text(f'📞 Создан <a href="https://playerok.com/products/{url}">тикет</a> на закрытие {len(order_ids)} заказов'),
+                log_text(f'📞 Создан <a href="{url}">тикет</a> на закрытие {len(order_ids)} заказов'),
                 destroy_kb()
             )
 
@@ -610,7 +610,7 @@ class FunPayBot:
             and self.config["funpay"]["notifications"]["events"]["order_status_changed"]
         ):
             self.log_to_tg(
-                log_text(f'🔄️ Статус заказа <a href="https://playerok.com/deal/{event.order.id}/">сделки</a> изменился на «{status_frmtd}»'),
+                log_text(f'🔄️ Статус заказа <a href="https://funpay.com/orders/{event.order.id}/">сделки</a> изменился на «{status_frmtd}»'),
                 destroy_kb()
             )
 
