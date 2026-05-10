@@ -52,3 +52,11 @@ def modules_kb(page: int = 0):
     
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     return kb
+
+
+def modules_text(placeholder):
+    txt = textwrap.dedent(f"""
+        <b>🔌 Модули</b>
+        \n{placeholder}
+    """)
+    return txt

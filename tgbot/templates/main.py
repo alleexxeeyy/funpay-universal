@@ -99,7 +99,7 @@ def log_new_review_kb(chat_name: str, order_id: str):
 
 def sign_text(placeholder: str):
     txt = textwrap.dedent(f"""
-        🔐 <b>Авторизация</b>
+        <b>🔐 Авторизация</b>
         \n{placeholder}
     """)
     return txt
@@ -107,6 +107,6 @@ def sign_text(placeholder: str):
 
 def call_seller_text(username: str, chat_id: str):
     txt = textwrap.dedent(f"""
-        ❗ <b>{username}</b> вызывает вас в <a href="https://playerok.com/chats/{chat_id}">чат</a>
+        ❗ <b>{username}</b> вызывает вас в <a href="https://funpay.com/chat/?node={chat_id}">чат</a>
     """)
     return txt
