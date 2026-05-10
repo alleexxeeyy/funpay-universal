@@ -13,3 +13,4 @@ requests==2.32.4
 requests[socks]
 requests-toolbelt==0.10.1
 pytz
+rarfile==4.2

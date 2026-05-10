@@ -47,6 +47,7 @@ def modules_kb(page: int = 0):
 
         rows.append(buttons_row)
 
+    rows.append([InlineKeyboardButton(text="➕ Импортировать", callback_data="send_module_file")])
     rows.append([InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.MenuNavigation(to="default").pack())])
     
     kb = InlineKeyboardMarkup(inline_keyboard=rows)

@@ -205,6 +205,22 @@ async def callback_add_new_auto_delivery(callback: CallbackQuery, state: FSMCont
         )
 
 
+@router.callback_query(F.data == "send_module_file")
+async def callback_send_module_file(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    last_page = data.get("last_page", 0)
+    
+    await state.set_state(states.SettingsStates.waiting_for_module_file)
+    await throw_float_message(
+        state=state,
+        message=callback.message,
+        text=templ.modules_float_text(
+            "🗂 Отправьте <b>архив</b> с модулем/модулями (форматы: zip, rar)"
+        ),
+        reply_markup=templ.back_kb(calls.ModulesPagination(page=last_page).pack())
+    )
+
+
 @router.callback_query(F.data == "reload_module")
 async def callback_reload_module(callback: CallbackQuery, state: FSMContext):
     from core.modules import reload_module
