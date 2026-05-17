@@ -267,12 +267,6 @@ class FunPayBot:
         support_api = FunPaySupportAPI(self.account).get()
         logger.info(f"{Fore.WHITE}Создаю тикеты в тех. поддержку на закрытие заказов...")
 
-        def calculate_orders(all_orders, orders_per_ticket=25):
-            return [
-                all_orders[i:i+orders_per_ticket] 
-                for i in range(0, len(all_orders), orders_per_ticket)
-            ]
-
         all_order_ids: list[str] = []
         next_start_from = None
         while len(all_order_ids) < self.account.active_sales:
@@ -286,7 +280,8 @@ class FunPayBot:
                 break
             time.sleep(0.5)
         
-        order_ids = calculate_orders([id_ for id_ in all_order_ids], self.config["funpay"]["auto_tickets"]["orders_per_ticket"])[0]
+        per_ticket = self.config["funpay"]["auto_tickets"]["orders_per_ticket"]
+        order_ids = [id_ for id_ in all_order_ids][:per_ticket]
         resp = {}
         frmtd_order_ids = ", ".join(order_ids)
         
@@ -332,9 +327,9 @@ class FunPayBot:
             )
 
         next_time = last_time + timedelta(seconds=self.config["funpay"]["auto_tickets"]["interval"])
-        
         dm = next_time.strftime('%d.%m')
         hm = next_time.strftime('%H:%M')
+        
         logger.info(
             f"Следующая попытка будет "
             f"{Fore.LIGHTWHITE_EX}{dm}{Fore.WHITE} в {Fore.LIGHTWHITE_EX}{hm}"
@@ -610,7 +605,7 @@ class FunPayBot:
             and self.config["funpay"]["notifications"]["events"]["order_status_changed"]
         ):
             self.log_to_tg(
-                log_text(f'🔄️ Статус заказа <a href="https://funpay.com/orders/{event.order.id}/">сделки</a> изменился на «{status_frmtd}»'),
+                log_text(f'🔄️ Статус заказа <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a> изменился на «{status_frmtd}»'),
                 destroy_kb()
             )
 

@@ -187,6 +187,6 @@ class TelegramBot:
             await self.bot.send_message(
                 chat_id=chat_id, 
                 text=f'{text}\n<span class="tg-spoiler">Переключите чат логов на чат с ботом, чтобы отображалось меню с действиями</span>', 
-                reply_markup=None, 
+                reply_markup=templ.destroy_kb(), 
                 parse_mode="HTML"
             )

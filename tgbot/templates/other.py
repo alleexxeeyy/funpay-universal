@@ -9,9 +9,9 @@ from .. import callback_datas as calls
 def other_text():
     config = sett.get("config")
     
-    auto_raise_lots_enabled = "🟢 Включено" if config["funpay"]["auto_raise_lots"] else "🔴 Выключено"
-    auto_review_replies_enabled = "🟢 Включено" if config["funpay"]["auto_review_replies"] else "🔴 Выключено"
-    watermark_enabled = "🟢 Включено" if config["funpay"]["watermark"]["enabled"] else "🔴 Выключено"
+    auto_raise_lots_enabled = "✅" if config["funpay"]["auto_raise_lots"] else "❌"
+    auto_review_replies_enabled = "✅" if config["funpay"]["auto_review_replies"] else "❌"
+    watermark_enabled = "✅" if config["funpay"]["watermark"]["enabled"] else "❌"
     watermark_value = config["funpay"]["watermark"]["value"] or "❌ Не задано"
     
     txt = textwrap.dedent(f"""
@@ -29,9 +29,9 @@ def other_text():
 def other_kb():
     config = sett.get("config")
     
-    auto_raise_lots_enabled = "🟢 Включено" if config["funpay"]["auto_raise_lots"] else "🔴 Выключено"
-    auto_review_replies_enabled = "🟢 Включено" if config["funpay"]["auto_review_replies"] else "🔴 Выключено"
-    watermark_enabled = "🟢 Включено" if config["funpay"]["watermark"]["enabled"] else "🔴 Выключено"
+    auto_raise_lots_enabled = "✅" if config["funpay"]["auto_raise_lots"] else "❌"
+    auto_review_replies_enabled = "✅" if config["funpay"]["auto_review_replies"] else "❌"
+    watermark_enabled = "✅" if config["funpay"]["watermark"]["enabled"] else "❌"
     watermark_value = config["funpay"]["watermark"]["value"] or "❌ Не задано"
 
     rows = [

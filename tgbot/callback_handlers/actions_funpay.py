@@ -59,7 +59,7 @@ async def callback_fast_refund_order(callback: CallbackQuery, callback_data: cal
         order_id = callback_data.id
 
         from fpbot.funpaybot import get_funpay_bot as fpbot
-        fpbot().acc.refund(order_id)
+        fpbot().account.refund(order_id)
 
         await throw_float_message(
             state=state,

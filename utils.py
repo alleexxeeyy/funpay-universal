@@ -24,6 +24,16 @@ def get_event_next_time(last_time_iso, interval):
     )
 
 
+def get_tg_log_chats():
+    config = sett.get("config")
+    chat_id = config["funpay"]["notifications"]["chat_id"]
+
+    if not chat_id:
+        return config["telegram"]["bot"]["signed_users"]
+    else:
+        return [chat_id]
+
+
 def is_golden_key_valid(s: str) -> bool:
     pattern = r'^[a-z0-9]{32}$'
     return bool(re.match(pattern, s))
@@ -297,7 +307,7 @@ def configure_config():
             )
 
     logger.info("")
-
+    
     if config["funpay"]["api"]["proxy"] and not is_proxy_working(config["funpay"]["api"]["proxy"]):
         print(
             f"{Fore.LIGHTRED_EX}\nПохоже, что прокси для FunPay аккаунта не работает. "
@@ -361,6 +371,8 @@ def configure_config():
         return configure_config()
     else:
         logger.info(f"{Fore.LIGHTYELLOW_EX}Telegram бот успешно работает.")
+
+    logger.info("")
 
 
 def get_stats():
