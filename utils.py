@@ -4,7 +4,7 @@ import pytz
 import requests
 import string
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import Counter
 from colorama import Fore
 from logging import getLogger
@@ -32,6 +32,14 @@ def get_tg_log_chats():
         return config["telegram"]["bot"]["signed_users"]
     else:
         return [chat_id]
+    
+
+def github_str_to_dt(date_str: str) -> datetime:
+    return datetime.fromisoformat(
+        date_str.replace("Z", "+00:00")
+    ).replace(tzinfo=timezone.utc).astimezone(
+        pytz.timezone("Europe/Moscow")
+    )
 
 
 def is_golden_key_valid(s: str) -> bool:
@@ -53,7 +61,7 @@ def is_fp_account_working() -> bool:
             proxy=proxy
         ).get()
         return True
-    except Exception:
+    except:
         return False
 
 
@@ -107,7 +115,7 @@ def is_proxy_working(proxy: str, test_url="https://funpay.com", timeout=10) -> b
     try:
         response = requests.get(test_url, proxies=proxies, timeout=timeout)
         return response.status_code < 404
-    except Exception:
+    except:
         return False
 
 
@@ -138,7 +146,7 @@ def is_tg_bot_exists() -> bool:
         
         data = response.json()
         return data.get("ok", False) is True and data.get("result", {}).get("is_bot", False) is True
-    except Exception:
+    except:
         return False
     
 

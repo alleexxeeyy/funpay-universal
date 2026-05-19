@@ -62,6 +62,10 @@ CONFIG = SettingsFile(
                 "signed_users": []
             }
         },
+        "updates": {
+            "auto_update": True,
+            "notify": True
+        },
         "logs": {
             "max_file_size": 300
         }

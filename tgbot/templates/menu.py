@@ -41,10 +41,13 @@ def menu_kb():
         ],
         [InlineKeyboardButton(text="━━━  СИСТЕМА  ━━━", callback_data="null_answer")],
         [
+        InlineKeyboardButton(text="🔃 Обновления", callback_data=calls.MenuNavigation(to="updates").pack()),
         InlineKeyboardButton(text="🗒️ Логи", callback_data=calls.MenuNavigation(to="logs").pack()),
-        InlineKeyboardButton(text="🔌 Модули", callback_data=calls.ModulesPagination(page=0).pack()),
         ],
-        [InlineKeyboardButton(text="🔑 Авторизации", callback_data=calls.SignedUsersPagination(page=0).pack())],
+        [
+        InlineKeyboardButton(text="🔌 Модули", callback_data=calls.ModulesPagination(page=0).pack()),
+        InlineKeyboardButton(text="🔑 Авторизации", callback_data=calls.SignedUsersPagination(page=0).pack())
+        ],
         [InlineKeyboardButton(text="━━━  ССЫЛКИ  ━━━", callback_data="null_answer")],
         [
         InlineKeyboardButton(text="📢 Новости", url="https://t.me/alexeyproduction"), 

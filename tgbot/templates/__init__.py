@@ -5,6 +5,7 @@ from .module_page import *
 from .profile import *
 from .stats import *
 from .logs import *
+from .updates import *
 
 from .auth import *
 from .comms import *
