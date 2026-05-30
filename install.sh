@@ -80,31 +80,31 @@ case "$SOURCE_CHOICE" in
   1)
     echo ""
     info "Скачиваю последний релиз с GitHub..."
-    LATEST_URL=$(curl -s "https://api.github.com/repos/alleexxeeyy/playerok-universal/releases/latest" | grep '"zipball_url"' | cut -d'"' -f4)
+    LATEST_URL=$(curl -s "https://api.github.com/repos/alleexxeeyy/funpay-universal/releases/latest" | grep '"zipball_url"' | cut -d'"' -f4)
     if [[ -z "$LATEST_URL" ]]; then
       # Нет релизов — берём архив main ветки
-      LATEST_URL="https://github.com/alleexxeeyy/playerok-universal/archive/refs/heads/main.zip"
+      LATEST_URL="https://github.com/alleexxeeyy/funpay-universal/archive/refs/heads/main.zip"
       info "Релизов нет — скачиваю main ветку..."
     fi
     curl -sL "$LATEST_URL" -o /tmp/bot_update.zip
     # Сохраняем конфиг если он есть
-    if [[ -d "/root/playerokuniversal/bot_settings" ]]; then
-      cp -r "/root/playerokuniversal/bot_settings" /tmp/bot_settings_backup
+    if [[ -d "/root/funpayuniversal/bot_settings" ]]; then
+      cp -r "/root/funpayuniversal/bot_settings" /tmp/bot_settings_backup
     fi
     # Распаковываем во временную папку
     rm -rf /tmp/bot_extract
     unzip -q /tmp/bot_update.zip -d /tmp/bot_extract
     EXTRACTED=$(ls /tmp/bot_extract | head -1)
     # Переносим файлы, сохраняя bot_settings
-    rm -rf "/root/playerokuniversal"
-    mv "/tmp/bot_extract/$EXTRACTED" "/root/playerokuniversal"
+    rm -rf "/root/funpayuniversal"
+    mv "/tmp/bot_extract/$EXTRACTED" "/root/funpayuniversal"
     # Восстанавливаем конфиг
     if [[ -d "/tmp/bot_settings_backup" ]]; then
-      cp -r /tmp/bot_settings_backup "/root/playerokuniversal/bot_settings"
+      cp -r /tmp/bot_settings_backup "/root/funpayuniversal/bot_settings"
       rm -rf /tmp/bot_settings_backup
     fi
     rm -f /tmp/bot_update.zip
-    success "Бот скачан и установлен в /root/playerokuniversal"
+    success "Бот скачан и установлен в /root/funpayuniversal"
     ;;
   2)
     echo ""
