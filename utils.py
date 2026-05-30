@@ -17,6 +17,10 @@ from data import Data as data
 logger = getLogger("universal")
 
 
+def escape_html(text: str) -> str:
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def get_event_next_time(last_time_iso, interval):
     return (
         datetime.fromisoformat(last_time_iso) + timedelta(seconds=interval)
