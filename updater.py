@@ -129,7 +129,6 @@ def check_for_updates():
 
 
 async def check_new_releases_task(interval=180):
-    
     while True:
         await asyncio.sleep(interval)
         try:
@@ -150,10 +149,9 @@ async def check_new_releases_task(interval=180):
             if not config["updates"]["notify"]:
                 continue
 
-            bot = tgbot().bot
             for user_id in config["telegram"]["bot"]["signed_users"]: 
                 asyncio.run_coroutine_threadsafe(
-                    bot.send_message(
+                    tgbot().bot.send_message(
                         chat_id=user_id,
                         text=new_release_text(release),
                         reply_markup=new_release_kb(),

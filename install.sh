@@ -9,7 +9,7 @@ set -e
 BOT_NAME="funpayuniversal"
 BOT_DIR="/root/funpayuniversal"
 BOT_FILE="bot.py"
-REPO_URL="https://github.com/alleexxeeyy/funpay-universal"
+REPO="alleexxeeyy/funpay-universal"
 SERVICE_FILE="/etc/systemd/system/${BOT_NAME}.service"
 PYTHON="python3.12"
 CMD="fpuniversal"
@@ -55,20 +55,16 @@ if [[ $EUID -ne 0 ]]; then
   error "Запустите скрипт от root: sudo bash install.sh"
 fi
 
-# ── 1. Обновление системы ────────────────────────────────────ы
+# ── 1. Обновление системы ────────────────────────────────────
 step "Подготовка системы"
 info "Обновление списка пакетов..."
 apt-get update -qq || true
 success "Система обновлена"
 
-# ── 2. Установка git ─────────────────────────────────────────
-info "Проверка git..."
-if ! command -v git &>/dev/null; then
-  apt-get install -y git -qq
-  success "git установлен"
-else
-  success "git уже установлен"
-fi
+# ── 2. Установка curl/unzip ──────────────────────────────────
+info "Проверка curl и unzip..."
+apt-get install -y curl unzip -qq
+success "curl и unzip готовы"
 
 # ── 3. Источник файлов бота ──────────────────────────────────
 step "Источник установки"
@@ -76,24 +72,39 @@ echo ""
 echo -e "  ${WHITE}Откуда установить бота?${NC}"
 echo ""
 echo -e "  ${CYAN}${BOLD}1${NC}  ${WHITE}Скачать с GitHub${NC}  ${GRAY}(рекомендуется)${NC}"
-echo -e "  ${CYAN}${BOLD}2${NC}  ${WHITE}Использовать локальные файлы${NC}  ${GRAY}(бот уже загружен)${NC}"
+echo -e "  ${CYAN}${BOLD}2${NC}  ${WHITE}Использовать локальные файлы${NC}  ${GRAY}(бот уже загружен вручную)${NC}"
 echo ""
 read -rp "$(echo -e "  ${CYAN}›${NC} Ваш выбор [1/2]: ")" SOURCE_CHOICE
 
 case "$SOURCE_CHOICE" in
   1)
     echo ""
-    if [[ -d "$BOT_DIR/.git" ]]; then
-      info "Репозиторий найден — получаю обновления..."
-      cd "$BOT_DIR" && git pull -q
-      success "Репозиторий обновлён до последней версии"
-    elif [[ -d "$BOT_DIR" ]]; then
-      error "Папка $BOT_DIR существует, но не является git-репозиторием.\n     Удалите её: rm -rf $BOT_DIR — и запустите снова."
-    else
-      info "Клонирование репозитория..."
-      git clone -q "$REPO_URL" "$BOT_DIR"
-      success "Репозиторий скачан в $BOT_DIR"
+    info "Скачиваю последний релиз с GitHub..."
+    LATEST_URL=$(curl -s "https://api.github.com/repos/alleexxeeyy/playerok-universal/releases/latest" | grep '"zipball_url"' | cut -d'"' -f4)
+    if [[ -z "$LATEST_URL" ]]; then
+      # Нет релизов — берём архив main ветки
+      LATEST_URL="https://github.com/alleexxeeyy/playerok-universal/archive/refs/heads/main.zip"
+      info "Релизов нет — скачиваю main ветку..."
     fi
+    curl -sL "$LATEST_URL" -o /tmp/bot_update.zip
+    # Сохраняем конфиг если он есть
+    if [[ -d "/root/playerokuniversal/bot_settings" ]]; then
+      cp -r "/root/playerokuniversal/bot_settings" /tmp/bot_settings_backup
+    fi
+    # Распаковываем во временную папку
+    rm -rf /tmp/bot_extract
+    unzip -q /tmp/bot_update.zip -d /tmp/bot_extract
+    EXTRACTED=$(ls /tmp/bot_extract | head -1)
+    # Переносим файлы, сохраняя bot_settings
+    rm -rf "/root/playerokuniversal"
+    mv "/tmp/bot_extract/$EXTRACTED" "/root/playerokuniversal"
+    # Восстанавливаем конфиг
+    if [[ -d "/tmp/bot_settings_backup" ]]; then
+      cp -r /tmp/bot_settings_backup "/root/playerokuniversal/bot_settings"
+      rm -rf /tmp/bot_settings_backup
+    fi
+    rm -f /tmp/bot_update.zip
+    success "Бот скачан и установлен в /root/playerokuniversal"
     ;;
   2)
     echo ""
@@ -125,10 +136,18 @@ step "Python 3.12"
 info "Проверка Python 3.12..."
 if ! command -v python3.12 &>/dev/null; then
   info "Устанавливаю Python 3.12..."
-  apt-get install -y software-properties-common -qq
-  add-apt-repository -y ppa:deadsnakes/ppa > /dev/null 2>&1
-  apt-get update -qq
-  apt-get install -y python3.12 python3.12-venv python3.12-distutils python3.12-dev -qq
+  # Определяем версию Ubuntu
+  UBUNTU_VER=$(lsb_release -rs 2>/dev/null | cut -d'.' -f1 || echo "0")
+  if [[ "$UBUNTU_VER" -ge 24 ]]; then
+    # Ubuntu 24+: python3.12 есть в стандартных репах
+    apt-get install -y python3.12 python3.12-venv -qq
+  else
+    # Ubuntu 22 и старше: нужен deadsnakes ppa
+    apt-get install -y software-properties-common -qq
+    add-apt-repository -y ppa:deadsnakes/ppa > /dev/null 2>&1
+    apt-get update -qq
+    apt-get install -y python3.12 python3.12-venv -qq
+  fi
   success "Python 3.12 установлен"
 else
   success "Python $(python3.12 --version | cut -d' ' -f2) уже установлен"
