@@ -462,11 +462,12 @@ class FunPayBot:
     async def _on_new_review(self, event: NewMessageEvent):
         if event.message.author == self.account.username:
             return
+        
         review_order_id = event.message.text.split(' ')[-1].replace('#', '').replace('.', '')
         order = self.account.get_order(review_order_id)
         review = order.review
         
-        self.log_new_review(order.review)
+        self.log_new_review(review)
         if (
             self.config["funpay"]["notifications"]["enabled"] 
             and self.config["funpay"]["notifications"]["events"]["new_review"]
@@ -482,6 +483,11 @@ class FunPayBot:
                 log_new_review_kb(event.message.chat_name, review_order_id)
             )
 
+        order_title = order.full_description
+        if not order_title:
+            short_order = self.account.get_order_shortcut(review_order_id)
+            order_title = short_order.description
+
         if (
             order.buyer_id != self.account.id
             and self.config["funpay"]["auto_review_replies"]
@@ -490,7 +496,7 @@ class FunPayBot:
                 order_id=review_order_id, 
                 text=self.msg("order_review_reply", 
                     review_date=datetime.now().strftime("%d.%m.%Y"), 
-                    order_title=order.short_description or "?", 
+                    order_title=order_title or "?", 
                     order_amount=order.amount or "?", 
                     order_price=order.sum or "?"
                 )
@@ -499,6 +505,7 @@ class FunPayBot:
     async def _on_new_message(self, event: NewMessageEvent):
         if event.message.type is MessageTypes.NEW_FEEDBACK:
             return await FunPayBot._on_new_review(self, event)
+        
         self.log_new_message(event.message)
 
         if event.message.author == self.account.username:
