@@ -460,12 +460,12 @@ class FunPayBot:
         Thread(target=create_ticket_loop, daemon=True).start()
     
     async def _on_new_review(self, event: NewMessageEvent):
-        if event.message.author == self.account.username:
-            return
-        
         review_order_id = event.message.text.split(' ')[-1].replace('#', '').replace('.', '')
         order = self.account.get_order(review_order_id)
         review = order.review
+
+        if review.author == self.account.id:
+            return
         
         self.log_new_review(review)
         if (
