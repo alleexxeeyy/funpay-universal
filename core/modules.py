@@ -200,7 +200,7 @@ def load_modules() -> list[Module]:
                 if hasattr(module, "FUNPAY_EVENT_HANDLERS"):
                     register_funpay_event_handlers(module.FUNPAY_EVENT_HANDLERS)
                 if hasattr(module, "TELEGRAM_BOT_ROUTERS"):
-                    telegram_bot_routers.extend(module.TELEGRAM_BOT_ROUTERS)
+                    telegram_bot_routers = module.TELEGRAM_BOT_ROUTERS
                 
                 module_data = Module(
                     uuid.uuid4(),
@@ -213,8 +213,8 @@ def load_modules() -> list[Module]:
                         module.AUTHORS,
                         module.LINKS
                     ),
-                    bot_event_handlers=bot_event_handlers,
-                    funpay_event_handlers=funpay_event_handlers,
+                    bot_event_handlers=module.BOT_EVENT_HANDLERS,
+                    funpay_event_handlers=module.FUNPAY_EVENT_HANDLERS,
                     telegram_bot_routers=telegram_bot_routers,
                     _dir_name=name
                 )
