@@ -185,6 +185,8 @@ def load_modules() -> list[Module]:
     os.makedirs(modules_path, exist_ok=True)
 
     for name in os.listdir(modules_path):
+        bot_event_handlers = []
+        funpay_event_handlers = []
         telegram_bot_routers = []
         module_path = os.path.join(modules_path, name)
         
@@ -194,9 +196,9 @@ def load_modules() -> list[Module]:
                 module = importlib.import_module(f"modules.{name}")
                 
                 if hasattr(module, "BOT_EVENT_HANDLERS"):
-                    register_bot_event_handlers(module.BOT_EVENT_HANDLERS)
+                    bot_event_handlers = module.BOT_EVENT_HANDLERS
                 if hasattr(module, "FUNPAY_EVENT_HANDLERS"):
-                    register_funpay_event_handlers(module.FUNPAY_EVENT_HANDLERS)
+                    funpay_event_handlers = module.FUNPAY_EVENT_HANDLERS
                 if hasattr(module, "TELEGRAM_BOT_ROUTERS"):
                     telegram_bot_routers = module.TELEGRAM_BOT_ROUTERS
                 
@@ -211,8 +213,8 @@ def load_modules() -> list[Module]:
                         module.AUTHORS,
                         module.LINKS
                     ),
-                    bot_event_handlers=module.BOT_EVENT_HANDLERS,
-                    funpay_event_handlers=module.FUNPAY_EVENT_HANDLERS,
+                    bot_event_handlers=bot_event_handlers,
+                    funpay_event_handlers=funpay_event_handlers,
                     telegram_bot_routers=telegram_bot_routers,
                     _dir_name=name
                 )
