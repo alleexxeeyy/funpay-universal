@@ -2,12 +2,12 @@ import os
 import sys
 import importlib
 import uuid
+import traceback
 from uuid import UUID
 from colorama import Fore
 from dataclasses import dataclass
 from logging import getLogger
 
-from __init__ import ACCENT_COLOR
 from core.handlers import (
     register_bot_event_handlers, 
     register_funpay_event_handlers, 
@@ -194,14 +194,14 @@ def load_modules() -> list[Module]:
             try:
                 install_requirements(os.path.join(module_path, "requirements.txt"))
                 module = importlib.import_module(f"modules.{name}")
+                
                 if hasattr(module, "BOT_EVENT_HANDLERS"):
-                    for key, funcs in module.BOT_EVENT_HANDLERS.items():
-                        bot_event_handlers.setdefault(key, []).extend(funcs)
+                    register_bot_event_handlers(module.BOT_EVENT_HANDLERS)
                 if hasattr(module, "FUNPAY_EVENT_HANDLERS"):
-                    for key, funcs in module.FUNPAY_EVENT_HANDLERS.items():
-                        funpay_event_handlers.setdefault(key, []).extend(funcs)
+                    register_funpay_event_handlers(module.FUNPAY_EVENT_HANDLERS)
                 if hasattr(module, "TELEGRAM_BOT_ROUTERS"):
                     telegram_bot_routers.extend(module.TELEGRAM_BOT_ROUTERS)
+                
                 module_data = Module(
                     uuid.uuid4(),
                     enabled=False,
@@ -219,19 +219,23 @@ def load_modules() -> list[Module]:
                     _dir_name=name
                 )
                 modules.append(module_data)
-            except Exception as e:
-                logger.error(f"{Fore.LIGHTRED_EX}Ошибка при загрузке модуля {name}: {Fore.WHITE}{e}")
-                import traceback
-                traceback.print_exc()
+            except:
+                logger.error(
+                    f"{Fore.LIGHTRED_EX}Ошибка при загрузке модуля {name}: "
+                    f"{Fore.WHITE}{traceback.format_exc()}"
+                )
     
     return modules
 
 
 def _format_string(count: int):
     last_num = int(str(count)[-1])
-    if last_num == 1: return f"Подключен {Fore.LIGHTWHITE_EX}{count} модуль"
-    elif 2 <= last_num <= 4: return f"Подключено {Fore.LIGHTWHITE_EX}{count} модуля"
-    elif 5 <= last_num <= 9 or last_num == 0: return f"Подключено {Fore.LIGHTWHITE_EX}{count} модулей"
+    if last_num == 1: 
+        return f"Подключен {Fore.LIGHTWHITE_EX}{count} модуль"
+    elif 2 <= last_num <= 4: 
+        return f"Подключено {Fore.LIGHTWHITE_EX}{count} модуля"
+    elif 5 <= last_num <= 9 or last_num == 0: 
+        return f"Подключено {Fore.LIGHTWHITE_EX}{count} модулей"
 
 
 async def connect_modules(modules: list[Module]):
