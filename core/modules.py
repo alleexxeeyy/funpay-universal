@@ -185,8 +185,6 @@ def load_modules() -> list[Module]:
     os.makedirs(modules_path, exist_ok=True)
 
     for name in os.listdir(modules_path):
-        bot_event_handlers = {}
-        funpay_event_handlers = {}
         telegram_bot_routers = []
         module_path = os.path.join(modules_path, name)
         
