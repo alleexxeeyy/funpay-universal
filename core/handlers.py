@@ -46,7 +46,7 @@ def set_bot_event_handlers(data: dict[str, list[callable]]):
     _bot_event_handlers = data
 
 
-def add_bot_event_handler(event: str, handler: callable, index: int | None = None):
+def add_bot_event_handler(event: str, handler: callable, index: int = -1):
     """
     Добавляет новый хендлер в ивенты бота.
 
@@ -60,10 +60,7 @@ def add_bot_event_handler(event: str, handler: callable, index: int | None = Non
     :type index: `int` or `None`
     """
     global _bot_event_handlers
-    if not (index or "").isdigit():
-        _bot_event_handlers[event].append(handler)
-    else: 
-        _bot_event_handlers[event].insert(index, handler)
+    _bot_event_handlers[event].insert(index, handler)
 
 
 def register_bot_event_handlers(handlers: dict[str, list[callable]]):
@@ -115,7 +112,7 @@ def set_funpay_event_handlers(data: dict[EventTypes, list[callable]]):
     _funpay_event_handlers = data
 
 
-def add_funpay_event_handler(event: EventTypes, handler: callable, index: int | None = None):
+def add_funpay_event_handler(event: EventTypes, handler: callable, index: int = -1):
     """
     Добавляет новый хендлер в ивенты FunPay.
 
@@ -129,10 +126,7 @@ def add_funpay_event_handler(event: EventTypes, handler: callable, index: int | 
     :type index: `int` or `None`
     """
     global _funpay_event_handlers
-    if not (index or "").isdigit(): 
-        _funpay_event_handlers[event].append(handler)
-    else: 
-        _funpay_event_handlers[event].insert(index, handler)
+    _funpay_event_handlers[event].insert(index, handler)
 
 
 def register_funpay_event_handlers(handlers: dict[EventTypes, list[callable]]):

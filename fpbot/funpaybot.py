@@ -192,9 +192,11 @@ class FunPayBot:
                     and not exclude_watermark
                 ):
                     text += f"\n{self.config['funpay']['watermark']['value']}"
-                mess = self.account.send_message(chat_id, text, chat_name, interlocutor_id, 
-                                                        image_id, add_to_ignore_list, 
-                                                        update_last_saved_message, leave_as_unread)
+                mess = self.account.send_message(
+                    chat_id, text, chat_name, interlocutor_id, 
+                    image_id, add_to_ignore_list, 
+                    update_last_saved_message, leave_as_unread
+                )
                 return mess
             except (MessageNotDeliveredError, RequestFailedError) as e:
                 continue
@@ -204,6 +206,7 @@ class FunPayBot:
                 return None
         text = text.replace('\n', ' ').strip()
         logger.error(f"{Fore.LIGHTRED_EX}Не удалось отправить сообщение {Fore.WHITE}«{text}» {Fore.LIGHTRED_EX}в чат {Fore.WHITE}{chat_id} {Fore.LIGHTRED_EX}")
+
 
     def log_to_tg(self, text, kb=None):
         asyncio.run_coroutine_threadsafe(
@@ -671,6 +674,9 @@ class FunPayBot:
         add_funpay_event_handler(EventTypes.NEW_MESSAGE, FunPayBot._on_new_message, 0)
         add_funpay_event_handler(EventTypes.NEW_ORDER, FunPayBot._on_new_order, 0) 
         add_funpay_event_handler(EventTypes.ORDER_STATUS_CHANGED, FunPayBot._on_order_status_changed, 0)
+        
+        from core.handlers import get_funpay_event_handlers
+        print(get_funpay_event_handlers())
 
         async def runner_loop():
             runner = Runner(self.account)

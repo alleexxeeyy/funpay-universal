@@ -30,6 +30,7 @@ async def _send_mess(message: types.Message, state: FSMContext):
         if len(message.text.strip()) <= 0:
             raise Exception("❌ Слишком короткий текст")
             
+        sent_msg = message.text.strip()
         acc.send_message(chat.id, message.text.strip())
     
     elif message.photo:
