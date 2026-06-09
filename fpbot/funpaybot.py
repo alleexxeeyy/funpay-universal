@@ -674,9 +674,6 @@ class FunPayBot:
         add_funpay_event_handler(EventTypes.NEW_MESSAGE, FunPayBot._on_new_message, 0)
         add_funpay_event_handler(EventTypes.NEW_ORDER, FunPayBot._on_new_order, 0) 
         add_funpay_event_handler(EventTypes.ORDER_STATUS_CHANGED, FunPayBot._on_order_status_changed, 0)
-        
-        from core.handlers import get_funpay_event_handlers
-        print(get_funpay_event_handlers())
 
         async def runner_loop():
             runner = Runner(self.account)
