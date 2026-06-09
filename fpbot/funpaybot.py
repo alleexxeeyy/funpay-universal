@@ -467,7 +467,7 @@ class FunPayBot:
         order = self.account.get_order(review_order_id)
         review = order.review
 
-        if review.author == self.account.id:
+        if review.author == self.account.username:
             return
         
         self.log_new_review(review)
@@ -497,7 +497,8 @@ class FunPayBot:
         ):
             self.account.send_review(
                 order_id=review_order_id, 
-                text=self.msg("order_review_reply", 
+                text=self.msg(
+                    "order_review_reply", 
                     review_date=datetime.now().strftime("%d.%m.%Y"), 
                     order_title=order_title or "?", 
                     order_amount=order.amount or "?", 
