@@ -461,7 +461,7 @@ class FunPayBot:
         Thread(target=check_banned_loop, daemon=True).start()
         Thread(target=raise_lots_loop, daemon=True).start()
         Thread(target=create_ticket_loop, daemon=True).start()
-    
+
     async def _on_new_review(self, event: NewMessageEvent):
         review_order_id = event.message.text.split(' ')[-1].replace('#', '').replace('.', '')
         order = self.account.get_order(review_order_id)
