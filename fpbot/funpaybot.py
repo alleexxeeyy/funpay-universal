@@ -232,31 +232,50 @@ class FunPayBot:
             next_time = 14400
             raised_categories = []
             profile = self.account.get_user(self.account.id)
+            
             for subcategory in list(profile.get_sorted_lots(2).keys()):
                 category = subcategory.category
                 if str(subcategory.id) in self.categories_raise_time:
                     if datetime.now() < datetime.fromisoformat(self.categories_raise_time[str(subcategory.id)]):
                         continue
-                
+
+                wait_time = "?"
+
                 try:
-                    self.account.raise_lots(category.id)
+                    wait_time = self.account.raise_lots(category.id)
+                    self.categories_raise_time[str(subcategory.id)] = (
+                        datetime.now() + timedelta(seconds=wait_time)
+                    ).isoformat()
                     raised_categories.append(category.name)
-                    time.sleep(0.5)
-                    # Если удалось поднять эту категорию, то снова отправляем запрос на её поднятие,
-                    # чтобы словить ошибку и получить время её следующего поднятия
-                    self.account.raise_lots(category.id)
+                    time.sleep(1)
                 except RaiseError as e:
+                    error_text = f"Подождите {wait_time} сек."
+                    if e.error_message is not None:
+                        error_text = e.error_message
                     if e.wait_time is not None:
-                        self.categories_raise_time[str(subcategory.id)] = (datetime.now() + timedelta(seconds=e.wait_time)).isoformat()
+                        wait_time = e.wait_time
+                        logger.warning(
+                            f"Категорию «{subcategory.name}» "
+                            f"можно будет поднять через {wait_time} сек."
+                        )
                     else:
                         del self.categories_raise_time[str(subcategory.id)]
-                time.sleep(1)
+                        logger.error(
+                            f"{Fore.LIGHTRED_EX}Ошибка поднятия категории "
+                            f"«{subcategory.name}»: {Fore.LIGHTWHITE_EX}{error_text}"
+                        )
+                        time.sleep(10)
 
             for category in self.categories_raise_time:
                 current_next_time = (datetime.fromisoformat(self.categories_raise_time[category]) - datetime.now()).seconds
                 next_time = current_next_time if current_next_time < next_time else next_time
+           
             if len(raised_categories) > 0:
-                logger.info(f"{Fore.YELLOW}Подняты категории: {Fore.LIGHTWHITE_EX}{f'{Fore.WHITE}, {Fore.LIGHTWHITE_EX}'.join(map(str, raised_categories))}")
+                raised_frmtd = f"{Fore.WHITE}, {Fore.LIGHTWHITE_EX}".join(map(str, raised_categories))
+                logger.info(
+                    f"{Fore.YELLOW}Подняты категории: {Fore.LIGHTWHITE_EX}{raised_frmtd}"
+                )
+            
             return next_time
         except Exception as e:
             logger.error(f"{Fore.LIGHTRED_EX}Ошибка при поднятии лотов: {Fore.WHITE}{e}")
@@ -678,6 +697,7 @@ class FunPayBot:
 
         async def runner_loop():
             runner = Runner(self.account)
+            Thread(target=runner.loop, daemon=True).start()
             for event in runner.listen(requests_delay=self.config["funpay"]["api"]["runner_requests_delay"]):
                 await call_funpay_event(event.type, [self, event])
 
