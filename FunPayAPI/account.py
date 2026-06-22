@@ -1837,6 +1837,24 @@ class Account:
             api_method = "chips/saveOffers"
 
         response = self.method("post", api_method, headers, fields, raise_not_200=True, locale=locale)
+
+        import os
+        if os.environ.get("FP_DEBUG_SAVE"):
+            fca = fields.get("form_created_at")
+            try:
+                delay = round(time.time() - int(fca), 1) if fca else None
+            except (TypeError, ValueError):
+                delay = None
+            sent_cookie = response.request.headers.get("Cookie") or ""
+            print("=" * 70)
+            print(f"[FP_DEBUG_SAVE] id={id_} status={response.status_code}")
+            print(f"[FP_DEBUG_SAVE] form_created_at={fca} delay={delay}s "
+                  f"price={fields.get('price')} active={fields.get('active')!r} node_id={fields.get('node_id')}")
+            print(f"[FP_DEBUG_SAVE] PHPSESSID_sent={'PHPSESSID' in sent_cookie} "
+                  f"golden_key_sent={'golden_key' in sent_cookie} set_cookie={bool(response.headers.get('set-cookie'))}")
+            print(f"[FP_DEBUG_SAVE] response.text: {response.text[:1200]}")
+            print("=" * 70)
+
         json_response = response.json()
         errors_dict = {}
         if (errors := json_response.get("errors")) or json_response.get("error"):

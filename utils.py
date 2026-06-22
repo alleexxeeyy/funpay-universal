@@ -81,7 +81,10 @@ def is_fp_account_banned() -> bool:
         requests_timeout=config["funpay"]["api"]["requests_timeout"],
         proxy=proxy
     ).get()
-    user = acc.get_user(acc.id)
+    try: 
+        user = acc.get_user(acc.id)
+    except AttributeError: 
+        return True
     return user.banned
 
 
