@@ -232,42 +232,42 @@ class FunPayBot:
             next_time = 14400
             raised_categories = []
             profile = self.account.get_user(self.account.id)
+
+            subcats = list(profile.get_sorted_lots(2).keys())
+            great_subcats = []
+            for subcat in subcats:
+                iso_dt = self.categories_raise_time.get(str(subcat.id))
+                if not iso_dt or datetime.now() >= datetime.fromisoformat(iso_dt):
+                    great_subcats.append(subcat)
             
-            for subcategory in list(profile.get_sorted_lots(2).keys()):
-                category = subcategory.category
-                if str(subcategory.id) in self.categories_raise_time:
-                    if datetime.now() < datetime.fromisoformat(self.categories_raise_time[str(subcategory.id)]):
-                        continue
-
-                wait_time = "?"
-
+            for subcat in great_subcats:
                 try:
-                    wait_time = self.account.raise_lots(category.id)
-                    self.categories_raise_time[str(subcategory.id)] = (
-                        datetime.now() + timedelta(seconds=wait_time)
-                    ).isoformat()
-                    raised_categories.append(category.name)
+                    wait_time = self.account.raise_lots(subcat.category.id) or 14400
+                    raised_categories.append(subcat.category.name)
                     time.sleep(1)
                 except RaiseError as e:
-                    error_text = f"Подождите {wait_time} сек."
-                    if e.error_message is not None:
-                        error_text = e.error_message
                     if e.wait_time is not None:
                         wait_time = e.wait_time
                         logger.warning(
-                            f"Категорию «{subcategory.name}» "
+                            f"Категорию «{subcat.name}» "
                             f"можно будет поднять через {wait_time} сек."
                         )
                     else:
-                        del self.categories_raise_time[str(subcategory.id)]
+                        error_text = e.error_message or "неизвестная ошибка"
+                        self.categories_raise_time.pop(str(subcat.id), None)
                         logger.error(
                             f"{Fore.LIGHTRED_EX}Ошибка поднятия категории "
-                            f"«{subcategory.name}»: {Fore.LIGHTWHITE_EX}{error_text}"
+                            f"«{subcat.name}»: {Fore.LIGHTWHITE_EX}{error_text}"
                         )
                         time.sleep(10)
+                        continue
 
-            for category in self.categories_raise_time:
-                current_next_time = (datetime.fromisoformat(self.categories_raise_time[category]) - datetime.now()).seconds
+                self.categories_raise_time[str(subcat.id)] = (
+                    datetime.now() + timedelta(seconds=wait_time)
+                ).isoformat()
+
+            for iso_dt in self.categories_raise_time.values():
+                current_next_time = max(0, int((datetime.fromisoformat(iso_dt) - datetime.now()).total_seconds()))
                 next_time = current_next_time if current_next_time < next_time else next_time
            
             if len(raised_categories) > 0:
