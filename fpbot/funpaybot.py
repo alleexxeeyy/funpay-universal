@@ -219,8 +219,12 @@ class FunPayBot:
         self.account = self.funpay_account = (self.account or self.funpay_account).get()
 
     def check_banned(self):
-        user = self.account.get_user(self.account.id)
-        if user.banned:
+        try: 
+            banned = self.account.get_user(self.account.id).banned
+        except AttributeError: 
+            banned = True
+            
+        if banned:
             logger.critical(f"")
             logger.critical(f"{Fore.LIGHTRED_EX}Ваш FunPay аккаунт был заблокирован! К сожалению, я не могу продолжать работу на заблокированном аккаунте...")
             logger.critical(f"Напишите в тех. поддержку FunPay, чтобы узнать причину бана и как можно быстрее решить эту проблему.")
