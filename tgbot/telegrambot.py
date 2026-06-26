@@ -1,4 +1,6 @@
 from __future__ import annotations
+import ssl
+import certifi
 import asyncio
 import textwrap
 import logging
@@ -6,6 +8,7 @@ from colorama import Fore
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, InlineKeyboardMarkup
 from aiogram.client.session.aiohttp import AiohttpSession
+from aiohttp import TCPConnector
 
 from settings import Settings as sett
 from core.modules import get_modules
@@ -44,7 +47,12 @@ class TelegramBot:
         self.proxy = config["telegram"]["api"]["proxy"]
 
         if self.proxy:
-            session = AiohttpSession(proxy=f"http://{self.proxy}")
+            ctx = ssl.create_default_context(cafile=certifi.where())
+            ctx.load_default_certs()
+            session = AiohttpSession(
+                proxy=f"http://{self.proxy}",
+                connector=TCPConnector(ssl=ctx)
+            )
         else:
             session = None
 
