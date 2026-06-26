@@ -10,5 +10,6 @@ urllib3==1.26.15
 requests==2.32.4
 requests[socks]
 requests-toolbelt==0.10.1
-pytz
+pytz==2025.2
 rarfile==4.2
+python-certifi-win32
