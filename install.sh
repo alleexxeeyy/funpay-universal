@@ -80,10 +80,10 @@ case "$SOURCE_CHOICE" in
   1)
     echo ""
     info "Скачиваю последний релиз с GitHub..."
-    LATEST_URL=$(curl -s "https://api.github.com/repos/alleexxeeyy/playerok-universal/releases/latest" | grep '"zipball_url"' | cut -d'"' -f4)
+    LATEST_URL=$(curl -s "https://api.github.com/repos/alleexxeeyy/funpay-universal/releases/latest" | grep '"zipball_url"' | cut -d'"' -f4)
     if [[ -z "$LATEST_URL" ]]; then
       # Нет релизов — берём архив main ветки
-      LATEST_URL="https://github.com/alleexxeeyy/playerok-universal/archive/refs/heads/main.zip"
+      LATEST_URL="https://github.com/alleexxeeyy/funpay-universal/archive/refs/heads/main.zip"
       info "Релизов нет — скачиваю main ветку..."
     fi
     curl -sL "$LATEST_URL" -o /tmp/bot_update.zip
