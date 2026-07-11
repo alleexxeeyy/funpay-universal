@@ -13,3 +13,19 @@ class AutoDeliveryPage(CallbackData, prefix="audepage"):
 
 class CustomCommandPage(CallbackData, prefix="cucopage"):
     command: str
+
+
+class ChatPage(CallbackData, prefix="chtpage"):
+    id: str
+
+
+class OrderPage(CallbackData, prefix="ordpage"):
+    id: str
+
+
+class LotPage(CallbackData, prefix="lotpage"):
+    id: str
+
+
+class ReviewPage(CallbackData, prefix="revpage"):
+    id: str

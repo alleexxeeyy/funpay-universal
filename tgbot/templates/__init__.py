@@ -22,3 +22,20 @@ from .signed_users import *
 
 from .fast_replies import *
 from .sel_fast_reply import *
+
+from .chats import *
+from .chat import *
+
+from .orders import *
+from .order import *
+from .orders_filter import *
+
+from .lots import *
+from .lot import *
+
+from .reviews import *
+from .review import *
+
+from .withdrawal import *
+
+from .placeholders import *

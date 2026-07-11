@@ -40,6 +40,7 @@ from tgbot.templates import (
     destroy_kb
 )
 from support_api import FunPaySupportAPI
+from .msg_types import msg_account, msg_user_from_message, msg_order, msg_chat, msg_review
 
 
 logger = getLogger("universal.funpay")
@@ -78,11 +79,30 @@ class FunPayBot:
         ).get()
         
         
-    def msg(self, message_name: str, messages_config_name: str = "messages", 
-            messages_data: dict = DATA, **kwargs) -> str | None:
-        class SafeDict(dict):
-            def __missing__(self, key):
+    def _format_msg_text(self, text: str, **kwargs):
+        import re
+        def resolve(match):
+            key = match.group(1)
+            parts = key.split(".")
+            obj = kwargs.get(parts[0])
+            if obj is None:
                 return "{" + key + "}"
+            for part in parts[1:]:
+                try:
+                    obj = getattr(obj, part)
+                    continue
+                except (AttributeError, TypeError):
+                    pass
+                try:
+                    obj = obj[part]
+                except (AttributeError, KeyError, TypeError):
+                    return "{" + key + "}"
+            return str(obj)
+        return re.sub(r"\{([a-zA-Z_][a-zA-Z0-9_.]*)\}", resolve, text)
+
+    def msg(self, message_name: str, messages_config_name: str = "messages",
+            messages_data: dict = DATA, **kwargs) -> str | None:
+        kwargs["account"] = msg_account(self.account)
 
         messages = sett.get(messages_config_name, messages_data) or {}
         mess = messages.get(message_name, {})
@@ -92,7 +112,7 @@ class FunPayBot:
         if not message_lines:
             return f"Сообщение {message_name} пустое"
         try:
-            msg = "\n".join([line.format_map(SafeDict(**kwargs)) for line in message_lines])
+            msg = self._format_msg_text("\n".join(message_lines), **kwargs)
             return msg
         except:
             pass
@@ -421,6 +441,55 @@ class FunPayBot:
         else:
             return datetime.now()
 
+    def request_withdrawal(self):
+        try:
+            wd = self.config["funpay"]["auto_withdrawal"]
+            wd["last_time"] = datetime.now().isoformat()
+            sett.set("config", self.config)
+
+            self.refresh_account()
+            acc = self.account
+
+            if wd["amount_type"] == "all":
+                amount = acc.total_balance
+            else:
+                amount = wd["amount"]
+
+            if not amount or amount <= 0:
+                raise Exception("Слишком маленький баланс для вывода")
+
+            wallet_type = wd["wallet_type"]
+            wallet = Wallet[wallet_type]
+            address = wd["address"]
+            currency_map = {"rub": Currency.RUB, "usd": Currency.USD, "eur": Currency.EUR}
+            currency = currency_map.get(wd["currency"], Currency.RUB)
+
+            acc.withdraw(currency, wallet, amount, address)
+
+            logger.info(
+                f"{Fore.YELLOW}Создан вывод {amount} {currency.name} на {wallet_type} ({address})"
+            )
+            if (
+                self.config["funpay"]["notifications"]["enabled"]
+                and self.config["funpay"]["notifications"]["events"]["withdrawal_requested"]
+            ):
+                self.log_to_tg(
+                    log_text(f'💸 Создан вывод {amount} {currency.name} на {wallet_type}'),
+                    destroy_kb()
+                )
+            return True, amount, None
+        except Exception as e:
+            logger.error(f"{Fore.LIGHTRED_EX}Ошибка при создании вывода: {Fore.WHITE}{e}")
+            if (
+                self.config["funpay"]["notifications"]["enabled"]
+                and self.config["funpay"]["notifications"]["events"]["withdrawal_requested"]
+            ):
+                self.log_to_tg(
+                    log_text(f'❌ Ошибка при создании вывода', f"<blockquote>{e}</blockquote>"),
+                    destroy_kb()
+                )
+            return False, 0, e
+
     async def _on_funpay_bot_init(self):
 
         def check_config_loop():
@@ -472,18 +541,31 @@ class FunPayBot:
                 if (
                     self.config["funpay"]["auto_tickets"]["enabled"]
                     and datetime.now() >= self._event_datetime(
-                        self.config["funpay"]["auto_tickets"]["last_time"], 
+                        self.config["funpay"]["auto_tickets"]["last_time"],
                         self.config["funpay"]["auto_tickets"]["interval"]
                     )
                 ):
                     self.create_ticket()
                 time.sleep(3)
 
+        def withdrawal_loop():
+            while True:
+                if (
+                    self.config["funpay"]["auto_withdrawal"]["enabled"]
+                    and datetime.now() >= self._event_datetime(
+                        self.config["funpay"]["auto_withdrawal"]["last_time"],
+                        self.config["funpay"]["auto_withdrawal"]["interval"]
+                    )
+                ):
+                    self.request_withdrawal()
+                time.sleep(3)
+
         Thread(target=check_config_loop, daemon=True).start()
-        Thread(target=refresh_account_loop, daemon=True).start()    
+        Thread(target=refresh_account_loop, daemon=True).start()
         Thread(target=check_banned_loop, daemon=True).start()
         Thread(target=raise_lots_loop, daemon=True).start()
         Thread(target=create_ticket_loop, daemon=True).start()
+        Thread(target=withdrawal_loop, daemon=True).start()
 
     async def _on_new_review(self, event: NewMessageEvent):
         review_order_id = event.message.text.split(' ')[-1].replace('#', '').replace('.', '')
@@ -521,11 +603,13 @@ class FunPayBot:
             self.account.send_review(
                 order_id=review_order_id, 
                 text=self.msg(
-                    "order_review_reply", 
-                    review_date=datetime.now().strftime("%d.%m.%Y"), 
-                    order_title=order_title or "?", 
-                    order_amount=order.amount or "?", 
-                    order_price=order.sum or "?"
+                    "order_review_reply",
+                    review_date=datetime.now().strftime("%d.%m.%Y"),
+                    order_title=order_title or "?",
+                    order_amount=order.amount or "?",
+                    order_price=order.sum or "?",
+                    order=msg_order(order),
+                    review=msg_review(order.review),
                 )
             )
 
@@ -565,7 +649,7 @@ class FunPayBot:
             return
         if this_chat.name not in self.initialized_users:
             if event.message.type is MessageTypes.NON_SYSTEM:
-                self.send_message(this_chat.id, self.msg("first_message", username=event.message.author))
+                self.send_message(this_chat.id, self.msg("first_message", username=event.message.author, user=msg_user_from_message(event.message)))
             self.initialized_users.append(this_chat.name)
 
         if str(event.message.text).lower() in ("!продавец", "!seller"):
@@ -609,10 +693,12 @@ class FunPayBot:
                 log_new_order_kb(this_chat.name, event.order.id)
             )
 
-        self.send_message(this_chat.id, self.msg("new_order", 
-            order_id=event.order.id, 
-            order_title=event.order.description, 
-            order_amount=event.order.amount
+        self.send_message(this_chat.id, self.msg("new_order",
+            order_id=event.order.id,
+            order_title=event.order.description,
+            order_amount=event.order.amount,
+            order=msg_order(event.order),
+            user=msg_user_from_profile(self.account.get_user(event.order.buyer_id)),
         ))
         
         lot = self.get_lot_by_order_title(event.order.description, event.order.subcategory)
@@ -644,16 +730,18 @@ class FunPayBot:
             )
 
         if event.order.status is OrderStatuses.CLOSED:
-            self.send_message(this_chat.id, self.msg("order_confirmed", 
-                order_id=event.order.id, 
-                order_title=event.order.description, 
-                order_amount=event.order.amount
+            self.send_message(this_chat.id, self.msg("order_confirmed",
+                order_id=event.order.id,
+                order_title=event.order.description,
+                order_amount=event.order.amount,
+                order=msg_order(event.order),
             ))
         elif event.order.status is OrderStatuses.REFUNDED:
-            self.send_message(this_chat.id, self.msg("order_refunded", 
-                order_id=event.order.id, 
-                order_title=event.order.description, 
-                order_amount=event.order.amount
+            self.send_message(this_chat.id, self.msg("order_refunded",
+                order_id=event.order.id,
+                order_title=event.order.description,
+                order_amount=event.order.amount,
+                order=msg_order(event.order),
             ))
 
 

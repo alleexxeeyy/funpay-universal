@@ -39,6 +39,16 @@ CONFIG = SettingsFile(
                 "interval": 86400,
                 "last_time": ""
             },
+            "auto_withdrawal": {
+                "enabled": False,
+                "interval": 86400,
+                "last_time": "",
+                "currency": "rub",
+                "wallet_type": "CARD_RUB",
+                "address": "",
+                "amount_type": "all",
+                "amount": 0.0
+            },
             "notifications": {
                 "enabled": True,
                 "chat_id": "",
@@ -48,7 +58,8 @@ CONFIG = SettingsFile(
                     "new_order": True,
                     "order_status_changed": True,
                     "new_review": True,
-                    "ticket_created": True
+                    "ticket_created": True,
+                    "withdrawal_requested": True
                 }
             }
         },
@@ -79,7 +90,7 @@ MESSAGES = SettingsFile(
         "first_message": {
             "enabled": True,
             "text": [
-                "👋 Привет, {username}, я бот-помощник 𝗙𝘂𝗻𝗣𝗮𝘆 𝗨𝗻𝗶𝘃𝗲𝗿𝘀𝗮𝗹",
+                "👋 Привет, {user.username}, я бот-помощник 𝗙𝘂𝗻𝗣𝗮𝘆 𝗨𝗻𝗶𝘃𝗲𝗿𝘀𝗮𝗹",
                 "",
                 "💡 Если вы хотите поговорить с продавцом, напишите команду !продавец, чтобы я пригласил его в этот диалог"
             ]
@@ -99,7 +110,7 @@ MESSAGES = SettingsFile(
         "new_order": {
             "enabled": False,
             "text": [
-                "📋 Спасибо за покупку «{order_title}» в количестве {order_amount} шт.",
+                "📋 Спасибо за покупку «{order.title}» в количестве {order.amount} шт.",
                 ""
                 "Продавца сейчас может не быть на месте, чтобы позвать его, используйте команду !продавец."
             ]
@@ -121,9 +132,13 @@ MESSAGES = SettingsFile(
             "text": [
                 "📅 Дата отзыва: {review_date}",
                 "",
-                "🛍️ Товар: {order_title}",
+                "🌟 Оценка: {review.stars}",
                 "",
-                "🔢 Количество: {order_amount} шт."
+                "👤 Автор: {review.author}",
+                "",
+                "🛍️ Товар: {order.title}",
+                "",
+                "🔢 Количество: {order.amount} шт."
             ]
         }
     }

@@ -68,6 +68,10 @@ async def callback_menu_navigation(callback: CallbackQuery, callback_data: calls
         await throw_float_message(
             state, callback.message, templ.tickets_text(), templ.tickets_kb(), callback
         )
+    elif to == "withdrawal":
+        await throw_float_message(
+            state, callback.message, templ.withdrawal_text(), templ.withdrawal_kb(), callback
+        )
     elif to == "other":
         await throw_float_message(
             state, callback.message, templ.other_text(), templ.other_kb(), callback
@@ -81,4 +85,18 @@ async def callback_stats_navigation(callback: CallbackQuery, callback_data: call
     
     await throw_float_message(
         state, callback.message, templ.stats_text(to), templ.stats_kb(to), callback
+    )
+
+
+@router.callback_query(calls.PlaceholdersNavigation.filter())
+async def callback_placeholders_navigation(callback: CallbackQuery, callback_data: calls.PlaceholdersNavigation, state: FSMContext):
+    await state.set_state(None)
+    to = callback_data.to
+    by = callback_data.by
+
+    data = await state.get_data()
+    last_page = data.get("last_page", 0)
+
+    await throw_float_message(
+        state, callback.message, templ.plholders_text(to), templ.plholders_kb(to, by, last_page), callback
     )

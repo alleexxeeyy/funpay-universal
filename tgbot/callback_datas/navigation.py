@@ -9,3 +9,7 @@ class MenuNavigation(CallbackData, prefix="mennav"):
 
 class StatsNavigation(CallbackData, prefix="stnav"):
     to: str
+
+class PlaceholdersNavigation(CallbackData, prefix="plhnav"):
+    to: str
+    by: str

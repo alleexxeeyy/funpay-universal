@@ -1,10 +1,11 @@
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
-    InlineKeyboardMarkup, 
-    Message, 
-    CallbackQuery, 
-    InputMediaPhoto, 
-    FSInputFile
+    InlineKeyboardMarkup,
+    Message,
+    CallbackQuery,
+    InputMediaPhoto,
+    FSInputFile,
+    LinkPreviewOptions
 )
 from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
 
@@ -66,6 +67,7 @@ async def try_edit_message(bot, chat_id, message_id, text, photo, reply_markup, 
             text=text,
             reply_markup=reply_markup,
             parse_mode="HTML",
+            link_preview_options=LinkPreviewOptions(is_disabled=True),
             **kwargs
         )
 
@@ -102,6 +104,7 @@ async def send_new_message(bot, chat_id, text, photo, reply_markup, reply_to, **
         reply_markup=reply_markup,
         parse_mode="HTML",
         reply_to_message_id=reply_to,
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
         **kwargs
     )
 

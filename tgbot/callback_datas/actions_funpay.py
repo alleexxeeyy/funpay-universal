@@ -17,24 +17,38 @@ class FastAnswerReview(CallbackData, prefix="far"):
     id: str
 
 
-class FastSelMessageTemplate(CallbackData, prefix="fsmt"):
+class RefundOrder(CallbackData, prefix="orf"):
     id: str
 
-class SelMessageTemplate(CallbackData, prefix="smt"):
+class AnswerOrderReview(CallbackData, prefix="orar"):
     id: str
 
-class FastReportDealProblem(CallbackData, prefix="frdp"):
-    id: str
-
-class ReportDealProblem(CallbackData, prefix="rdp"):
+class DeleteOrderReview(CallbackData, prefix="ordr"):
     id: str
 
 
-class PublishItem(CallbackData, prefix="pit"):
+class ChangeOrdersFilter(CallbackData, prefix="cof"):
+    st: int
+
+
+class DeleteLot(CallbackData, prefix="lotdel"):
     id: str
 
-class IncreaseItemPriority(CallbackData, prefix="iipr"):
+class ConfirmDeleteLot(CallbackData, prefix="lotcdel"):
     id: str
 
-class DeleteItem(CallbackData, prefix="dit"):
+class ToggleLotActive(CallbackData, prefix="lottgl"):
+    id: str
+
+class EditLotPrice(CallbackData, prefix="lotprc"):
+    id: str
+
+class EditLotDescription(CallbackData, prefix="lotdesc"):
+    id: str
+
+
+class AnswerReview(CallbackData, prefix="revans"):
+    id: str
+
+class DeleteReview(CallbackData, prefix="revdel"):
     id: str

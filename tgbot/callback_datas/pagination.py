@@ -26,5 +26,25 @@ class FastSelFastReplyPagination(CallbackData, prefix="fsrpag"):
     page: int
 
 class SelFastReplyPagination(CallbackData, prefix="srpag"):
-    id: str
+    id: int
     page: int
+
+
+class ChatsPagination(CallbackData, prefix="chatpag"):
+    page: int
+    upd: bool = False
+
+
+class OrdersPagination(CallbackData, prefix="ordpag"):
+    page: int
+    upd: bool = False
+
+
+class LotsPagination(CallbackData, prefix="lotpag"):
+    page: int
+    upd: bool = False
+
+
+class ReviewsPagination(CallbackData, prefix="revpag"):
+    page: int
+    upd: bool = False

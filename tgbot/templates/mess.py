@@ -50,6 +50,7 @@ def mess_kb(page: int = 0):
 
         rows.append(buttons_row)
 
+    rows.append([InlineKeyboardButton(text="🏷️ Заменители", callback_data=calls.PlaceholdersNavigation(to="account", by="mess").pack())])
     rows.append([
         InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.MenuNavigation(to="default").pack())
     ])

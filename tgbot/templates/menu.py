@@ -33,11 +33,22 @@ def menu_kb():
         InlineKeyboardButton(text="🔔 Уведомления", callback_data=calls.MenuNavigation(to="notifications").pack()),
         InlineKeyboardButton(text="⚡ Быстрые ответы", callback_data=calls.FastRepliesPagination(page=0).pack()),
         ],
-        [InlineKeyboardButton(text="🔧 Прочее", callback_data=calls.MenuNavigation(to="other").pack())],
+        [
+        InlineKeyboardButton(text="💸 Авто-вывод", callback_data=calls.MenuNavigation(to="withdrawal").pack()),
+        InlineKeyboardButton(text="🔧 Прочее", callback_data=calls.MenuNavigation(to="other").pack()),
+        ],
         [InlineKeyboardButton(text="━━━  УПРАВЛЕНИЕ  ━━━", callback_data="null_answer")],
         [
         InlineKeyboardButton(text="👤 Профиль", callback_data=calls.MenuNavigation(to="profile").pack()),
         InlineKeyboardButton(text="📊 Статистика", callback_data=calls.StatsNavigation(to="day").pack()),
+        ],
+        [
+        InlineKeyboardButton(text="💬 Чаты", callback_data=calls.ChatsPagination(page=0).pack()),
+        InlineKeyboardButton(text="📋 Заказы", callback_data=calls.OrdersPagination(page=0).pack()),
+        ],
+        [
+        InlineKeyboardButton(text="🛍️ Лоты", callback_data=calls.LotsPagination(page=0).pack()),
+        InlineKeyboardButton(text="🌟 Отзывы", callback_data=calls.ReviewsPagination(page=0).pack()),
         ],
         [InlineKeyboardButton(text="━━━  СИСТЕМА  ━━━", callback_data="null_answer")],
         [
