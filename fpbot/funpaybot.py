@@ -598,10 +598,7 @@ class FunPayBot:
                 log_new_review_kb(event.message.chat_name, review_order_id)
             )
 
-        order_title = order.full_description
-        if not order_title:
-            short_order = self.account.get_order_shortcut(review_order_id)
-            order_title = short_order.description
+        order_title = order.title or "-"
 
         if (
             order.buyer_id != self.account.id
