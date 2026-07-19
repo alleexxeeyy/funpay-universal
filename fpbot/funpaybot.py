@@ -40,7 +40,14 @@ from tgbot.templates import (
     destroy_kb
 )
 from support_api import FunPaySupportAPI
-from .msg_types import msg_account, msg_user_from_message, msg_order, msg_chat, msg_review
+from .msg_types import (
+    msg_account, 
+    msg_user_from_message, 
+    msg_user_from_profile,
+    msg_order, 
+    msg_chat, 
+    msg_review
+)
 
 
 logger = getLogger("universal.funpay")
