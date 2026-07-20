@@ -248,8 +248,8 @@ class FunPayBot:
     def check_banned(self):
         try: 
             banned = self.account.get_user(self.account.id).banned
-        except AttributeError: 
-            banned = True
+        except: 
+            banned = False
             
         if banned:
             logger.critical(f"")
