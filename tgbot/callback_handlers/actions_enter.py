@@ -122,6 +122,24 @@ async def callback_enter_tg_proxy(callback: CallbackQuery, state: FSMContext):
     )
 
 
+@router.callback_query(F.data == "enter_tg_custom_api_url")
+async def callback_enter_tg_custom_api_url(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(states.SettingsStates.waiting_for_tg_custom_api_url)
+    config = sett.get("config")
+    custom_api_url = config["telegram"]["api"]["custom_api_url"] or "❌ Не задано"
+    await throw_float_message(
+        state=state,
+        message=callback.message,
+        text=templ.conn_float_text(
+            "🔗 Введите новый <b>кастомный URL Telegram API</b> (например, Cloudflare Worker-прокси):"
+            f"\n\n・ <b>Текущее:</b> <code>{custom_api_url}</code>"
+            f"\n\n<blockquote><b>(?)</b> Указывается вместо api.telegram.org, если Telegram заблокирован. Пример: https://tg-proxy.ваш-поддомен.workers.dev"
+            f"\n\nПосле изменения нужно перезагрузить бота, чтобы новый URL применился.</blockquote>"
+        ),
+        reply_markup=templ.back_kb(calls.MenuNavigation(to="conn").pack())
+    )
+
+
 @router.callback_query(F.data == "enter_funpayapi_requests_timeout")
 async def callback_enter_funpayapi_requests_timeout(callback: CallbackQuery, state: FSMContext):
     await state.set_state(states.SettingsStates.waiting_for_requests_timeout)

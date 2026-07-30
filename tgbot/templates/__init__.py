@@ -6,6 +6,7 @@ from .profile import *
 from .stats import *
 from .logs import *
 from .updates import *
+from .configs import *
 
 from .auth import *
 from .comms import *

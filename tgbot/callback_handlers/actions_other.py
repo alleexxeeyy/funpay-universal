@@ -129,6 +129,26 @@ async def callback_clean_tg_proxy(callback: CallbackQuery, state: FSMContext):
     )
 
 
+@router.callback_query(F.data == "clean_tg_custom_api_url")
+async def callback_clean_tg_custom_api_url(callback: CallbackQuery, state: FSMContext):
+    config = sett.get("config")
+    config["telegram"]["api"]["custom_api_url"] = ""
+    sett.set("config", config)
+    return await callback_menu_navigation(
+        callback, calls.MenuNavigation(to="conn"), state
+    )
+
+
+@router.callback_query(F.data == "clean_notifications_chat_id")
+async def callback_clean_notifications_chat_id(callback: CallbackQuery, state: FSMContext):
+    config = sett.get("config")
+    config["funpay"]["notifications"]["chat_id"] = ""
+    sett.set("config", config)
+    return await callback_menu_navigation(
+        callback, calls.MenuNavigation(to="notifications"), state
+    )
+
+
 @router.callback_query(F.data == "add_new_custom_command")
 async def callback_add_new_custom_command(callback: CallbackQuery, state: FSMContext):
     try:

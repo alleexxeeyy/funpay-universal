@@ -11,18 +11,22 @@ def conn_text():
     
     fp_proxy = config["funpay"]["api"]["proxy"] or "❌ Не задано"
     tg_proxy = config["telegram"]["api"]["proxy"] or "❌ Не задано"
-    
+    tg_custom_api_url = config["telegram"]["api"]["custom_api_url"] or "❌ Не задано"
+
     requests_timeout = config["funpay"]["api"]["requests_timeout"] or "❌ Не задано"
     runner_requests_delay = config["funpay"]["api"]["runner_requests_delay"] or "❌ Не задано"
-    
+
     txt = textwrap.dedent(f"""
         <b>🛜 Соединение</b>
 
         <b>🌐 Прокси для FunPay:</b> {fp_proxy}
         <b>🌐 Прокси для Telegram:</b> {tg_proxy}
-        
+
+        <b>🔗 Кастомный URL Telegram API:</b> {tg_custom_api_url}
+        <blockquote><b>(?)</b> Если Telegram заблокирован, можно указать URL Cloudflare Worker-прокси (или другого reverse-proxy) вместо api.telegram.org. Изменения вступят в силу после перезагрузки бота.</blockquote>
+
         <b>📶 Таймаут подключения к funpay.com:</b> {requests_timeout} сек.
-        <blockquote><b>(?)</b> Это максимальное время, за которое должен прийти ответ на запрос с сайта Playerok. Если время истекло, а ответ не пришёл — бот выдаст ошибку. Если у вас слабый интернет, указывайте значение больше.</blockquote>
+        <blockquote><b>(?)</b> Это максимальное время, за которое должен прийти ответ на запрос с сайта FunPay. Если время истекло, а ответ не пришёл — бот выдаст ошибку. Если у вас слабый интернет, указывайте значение больше.</blockquote>
 
         <b>⏱️ Периодичность запросов к funpay.com:</b> {runner_requests_delay} сек.
         <blockquote><b>(?)</b> С какой периодичностью будут отправляться запросы на FunPay для получения событий. Не рекомендуем ставить ниже 4 секунд, так как FunPay попросту может забанить ваш IP адрес, и вы уже не сможете отправлять с него запросы.</blockquote>
@@ -35,21 +39,25 @@ def conn_kb():
     
     fp_proxy = config["funpay"]["api"]["proxy"] or "❌ Не задано"
     tg_proxy = config["telegram"]["api"]["proxy"] or "❌ Не задано"
-    
+    tg_custom_api_url = config["telegram"]["api"]["custom_api_url"] or "❌ Не задано"
+
     requests_timeout = config["funpay"]["api"]["requests_timeout"] or "❌ Не задано"
     runner_requests_delay = config["funpay"]["api"]["runner_requests_delay"] or "❌ Не задано"
-    
+
     rows = [
         [InlineKeyboardButton(text=f"🌐 Прокси для FunPay: {fp_proxy}", callback_data="enter_fp_proxy")],
         [InlineKeyboardButton(text=f"🌐 Прокси для Telegram: {tg_proxy}", callback_data="enter_tg_proxy")],
+        [InlineKeyboardButton(text=f"🔗 Кастомный URL Telegram API: {tg_custom_api_url}", callback_data="enter_tg_custom_api_url")],
         [InlineKeyboardButton(text=f"🛜 Таймаут подключения к funpay.com: {requests_timeout} сек.", callback_data="enter_funpayapi_requests_timeout")],
         [InlineKeyboardButton(text=f"⏱️ Периодичность запросов к funpay.com: {runner_requests_delay} сек.", callback_data="enter_funpayapi_runner_requests_delay")],
         [InlineKeyboardButton(text="⬅️ Назад", callback_data=calls.MenuNavigation(to="default").pack())]
     ]
-    if config["funpay"]["api"]["proxy"]: 
+    if config["funpay"]["api"]["proxy"]:
         rows[0].append(InlineKeyboardButton(text=f"❌ Убрать прокси", callback_data="clean_fp_proxy"))
-    if config["telegram"]["api"]["proxy"]: 
+    if config["telegram"]["api"]["proxy"]:
         rows[1].append(InlineKeyboardButton(text=f"❌ Убрать прокси", callback_data="clean_tg_proxy"))
+    if config["telegram"]["api"]["custom_api_url"]:
+        rows[2].append(InlineKeyboardButton(text=f"❌ Убрать URL", callback_data="clean_tg_custom_api_url"))
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     return kb
 

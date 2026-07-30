@@ -9,10 +9,11 @@ from .actions_enter import router as actions_enter_router
 from .actions_other import router as actions_other_router
 from .actions_switch import router as actions_switch_router
 from .actions_funpay import router as actions_funpay_router
+from .actions_configs import router as actions_configs_router
 
 router = Router()
 router.include_routers(
-    navigation_router, 
+    navigation_router,
     pagination_router,
     page_router,
     actions_confirm_router,
@@ -20,4 +21,5 @@ router.include_routers(
     actions_other_router,
     actions_switch_router,
     actions_funpay_router,
+    actions_configs_router,
 )

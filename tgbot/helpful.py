@@ -27,6 +27,24 @@ async def do_auth(message: Message, state: FSMContext) -> Message | None:
     )
 
 
+async def notify(callback: CallbackQuery, text: str, alert: bool = False) -> None:
+    if not callback:
+        return
+    try:
+        await callback.bot.answer_callback_query(
+            callback.id, text=text, show_alert=alert, cache_time=0
+        )
+    except Exception:
+        pass
+
+
+async def answer_callback(bot, callback: CallbackQuery) -> None:
+    try:
+        await bot.answer_callback_query(callback.id, cache_time=0)
+    except Exception:
+        pass
+
+
 async def get_accent_message_id(state: FSMContext, message: Message, bot) -> int | None:
     data = await state.get_data()
 

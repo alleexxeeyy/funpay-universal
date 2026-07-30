@@ -22,6 +22,7 @@ class SettingsStates(StatesGroup):
     waiting_for_runner_requests_delay = State()
     waiting_for_fp_proxy = State()
     waiting_for_tg_proxy = State()
+    waiting_for_tg_custom_api_url = State()
 
     waiting_for_auto_tickets_orders_per_ticket = State()
     waiting_for_auto_tickets_min_order_age = State()
@@ -35,6 +36,7 @@ class SettingsStates(StatesGroup):
 
     waiting_for_logs_max_file_size = State()
     waiting_for_module_file = State()
+    waiting_for_config_file = State()
 
 
 class MessagesStates(StatesGroup):

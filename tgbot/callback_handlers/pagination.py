@@ -78,7 +78,7 @@ async def callback_fast_replies_pagination(callback: CallbackQuery, callback_dat
 async def callback_fast_sel_fast_replies_pagination(callback: CallbackQuery, callback_data: calls.FastSelFastReplyPagination, state: FSMContext):
     await state.set_state(None)
     
-    chat_id = callback_data.id
+    chat_name = callback_data.id
     page = callback_data.page
     await state.update_data(last_page=page)
 
@@ -86,7 +86,7 @@ async def callback_fast_sel_fast_replies_pagination(callback: CallbackQuery, cal
         state=state,
         message=callback.message,
         text=templ.do_action_text(f"⚡ Выберите <b>быстрый ответ</b> для отправки:"),
-        reply_markup=templ.fast_sel_fast_reply_kb(chat_id, page),
+        reply_markup=templ.fast_sel_fast_reply_kb(chat_name, page),
         callback=callback
     )
 
