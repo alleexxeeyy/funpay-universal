@@ -68,7 +68,7 @@ async def callback_enter_golden_key(callback: CallbackQuery, state: FSMContext):
         message=callback.message, 
         text=templ.auth_float_text(
             "🔑 Введите новый <b>golden_key</b> вашего аккаунта:"
-            f"\n\n・ <b>Текущее:</b> <code>{golden_key}</code>"
+            f"\n\n・ <b>Текущий:</b> <code>{golden_key}</code>"
         ), 
         reply_markup=templ.back_kb(calls.MenuNavigation(to="auth").pack())
     )
@@ -100,7 +100,7 @@ async def callback_enter_fp_proxy(callback: CallbackQuery, state: FSMContext):
         message=callback.message, 
         text=templ.conn_float_text(
             "🌐 Введите новый HTTP <b>прокси для FunPay</b> (формат: user:pass@ip:port или ip:port):"
-            f"\n\n・ <b>Текущее:</b> <code>{proxy}</code>"
+            f"\n\n・ <b>Текущий:</b> <code>{proxy}</code>"
         ), 
         reply_markup=templ.back_kb(calls.MenuNavigation(to="conn").pack())
     )
@@ -116,7 +116,7 @@ async def callback_enter_tg_proxy(callback: CallbackQuery, state: FSMContext):
         message=callback.message, 
         text=templ.conn_float_text(
             "🌐 Введите новый HTTP <b>прокси для Telegram</b> (формат: user:pass@ip:port или ip:port):"
-            f"\n\n・ <b>Текущее:</b> <code>{proxy}</code>"
+            f"\n\n・ <b>Текущий:</b> <code>{proxy}</code>"
         ), 
         reply_markup=templ.back_kb(calls.MenuNavigation(to="conn").pack())
     )
@@ -132,7 +132,7 @@ async def callback_enter_tg_custom_api_url(callback: CallbackQuery, state: FSMCo
         message=callback.message,
         text=templ.conn_float_text(
             "🔗 Введите новый <b>кастомный URL Telegram API</b> (например, Cloudflare Worker-прокси):"
-            f"\n\n・ <b>Текущее:</b> <code>{custom_api_url}</code>"
+            f"\n\n・ <b>Текущий:</b> <code>{custom_api_url}</code>"
             f"\n\n<blockquote><b>(?)</b> Указывается вместо api.telegram.org, если Telegram заблокирован. Пример: https://tg-proxy.ваш-поддомен.workers.dev"
             f"\n\nПосле изменения нужно перезагрузить бота, чтобы новый URL применился.</blockquote>"
         ),
