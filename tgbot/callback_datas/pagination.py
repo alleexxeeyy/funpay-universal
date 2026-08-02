@@ -48,3 +48,6 @@ class LotsPagination(CallbackData, prefix="lotpag"):
 class ReviewsPagination(CallbackData, prefix="revpag"):
     page: int
     upd: bool = False
+
+class ReleasesPagination(CallbackData, prefix="relpag"):
+    page: int

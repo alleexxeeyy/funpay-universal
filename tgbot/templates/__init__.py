@@ -40,3 +40,5 @@ from .review import *
 from .withdrawal import *
 
 from .placeholders import *
+from .releases import *
+from .release import *

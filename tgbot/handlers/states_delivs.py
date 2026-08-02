@@ -23,7 +23,7 @@ async def handler_waiting_for_auto_deliveries_page(message: types.Message, state
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.delivs_float_text(f"📃 Введите номер страницы для перехода ↓"),
+            text=templ.delivs_float_text(f"📃 Введите номер страницы для перехода:"),
             reply_markup=templ.delivs_kb(int(message.text)-1)
         )
     except Exception as e:
@@ -67,7 +67,7 @@ async def handler_waiting_for_new_auto_delivery_lot_link(message: types.Message,
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.new_deliv_float_text(f"💬 Введите <b>сообщение авто-выдачи</b>, которое будет писаться после покупки лота ↓"),
+            text=templ.new_deliv_float_text(f"💬 Введите <b>сообщение авто-выдачи</b>, которое будет писаться после покупки лота:"),
             reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=data.get("last_page", 0)).pack())
         )
     except Exception as e:
@@ -101,7 +101,7 @@ async def handler_waiting_for_new_auto_delivery_message(message: types.Message, 
             state=state,
             message=message,
             text=templ.new_deliv_float_text(
-                f"✔️ Подтвердите <b>добавление авто-выдачи:</b>"
+                f"✔️ Подтвердите <b>добавление авто-выдачи</b>:"
                 f'\n\n<b>· Лот:</b> <a href="https://funpay.com/lots/offer?id={lot_id}">{lot_title}</a>'
                 f"\n<b>· Сообщение:</b> {msg}"
             ),

@@ -29,3 +29,6 @@ class LotPage(CallbackData, prefix="lotpage"):
 
 class ReviewPage(CallbackData, prefix="revpage"):
     id: str
+
+class ReleasePage(CallbackData, prefix="relpage"):
+    index: int
