@@ -862,8 +862,10 @@ class LotFields:
         """Кол-во товара (значение поля "Наличие")."""
         self.price: float = float(i) if (i := self.__fields.get("price")) else None
         """Цена за 1шт."""
-        self.active: bool = False if db_amount == 0 else self.__fields.get("active") == "on"
+        self.active: bool = self.__fields.get("active") == "on"
         """Активен ли лот."""
+        self.db_amount: int | None = db_amount
+        """Кол-во товара в БД FunPay (0 — поле "Наличие" не заполнено)."""
         self.deactivate_after_sale: bool | None = bool(self.__fields["deactivate_after_sale"]) if "deactivate_after_sale" in self.__fields else None
         """Деактивировать ли лот после продажи."""
         self.subcategory: SubCategory | None = subcategory

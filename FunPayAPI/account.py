@@ -1796,7 +1796,10 @@ class Account:
             payment_methods.append(PaymentMethod(pm.find("th").text, pm_price, pm_currency, i))
         calc_result = CalcResult(types.SubCategoryTypes.COMMON, subcategory.id, payment_methods,
                                  float(result["price"]), None, types.Currency.UNKNOWN, currency)
-        db_amount = json.loads(html.unescape(bs.get("data-offer"))).get("amount")
+        try:
+            db_amount = json.loads(html.unescape(bs.get("data-offer") or "{}")).get("amount")
+        except (ValueError, TypeError):
+            db_amount = None
         return types.LotFields(lot_id, result, subcategory, currency, calc_result, db_amount)
 
     def get_chip_fields(self, subcategory_id: int) -> types.ChipFields:
@@ -1858,11 +1861,18 @@ class Account:
         json_response = response.json()
         errors_dict = {}
         if (errors := json_response.get("errors")) or json_response.get("error"):
-            if errors:
-                for k, v in errors:
-                    errors_dict.update({k: v})
+            if isinstance(errors, dict):
+                errors_dict.update(errors)
+            elif errors:
+                for error in errors:
+                    if isinstance(error, (list, tuple)) and len(error) == 2:
+                        errors_dict[error[0]] = error[1]
 
-            raise exceptions.LotSavingError(response, json_response.get("error"), id_, errors_dict)
+            error_message = json_response.get("error")
+            if not error_message and errors_dict:
+                error_message = "; ".join(f"{k}: {v}" for k, v in errors_dict.items())
+
+            raise exceptions.LotSavingError(response, error_message, id_, errors_dict)
 
     def save_chip(self, chip_fields: types.ChipFields, locale: Literal["ru", "en", "uk"] | None = None):
         self.save_offer(chip_fields, locale)
