@@ -81,8 +81,8 @@ class TelegramBot:
             short_description = textwrap.dedent(f"""
                 FunPay Universal — бесплатный бот-помощник для funpay.com
 
-                📢 @alexeyproduction
-                🤖 @alexey_production_bot
+                📢 @friedauto
+                🤖 @friedshopbot
                 🧑‍💻 @alleexxeeyy
             """)
             await self.bot.set_my_short_description(short_description=short_description)
@@ -109,8 +109,8 @@ class TelegramBot:
                                                      
                 ⬇️ Скачать бота: https://github.com/alleexxeeyy/funpay-universal
                 
-                📢 Новости: @alexeyproduction
-                🤖 Плагины: @alexey_production_bot
+                📢 Новости: @friedauto
+                🤖 Плагины: @friedshopbot
                 🧑‍💻 Автор: @alleexxeeyy
             """)
             await self.bot.set_my_description(description=description)
