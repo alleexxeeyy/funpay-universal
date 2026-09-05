@@ -66,7 +66,7 @@ def menu_kb():
         InlineKeyboardButton(text="🧩 Плагины", url="https://t.me/friedshopbot"),
         ],
         [
-        InlineKeyboardButton(text="👨‍💻 Разработчик", url="https://t.me/alleexxeeyy"), 
+        InlineKeyboardButton(text="👨‍💻 Разработчик", url="https://t.me/friedfluoride"), 
         InlineKeyboardButton(text="🐈‍⬛ GitHub", url="https://github.com/alleexxeeyy/funpay-universal"),
         ]
     ]
