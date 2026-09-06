@@ -1,4 +1,5 @@
 from __future__ import annotations
+import sys
 import asyncio
 import time
 import pytz
@@ -20,7 +21,8 @@ from __init__ import ACCENT_COLOR, VERSION
 from core.utils import (
     set_title, 
     shutdown, 
-    run_async_in_thread
+    run_async_in_thread, 
+    acquire_account_lock
 )
 from core.handlers import (
     add_bot_event_handler, 
@@ -750,6 +752,17 @@ class FunPayBot:
 
 
     async def run_bot(self):
+        account_pid = acquire_account_lock(self.account.id)
+        if account_pid is not None:
+            logger.info("")
+            logger.error(f"{Fore.LIGHTRED_EX}Бот на этом аккаунте FunPay уже запущен!")
+            logger.error(f"{Fore.WHITE}Аккаунт {Fore.LIGHTWHITE_EX}{self.account.username} {Fore.WHITE}уже обслуживает другой бот"
+                         f"{f' (процесс {account_pid})' if account_pid else ''} — один аккаунт, один бот.")
+            logger.error(f"{Fore.WHITE}Закройте это окно: если оставить два бота на одном аккаунте, заказы и сообщения будут обрабатываться дважды.")
+            logger.error(f"{Fore.LIGHTBLACK_EX}Если бот на самом деле не запущен — завершите зависший процесс python и попробуйте снова.")
+            logger.info("")
+            sys.exit(1)
+
         logger.info("")
         logger.info(f"{Fore.YELLOW}FunPay бот запущен и активен")
         logger.info("")
