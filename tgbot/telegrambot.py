@@ -81,7 +81,7 @@ class TelegramBot:
             short_description = textwrap.dedent(f"""
                 FunPay Universal — бесплатный бот-помощник для funpay.com
 
-                📢 @friedauto
+                📢 @friedfunpay
                 🤖 @friedshopbot
                 🧑‍💻 @friedfluoride
             """)
@@ -109,7 +109,7 @@ class TelegramBot:
                                                      
                 ⬇️ Скачать бота: https://github.com/alleexxeeyy/funpay-universal
                 
-                📢 Новости: @friedauto
+                📢 Новости: @friedfunpay
                 🤖 Плагины: @friedshopbot
                 🧑‍💻 Автор: @friedfluoride
             """)
