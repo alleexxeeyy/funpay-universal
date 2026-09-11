@@ -285,27 +285,28 @@ MAX_PAGE_LOAD_REQUESTS = 10
 
 async def load_cursor_list(state: FSMContext, message: Message, key: str, page: int, fetch, reset: bool = False) -> list:
     data = await state.get_data()
-    objects = [] if reset else (data.get(key) or [])
+    objects = [] if reset else list(data.get(key) or [])
     next_id = None if reset else data.get(f"{key}_next_id")
     is_all_loaded = False if reset else (data.get(f"is_all_{key}_loaded") or False)
 
     requests = 0
-    while not is_all_loaded and len(objects) < (page + 1) * 12 + 1 and requests < MAX_PAGE_LOAD_REQUESTS:
-        if requests == 0:
-            await throw_float_message(state, message, "⌛️")
+    try:
+        while not is_all_loaded and len(objects) < (page + 1) * 12 + 1 and requests < MAX_PAGE_LOAD_REQUESTS:
+            if requests == 0:
+                await throw_float_message(state, message, "⌛️")
 
-        batch, next_id = await asyncio.to_thread(fetch, next_id)
-        objects.extend(batch or [])
-        if len(batch or []) < 24 or not next_id:
-            is_all_loaded = True
-        requests += 1
-
-    if requests:
-        await state.update_data(**{
-            key: objects,
-            f"{key}_next_id": next_id,
-            f"is_all_{key}_loaded": is_all_loaded
-        })
+            batch, next_id = await asyncio.to_thread(fetch, next_id)
+            objects.extend(batch or [])
+            if len(batch or []) < 24 or not next_id:
+                is_all_loaded = True
+            requests += 1
+    finally:
+        if requests:
+            await state.update_data(**{
+                key: objects,
+                f"{key}_next_id": next_id,
+                f"is_all_{key}_loaded": is_all_loaded
+            })
     return objects
 
 
@@ -418,6 +419,9 @@ PAGES = {
 
 @router.callback_query(calls.PageEnter.filter())
 async def callback_page_enter(callback: CallbackQuery, callback_data: calls.PageEnter, state: FSMContext):
+    if callback_data.to not in PAGES:
+        return await callback.answer()
+
     enter = callback_data.model_dump()
     enter["state"] = await state.get_state()
     await state.update_data(page_enter=enter)
@@ -436,9 +440,12 @@ async def callback_page_enter(callback: CallbackQuery, callback_data: calls.Page
 
 @router.callback_query(calls.PageBack.filter())
 async def callback_page_back(callback: CallbackQuery, callback_data: calls.PageBack, state: FSMContext):
+    if callback_data.to not in PAGES:
+        return await callback.answer()
+
     if await state.get_state() == states.PageStates.waiting_for_page:
         data = await state.get_data()
-        await state.set_state(data["page_enter"]["state"])
+        await state.set_state((data.get("page_enter") or {}).get("state"))
 
     render, _ = PAGES[callback_data.to]
     await render(callback.message, state, callback_data.page, callback)
