@@ -188,21 +188,6 @@ async def callback_enter_watermark_value(callback: CallbackQuery, state: FSMCont
     )
 
 
-@router.callback_query(F.data == "enter_custom_commands_page")
-async def callback_enter_custom_commands_page(callback: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    last_page = data.get("last_page", 0)
-    await state.set_state(states.CustomCommandsStates.waiting_for_page)
-    await throw_float_message(
-        state=state, 
-        message=callback.message, 
-        text=templ.comms_float_text(
-            "📃 Введите номер страницы для перехода:"
-        ), 
-        reply_markup=templ.back_kb(calls.CustomCommandsPagination(page=last_page).pack())
-    )
-
-
 @router.callback_query(F.data == "enter_new_custom_command")
 async def callback_enter_new_custom_command(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -247,21 +232,6 @@ async def callback_enter_custom_command_answer(callback: CallbackQuery, state: F
             text=templ.comm_page_float_text(e), 
             reply_markup=templ.back_kb(calls.CustomCommandsPagination(page=last_page).pack())
         )
-
-
-@router.callback_query(F.data == "enter_auto_deliveries_page")
-async def callback_enter_auto_deliveries_page(callback: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    last_page = data.get("last_page", 0)
-    await state.set_state(states.AutoDeliveriesStates.waiting_for_page)
-    await throw_float_message(
-        state=state, 
-        message=callback.message, 
-        text=templ.deliv_float_text(
-            "📃 Введите номер страницы для перехода:"
-        ), 
-        reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=last_page).pack())
-    )
 
 
 @router.callback_query(F.data == "enter_new_auto_delivery_lot_link")
@@ -341,21 +311,6 @@ async def callback_enter_auto_delivery_message(callback: CallbackQuery, state: F
             text=templ.deliv_page_float_text(e), 
             reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=last_page).pack())
         )
-
-
-@router.callback_query(F.data == "enter_messages_page")
-async def callback_enter_messages_page(callback: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    last_page = data.get("last_page", 0)
-    await state.set_state(states.MessagesStates.waiting_for_page)
-    await throw_float_message(
-        state=state, 
-        message=callback.message, 
-        text=templ.mess_float_text(
-            "📃 Введите номер страницы для перехода:"
-        ), 
-        reply_markup=templ.back_kb(calls.MessagesPagination(page=last_page).pack())
-    )
 
 
 @router.callback_query(F.data == "enter_message_text")

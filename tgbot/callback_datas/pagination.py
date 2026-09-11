@@ -51,3 +51,13 @@ class ReviewsPagination(CallbackData, prefix="revpag"):
 
 class ReleasesPagination(CallbackData, prefix="relpag"):
     page: int
+
+
+class PageEnter(CallbackData, prefix="pgent"):
+    to: str
+    page: int
+    total: int
+
+class PageBack(CallbackData, prefix="pgback"):
+    to: str
+    page: int

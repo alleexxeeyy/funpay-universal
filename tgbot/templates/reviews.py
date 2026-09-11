@@ -75,7 +75,7 @@ def reviews_kb(reviews: list, page=0):
         buttons_row = []
         btn_back = InlineKeyboardButton(text="←", callback_data=calls.ReviewsPagination(page=page-1).pack()) if page > 0 else InlineKeyboardButton(text="🛑", callback_data="null_answer")
         buttons_row.append(btn_back)
-        buttons_row.append(InlineKeyboardButton(text=f"{page+1}/{total_pages}", callback_data="null_answer"))
+        buttons_row.append(InlineKeyboardButton(text=f"📃 {page+1}/{total_pages}", callback_data=calls.PageEnter(to="reviews", page=page, total=total_pages).pack()))
         btn_next = InlineKeyboardButton(text="→", callback_data=calls.ReviewsPagination(page=page+1).pack()) if page < total_pages - 1 else InlineKeyboardButton(text="🛑", callback_data="null_answer")
         buttons_row.append(btn_next)
         rows.append(buttons_row)

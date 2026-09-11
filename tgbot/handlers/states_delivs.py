@@ -12,30 +12,6 @@ from ..helpful import throw_float_message
 router = Router()
 
 
-@router.message(states.AutoDeliveriesStates.waiting_for_page, F.text)
-async def handler_waiting_for_auto_deliveries_page(message: types.Message, state: FSMContext):
-    try:
-        await state.set_state(None)
-        if not message.text.strip().isdigit():
-            raise Exception("❌ Вы должны ввести числовое значение")
-        
-        await state.update_data(last_page=int(message.text.strip())-1)
-        await throw_float_message(
-            state=state,
-            message=message,
-            text=templ.delivs_float_text(f"📃 Введите номер страницы для перехода:"),
-            reply_markup=templ.delivs_kb(int(message.text)-1)
-        )
-    except Exception as e:
-        data = await state.get_data()
-        await throw_float_message(
-            state=state,
-            message=message,
-            text=templ.delivs_float_text(e), 
-            reply_markup=templ.back_kb(calls.AutoDeliveriesPagination(page=data.get("last_page", 0)).pack())
-        )
-        
-
 @router.message(states.AutoDeliveriesStates.waiting_for_new_auto_delivery_lot_link, F.text)
 async def handler_waiting_for_new_auto_delivery_lot_link(message: types.Message, state: FSMContext):
     try:

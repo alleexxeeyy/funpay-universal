@@ -12,30 +12,6 @@ from ..helpful import throw_float_message
 router = Router()
 
 
-@router.message(states.MessagesStates.waiting_for_page, F.text)
-async def handler_waiting_for_messages_page(message: types.Message, state: FSMContext):
-    try: 
-        await state.set_state(None)
-        if not message.text.strip().isdigit():
-            raise Exception("❌ Вы должны ввести числовое значение")
-        
-        await state.update_data(last_page=int(message.text.strip())-1)
-        await throw_float_message(
-            state=state,
-            message=message,
-            text=templ.mess_text(),
-            reply_markup=templ.mess_kb(int(message.text)-1)
-        )
-    except Exception as e:
-        data = await state.get_data()
-        await throw_float_message(
-            state=state,
-            message=message,
-            text=templ.mess_float_text(e),
-            reply_markup=templ.back_kb(calls.MessagesPagination(page=data.get("last_page", 0)).pack())
-        )
-        
-
 @router.message(states.MessagesStates.waiting_for_message_text, F.text)
 async def handler_waiting_for_message_text(message: types.Message, state: FSMContext):
     try:

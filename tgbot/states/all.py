@@ -1,6 +1,10 @@
 from aiogram.fsm.state import State, StatesGroup
 
 
+class PageStates(StatesGroup):
+    waiting_for_page = State()
+
+
 class SystemStates(StatesGroup):
     waiting_for_password = State()
     waiting_for_current_password = State()
@@ -40,19 +44,16 @@ class SettingsStates(StatesGroup):
 
 
 class MessagesStates(StatesGroup):
-    waiting_for_page = State()
     waiting_for_message_text = State()
 
 
 class CustomCommandsStates(StatesGroup):
-    waiting_for_page = State()
     waiting_for_new_custom_command = State()
     waiting_for_new_custom_command_answer = State()
     waiting_for_custom_command_answer = State()
 
 
 class AutoDeliveriesStates(StatesGroup):
-    waiting_for_page = State()
     waiting_for_new_auto_delivery_lot_link = State()
     waiting_for_new_auto_delivery_message = State()
     waiting_for_auto_delivery_lot_link = State()
