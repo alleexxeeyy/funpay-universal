@@ -89,6 +89,7 @@ MESSAGES = SettingsFile(
     need_restore=True,
     default={
         "first_message": {
+            "label": "👋 Приветствие",
             "enabled": True,
             "text": [
                 "👋 Привет, {user.username}, я бот-помощник 𝗙𝘂𝗻𝗣𝗮𝘆 𝗨𝗻𝗶𝘃𝗲𝗿𝘀𝗮𝗹",
@@ -97,18 +98,21 @@ MESSAGES = SettingsFile(
             ]
         },
         "cmd_error": {
+            "label": "❌ Ошибка команды",
             "enabled": True,
             "text": [
                 "❌ При вводе команды произошла ошибка: {error}"
             ]
         },
         "cmd_seller": {
+            "label": "💬 Вызов продавца",
             "enabled": True,
             "text": [
                 "💬 Продавец был вызван в этот чат. Ожидайте, пока он подключится к диалогу..."
             ]
         },
         "new_order": {
+            "label": "📋 Новый заказ",
             "enabled": False,
             "text": [
                 "📋 Спасибо за покупку «{order.title}» в количестве {order.amount} шт.",
@@ -117,18 +121,21 @@ MESSAGES = SettingsFile(
             ]
         },
         "order_confirmed": {
+            "label": "🌟 Заказ подтверждён",
             "enabled": False,
             "text": [
                 "🌟 Спасибо за успешную сделку. Буду рад, если оставите отзыв. Жду вас в своём магазине в следующий раз, удачи!"
             ]
         },
         "order_refunded": {
+            "label": "📦 Возврат заказа",
             "enabled": False,
             "text": [
                 "📦 Заказ был возвращён. Надеюсь эта сделка не принесла вам неудобств. Жду вас в своём магазине в следующий раз, удачи!"
             ]
         },
         "order_review_reply": {
+            "label": "📝 Ответ на отзыв",
             "enabled": True,
             "text": [
                 "📅 Дата отзыва: {review_date}",
@@ -294,3 +301,7 @@ class Settings:
             file = [file for file in data if file.name == name][0]
             set_json(file.path, new)
         except: pass
+
+    @staticmethod
+    def get_message_label(message_id: str) -> str:
+        return MESSAGES.default.get(message_id, {}).get("label") or message_id

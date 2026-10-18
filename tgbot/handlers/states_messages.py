@@ -28,7 +28,7 @@ async def handler_waiting_for_message_text(message: types.Message, state: FSMCon
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.mess_page_float_text(f"✅ <b>Текст сообщения</b> <code>{data['message_id']}</code> был успешно изменён на <blockquote>{message.text.strip()}</blockquote>"),
+            text=templ.mess_page_float_text(f"✅ <b>Текст сообщения</b> «{sett.get_message_label(data['message_id'])}» был успешно изменён на <blockquote>{message.text.strip()}</blockquote>"),
             reply_markup=templ.back_kb(calls.MessagePage(message_id=data.get("message_id")).pack())
         )
     except Exception as e:
