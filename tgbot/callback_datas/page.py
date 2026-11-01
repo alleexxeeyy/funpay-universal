@@ -14,6 +14,9 @@ class AutoDeliveryPage(CallbackData, prefix="audepage"):
 class CustomCommandPage(CallbackData, prefix="cucopage"):
     command: str
 
+class BlacklistUserPage(CallbackData, prefix="blpage"):
+    index: int
+
 
 class ChatPage(CallbackData, prefix="chtpage"):
     id: str

@@ -9,6 +9,7 @@ import time
 from threading import Thread
 from colorama import Fore
 import textwrap
+from html import escape
 import shutil
 import re
 
@@ -30,6 +31,7 @@ from core.handlers import (
     call_bot_event, 
     call_funpay_event
 )
+from core.blacklist import is_blacklisted, get_blacklist_entry
 from settings import DATA, Settings as sett
 from data import Data as data
 from logging import getLogger
@@ -39,6 +41,8 @@ from tgbot.templates import (
     log_new_mess_kb, 
     log_new_order_kb, 
     log_new_review_kb,
+    log_order_status_kb,
+    log_blacklisted_order_kb,
     destroy_kb
 )
 from support_api import FunPaySupportAPI
@@ -576,6 +580,51 @@ class FunPayBot:
         Thread(target=create_ticket_loop, daemon=True).start()
         Thread(target=withdrawal_loop, daemon=True).start()
 
+    def is_blacklisted_event(self, event) -> bool:
+        try:
+            if event.type is EventTypes.NEW_ORDER:
+                return is_blacklisted(event.order.buyer_username)
+            if event.type is EventTypes.NEW_MESSAGE:
+                return is_blacklisted(event.message.chat_name)
+        except Exception:
+            pass
+        return False
+
+    def handle_blacklisted_order(self, event: NewOrderEvent, this_chat, entry: dict):
+        refunded = False
+        if self.config["funpay"]["blacklist"]["auto_refund"]:
+            try:
+                self.account.refund(event.order.id)
+                refunded = True
+            except Exception as e:
+                logger.error(f"{Fore.LIGHTRED_EX}Не удалось вернуть заказ #{event.order.id} покупателя из чёрного списка: {Fore.WHITE}{e}")
+            if refunded:
+                self.send_message(this_chat.id, self.msg("blacklist_order_refunded",
+                    order_id=event.order.id,
+                    order_title=event.order.description,
+                    order_amount=event.order.amount,
+                    order=msg_order(event.order),
+                ))
+
+        logger.warning(
+            f"{Fore.LIGHTRED_EX}Заказ #{event.order.id} от покупателя {Fore.LIGHTWHITE_EX}{event.order.buyer_username} "
+            f"{Fore.LIGHTRED_EX}из чёрного списка {Fore.WHITE}— {'возвращён' if refunded else 'модули его не обрабатывают'}"
+        )
+        if self.config["funpay"]["notifications"]["enabled"]:
+            reason = escape(entry.get("reason") or "") or "не указана"
+            self.log_to_tg(
+                log_text(
+                    f'🚫 Заказ <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a> от покупателя из ЧС', 
+                    (f"<b>👤 Покупатель:</b> {escape(event.order.buyer_username or '')}"
+                    f"\n<b>📝 Причина ЧС:</b> {reason}"
+                    f"\n<b>🛍️ Товар:</b> {escape(event.order.description or '')}"
+                    f"\n<b>🛒 Количество:</b> {event.order.amount}"
+                    f"\n<b>💰 Сумма:</b> {event.order.price or '?'} {self.account.currency.name}"
+                    f"\n\n{'📦 Заказ автоматически возвращён' if refunded else '⚠️ Модули этот заказ не обрабатывают, решите вручную'}")
+                ),
+                log_blacklisted_order_kb(this_chat.name, event.order.id, refunded)
+            )
+
     async def _on_new_review(self, event: NewMessageEvent):
         review_order_id = event.message.text.split(' ')[-1].replace('#', '').replace('.', '')
         order = self.account.get_order(review_order_id)
@@ -605,6 +654,7 @@ class FunPayBot:
         if (
             order.buyer_id != self.account.id
             and self.config["funpay"]["auto_review_replies"]
+            and not is_blacklisted(event.message.chat_name)
         ):
             self.account.send_review(
                 order_id=review_order_id, 
@@ -628,6 +678,7 @@ class FunPayBot:
         if event.message.author == self.account.username:
             return
         this_chat = self.account.get_chat_by_name(event.message.chat_name, True)
+        blacklisted = is_blacklisted(event.message.chat_name)
         
         if (
             self.config["funpay"]["notifications"]["enabled"] 
@@ -645,13 +696,13 @@ class FunPayBot:
                 
                 self.log_to_tg(
                     log_text(
-                        f'💬 Новое сообщение в <a href="https://funpay.com/chat/?node={event.message.chat_id}">чате</a>', 
+                        f'{"🚫 " if blacklisted else ""}💬 Новое сообщение в <a href="https://funpay.com/chat/?node={event.message.chat_id}">чате</a>{" (покупатель в ЧС)" if blacklisted else ""}', 
                         f"<b>{event.message.author}:</b> <blockquote>{text.strip()}</blockquote>"
                     ),
                     log_new_mess_kb(event.message.chat_name)
                 )
 
-        if event.message.text is None:
+        if event.message.text is None or blacklisted:
             return
         if this_chat.name not in self.initialized_users:
             if event.message.type is MessageTypes.NON_SYSTEM:
@@ -684,6 +735,11 @@ class FunPayBot:
         }
         
         self.log_new_order(event.order)
+
+        blacklist_entry = get_blacklist_entry(event.order.buyer_username)
+        if blacklist_entry:
+            return self.handle_blacklisted_order(event, this_chat, blacklist_entry)
+
         if (
             self.config["funpay"]["notifications"]["enabled"] 
             and self.config["funpay"]["notifications"]["events"]["new_order"]
@@ -732,9 +788,11 @@ class FunPayBot:
         ):
             self.log_to_tg(
                 log_text(f'🔄️ Статус заказа <a href="https://funpay.com/orders/{event.order.id}/">#{event.order.id}</a> изменился на «{status_frmtd}»'),
-                destroy_kb()
+                log_order_status_kb(this_chat.name)
             )
 
+        if is_blacklisted(event.order.buyer_username):
+            return
         if event.order.status is OrderStatuses.CLOSED:
             self.send_message(this_chat.id, self.msg("order_confirmed",
                 order_id=event.order.id,
@@ -808,7 +866,7 @@ class FunPayBot:
             runner = Runner(self.account)
             Thread(target=runner.loop, daemon=True).start()
             for event in runner.listen(requests_delay=self.config["funpay"]["api"]["runner_requests_delay"]):
-                await call_funpay_event(event.type, [self, event])
+                await call_funpay_event(event.type, [self, event], skip_modules=self.is_blacklisted_event(event))
 
         run_async_in_thread(runner_loop)
 

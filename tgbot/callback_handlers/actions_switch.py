@@ -7,6 +7,7 @@ from settings import Settings as sett
 
 from .navigation import *
 from .page import callback_message_page, callback_module_page
+from .pagination import callback_blacklist_pagination
 from .. import templates as templ
 from .. import callback_datas as calls
 from .. import states as states
@@ -23,6 +24,17 @@ async def callback_switch_notifications_enabled(callback: CallbackQuery, state: 
     sett.set("config", config)
     return await callback_menu_navigation(
         callback, calls.MenuNavigation(to="notifications"), state
+    )
+
+
+@router.callback_query(F.data == "switch_blacklist_auto_refund")
+async def callback_switch_blacklist_auto_refund(callback: CallbackQuery, state: FSMContext):
+    config = sett.get("config")
+    config["funpay"]["blacklist"]["auto_refund"] = not config["funpay"]["blacklist"]["auto_refund"]
+    sett.set("config", config)
+    data = await state.get_data()
+    return await callback_blacklist_pagination(
+        callback, calls.BlacklistPagination(page=data.get("last_page", 0)), state
     )
 
 

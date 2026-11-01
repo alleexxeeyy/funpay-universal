@@ -53,6 +53,12 @@ class CustomCommandsStates(StatesGroup):
     waiting_for_custom_command_answer = State()
 
 
+class BlacklistStates(StatesGroup):
+    waiting_for_new_blacklist_username = State()
+    waiting_for_new_blacklist_reason = State()
+    waiting_for_chat_blacklist_reason = State()
+
+
 class AutoDeliveriesStates(StatesGroup):
     waiting_for_new_auto_delivery_lot_link = State()
     waiting_for_new_auto_delivery_message = State()

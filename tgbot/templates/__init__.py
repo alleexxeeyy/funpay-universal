@@ -20,6 +20,8 @@ from .mess_page import *
 from .other import *
 from .tickets import *
 from .signed_users import *
+from .blacklist import *
+from .blacklist_page import *
 
 from .fast_replies import *
 from .sel_fast_reply import *

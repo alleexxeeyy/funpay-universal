@@ -90,6 +90,7 @@ def log_new_mess_kb(chat_name: str):
         InlineKeyboardButton(text="✏️ Ответить", callback_data=calls.RememberChatName(name=chat_name, do="send_mess").pack()),
         InlineKeyboardButton(text="⚡ Быстрый ответ", callback_data=calls.RememberChatName(name=chat_name, do="send_fast_reply").pack()),
         ],
+        [InlineKeyboardButton(text="🚫 В ЧС", callback_data=calls.RememberChatName(name=chat_name, do="blacklist").pack())],
         [InlineKeyboardButton(text="❌ Закрыть", callback_data="destroy")]
     ]
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
@@ -102,9 +103,31 @@ def log_new_order_kb(chat_name: str, order_id: str):
         InlineKeyboardButton(text="✏️ Ответить", callback_data=calls.RememberChatName(name=chat_name, do="send_mess").pack()),
         InlineKeyboardButton(text="📦 Возврат", callback_data=calls.RememberOrderId(or_id=order_id, do="refund").pack()),
         ],
-        [InlineKeyboardButton(text="⚡ Быстрый ответ", callback_data=calls.RememberChatName(name=chat_name, do="send_fast_reply").pack())],
+        [
+        InlineKeyboardButton(text="⚡ Быстрый ответ", callback_data=calls.RememberChatName(name=chat_name, do="send_fast_reply").pack()),
+        InlineKeyboardButton(text="🚫 В ЧС", callback_data=calls.RememberChatName(name=chat_name, do="blacklist").pack()),
+        ],
         [InlineKeyboardButton(text="❌ Закрыть", callback_data="destroy")]
     ]
+    kb = InlineKeyboardMarkup(inline_keyboard=rows)
+    return kb
+
+
+def log_order_status_kb(chat_name: str):
+    rows = [
+        [InlineKeyboardButton(text="🚫 В ЧС", callback_data=calls.RememberChatName(name=chat_name, do="blacklist").pack())],
+        [InlineKeyboardButton(text="❌ Закрыть", callback_data="destroy")]
+    ]
+    kb = InlineKeyboardMarkup(inline_keyboard=rows)
+    return kb
+
+
+def log_blacklisted_order_kb(chat_name: str, order_id: str, refunded: bool = False):
+    rows = []
+    if not refunded:
+        rows.append([InlineKeyboardButton(text="📦 Возврат", callback_data=calls.RememberOrderId(or_id=order_id, do="refund").pack())])
+    rows.append([InlineKeyboardButton(text="🗑️ Убрать из ЧС", callback_data=calls.RememberChatName(name=chat_name, do="blacklist").pack())])
+    rows.append([InlineKeyboardButton(text="❌ Закрыть", callback_data="destroy")])
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     return kb
 
@@ -115,7 +138,10 @@ def log_new_review_kb(chat_name: str, order_id: str):
         InlineKeyboardButton(text="💬🌟 Ответить на отзыв", callback_data=calls.RememberOrderId(or_id=order_id, do="answer_rev").pack()),
         InlineKeyboardButton(text="✏️ Ответить", callback_data=calls.RememberChatName(name=chat_name, do="send_mess").pack()),
         ],
-        [InlineKeyboardButton(text="⚡ Быстрый ответ", callback_data=calls.RememberChatName(name=chat_name, do="send_fast_reply").pack())],
+        [
+        InlineKeyboardButton(text="⚡ Быстрый ответ", callback_data=calls.RememberChatName(name=chat_name, do="send_fast_reply").pack()),
+        InlineKeyboardButton(text="🚫 В ЧС", callback_data=calls.RememberChatName(name=chat_name, do="blacklist").pack()),
+        ],
         [InlineKeyboardButton(text="❌ Закрыть", callback_data="destroy")]
     ]
     kb = InlineKeyboardMarkup(inline_keyboard=rows)

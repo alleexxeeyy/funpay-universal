@@ -21,6 +21,9 @@ class MessagesPagination(CallbackData, prefix="msgpag"):
 class FastRepliesPagination(CallbackData, prefix="fspag"):
     page: int
 
+class BlacklistPagination(CallbackData, prefix="blpag"):
+    page: int
+
 class FastSelFastReplyPagination(CallbackData, prefix="fsrpag"):
     id: str
     page: int
