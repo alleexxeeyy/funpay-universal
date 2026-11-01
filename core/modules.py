@@ -185,9 +185,11 @@ async def reload_module(module_uuid: str):
         module = get_module_by_uuid(module_uuid)
         
         await _disable_module(module)
-        if module._dir_name in sys.modules:
-            del sys.modules[f"{MODULES_DIR}.{module._dir_name}"]
-        importlib.import_module(f"{MODULES_DIR}.{module._dir_name}")
+        full = f"{MODULES_DIR}.{module._dir_name}"
+        for key in [k for k in sys.modules if k == full or k.startswith(f"{full}.")]:
+            del sys.modules[key]
+        importlib.invalidate_caches()
+        importlib.import_module(full)
         await _enable_module(module)
 
         logger.info(f"Модуль {Fore.LIGHTWHITE_EX}{module.meta.name} {Fore.WHITE}перезагружен")
@@ -197,54 +199,72 @@ async def reload_module(module_uuid: str):
         return False
 
 
+IGNORED_NAMES = {"__pycache__", "__init__.py"}
+
+
+def _import_module_object(stem: str) -> Module:
+    module = importlib.import_module(f"{MODULES_DIR}.{stem}")
+    return Module(
+        uuid.uuid4(),
+        enabled=False,
+        meta=ModuleMeta(
+            module.PREFIX,
+            module.VERSION,
+            module.NAME,
+            module.DESCRIPTION,
+            module.AUTHORS,
+            module.LINKS
+        ),
+        bot_event_handlers=getattr(module, "BOT_EVENT_HANDLERS", None) or {},
+        funpay_event_handlers=getattr(module, "FUNPAY_EVENT_HANDLERS", None) or {},
+        telegram_bot_routers=getattr(module, "TELEGRAM_BOT_ROUTERS", None) or [],
+        _dir_name=stem
+    )
+
+
 def load_modules() -> list[Module]:
-    """Загружает все модули из папки modules."""
+    """Загружает все модули из папки modules (папки с __init__.py и одиночные .py файлы)."""
     global loaded_modules
-    
+
     modules = []
+    seen_stems = set()
     os.makedirs(MODULES_DIR, exist_ok=True)
 
-    for name in os.listdir(MODULES_DIR):
-        bot_event_handlers = {}
-        funpay_event_handlers = {}
-        telegram_bot_routers = []
+    # папки-модули грузим первыми: при коллизии имени (foo/ и foo.py) Python
+    # всё равно импортирует пакет, поэтому за ним и закрепляем stem
+    names = sorted(os.listdir(MODULES_DIR), key=lambda n: not os.path.isdir(os.path.join(MODULES_DIR, n)))
+    for name in names:
+        if name in IGNORED_NAMES or name.startswith("pyarmor_runtime_"):
+            continue
         module_path = os.path.join(MODULES_DIR, name)
 
         if os.path.isdir(module_path) and "__init__.py" in os.listdir(module_path):
-            try:
-                install_requirements(os.path.join(module_path, "requirements.txt"))
-                module = importlib.import_module(f"{MODULES_DIR}.{name}")
-                
-                if hasattr(module, "BOT_EVENT_HANDLERS"):
-                    bot_event_handlers = module.BOT_EVENT_HANDLERS
-                if hasattr(module, "FUNPAY_EVENT_HANDLERS"):
-                    funpay_event_handlers = module.FUNPAY_EVENT_HANDLERS
-                if hasattr(module, "TELEGRAM_BOT_ROUTERS"):
-                    telegram_bot_routers = module.TELEGRAM_BOT_ROUTERS
-                
-                module_data = Module(
-                    uuid.uuid4(),
-                    enabled=False,
-                    meta=ModuleMeta(
-                        module.PREFIX,
-                        module.VERSION,
-                        module.NAME,
-                        module.DESCRIPTION,
-                        module.AUTHORS,
-                        module.LINKS
-                    ),
-                    bot_event_handlers=bot_event_handlers,
-                    funpay_event_handlers=funpay_event_handlers,
-                    telegram_bot_routers=telegram_bot_routers,
-                    _dir_name=name
-                )
-                modules.append(module_data)
-            except:
-                logger.error(
-                    f"{Fore.LIGHTRED_EX}Ошибка при загрузке модуля {name}: "
-                    f"{Fore.WHITE}{traceback.format_exc()}"
-                )
-    
+            stem = name
+            requirements = os.path.join(module_path, "requirements.txt")
+        elif os.path.isfile(module_path) and name.endswith(".py"):
+            stem = name[:-3]
+            requirements = os.path.join(MODULES_DIR, stem, "requirements.txt")
+        else:
+            continue
+
+        if stem in seen_stems:
+            logger.warning(
+                f"{Fore.LIGHTYELLOW_EX}Пропускаю {name}: модуль с именем "
+                f"{Fore.LIGHTWHITE_EX}{stem} {Fore.LIGHTYELLOW_EX}уже загружен"
+            )
+            continue
+
+        try:
+            if os.path.isfile(requirements):
+                install_requirements(requirements)
+            modules.append(_import_module_object(stem))
+            seen_stems.add(stem)
+        except:
+            logger.error(
+                f"{Fore.LIGHTRED_EX}Ошибка при загрузке модуля {name}: "
+                f"{Fore.WHITE}{traceback.format_exc()}"
+            )
+
     return modules
 
 
@@ -396,6 +416,12 @@ def _safe_module_name(source: str) -> str:
 
 def _install_module(source: str, name: str) -> str:
     dest = os.path.join(MODULES_DIR, name)
+    stray_py = os.path.join(MODULES_DIR, f"{name}.py")
+    if os.path.isfile(stray_py):
+        try:
+            os.remove(stray_py)
+        except Exception:
+            pass
     if os.path.exists(dest):
         _rmtree(dest)
         if os.path.exists(dest):
@@ -467,6 +493,44 @@ def import_modules_from_archive(path: str) -> list[str]:
         return installed
     finally:
         _rmtree(stage)
+
+
+def import_single_py_file(path: str) -> str:
+    """
+    Устанавливает одиночный .py файл как модуль в папку modules.
+
+    :param path: Путь к .py файлу.
+    :type path: `str`
+
+    :return: Название установленного модуля (без расширения).
+    :rtype: `str`
+    """
+    if not path.lower().endswith(".py"):
+        raise ModuleImportError("❌ Нужен файл в формате <b>.py</b>")
+
+    os.makedirs(MODULES_DIR, exist_ok=True)
+    name = _safe_module_name(path)
+
+    if os.path.isfile(os.path.join(MODULES_DIR, name, "__init__.py")):
+        raise ModuleImportError(
+            f"❌ Модуль <b>{name}</b> уже установлен как папка — удалите его, прежде чем ставить одиночным файлом"
+        )
+
+    dest = os.path.join(MODULES_DIR, f"{name}.py")
+    if os.path.exists(dest):
+        try:
+            os.remove(dest)
+        except Exception:
+            raise ModuleImportError(
+                f"❌ Не удалось заменить старую версию модуля <b>{name}</b> — файл занят или нет прав на запись"
+            )
+    try:
+        shutil.move(path, dest)
+    except Exception:
+        raise ModuleImportError(
+            f"❌ Не удалось установить модуль <b>{name}</b> — нет прав на запись в папку modules"
+        )
+    return name
 
 
 def _format_string(count: int):
