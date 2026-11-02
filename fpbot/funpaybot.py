@@ -155,20 +155,33 @@ class FunPayBot:
         else:
             user = self.account.get_user(self.account.id)
             lots = user.get_lots()
-        cleaned_title = (" ".join(re.sub(r"[^\w\s]", " ", title).split())).lower()
+        clean = lambda text: (" ".join(re.sub(r"[^\w\s]", " ", text or "").split())).lower()
+        has_words = lambda part, text: re.search(rf"(?<!\w){re.escape(part)}(?!\w)", text) is not None
+        cleaned_title = clean(title)
 
+        # Совпадение только целыми словами: иначе заказ «150 звёзд» находил лот «50 звёзд».
+        # Из нескольких подходящих берём самый точный: точное название, потом самый длинный лот внутри
+        # названия заказа, потом самый короткий лот, который содержит название заказа
+        inside, around = [], []
         for lot in lots:
             if subcat_id and lot.subcategory.id != subcat_id:
                 continue
 
-            cleaned_lot_title = (" ".join(re.sub(r"[^\w\s]", " ", lot.title).split())).lower()
-            if (
-                cleaned_lot_title in cleaned_title
-                or cleaned_title in cleaned_lot_title
-                or cleaned_lot_title == cleaned_title
-            ):
+            cleaned_lot_title = clean(lot.title)
+            if not cleaned_lot_title or not cleaned_title:
+                continue
+            if cleaned_lot_title == cleaned_title:
                 return lot
-            
+            if has_words(cleaned_lot_title, cleaned_title):
+                inside.append((len(cleaned_lot_title), lot))
+            elif has_words(cleaned_title, cleaned_lot_title):
+                around.append((len(cleaned_lot_title), lot))
+
+        if inside:
+            return max(inside, key=lambda item: item[0])[1]
+        if around:
+            return min(around, key=lambda item: item[0])[1]
+
         logger.error(f"{Fore.LIGHTRED_EX}Не удалось получить лот по названию «{title}»")
     
     def get_lot_by_order_title(self, title: str, subcategory: types.SubCategory | None = None,
@@ -670,7 +683,9 @@ class FunPayBot:
             )
 
     async def _on_new_message(self, event: NewMessageEvent):
-        if event.message.type is MessageTypes.NEW_FEEDBACK:
+        # Тип сообщения FunPayAPI угадывает по тексту, а покупатель может написать «отзыв к заказу #…» сам.
+        # Настоящее системное сообщение приходит только от author_id 0
+        if event.message.type is MessageTypes.NEW_FEEDBACK and event.message.author_id == 0:
             return await FunPayBot._on_new_review(self, event)
         
         self.log_new_message(event.message)
