@@ -14,7 +14,6 @@ import time
 import asyncio
 import re
 import requests
-from colorlog import ColoredFormatter
 from threading import Thread
 from logging import getLogger
 
@@ -180,45 +179,22 @@ def set_title(title: str):
 
 
 def setup_logger(log_file: str = "logs/latest.log"):
-    class ShortLevelFormatter(ColoredFormatter):
-        def format(self, record):
-            record.shortLevel = record.levelname[0]
-            return super().format(record)
+    # rich ставится из requirements.txt при запуске — импортируем только после этого
+    from core.console import ConsoleHandler, PlainFormatter
 
     os.makedirs("logs", exist_ok=True)
-    LOG_FORMAT = "%(light_black)s%(asctime)s · %(log_color)s%(shortLevel)s: %(reset)s%(white)s%(message)s"
-    formatter = ShortLevelFormatter(
-        LOG_FORMAT,
-        datefmt="%d.%m.%Y %H:%M:%S",
-        reset=True,
-        log_colors={
-            'DEBUG': 'light_blue',
-            'INFO': 'light_green',
-            'WARNING': 'yellow',
-            'ERROR': 'bold_red',
-            'CRITICAL': 'red',
-        },
-        style='%'
-    )
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
+    console_handler = ConsoleHandler()
     console_handler.setLevel(logging.INFO)
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
-
-    class StripColorFormatter(logging.Formatter):
-        ansi_escape = re.compile(r'\x1b\[[0-9;]*[A-Za-z]')
-        def format(self, record):
-            message = super().format(record)
-            return self.ansi_escape.sub('', message)
-        
-    file_handler.setFormatter(StripColorFormatter(
+    file_handler.setFormatter(PlainFormatter(
         "[%(asctime)s] %(levelname)-1s · %(name)-20s %(message)s",
         datefmt="%d.%m.%Y %H:%M:%S",
     ))
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
+    logging.getLogger("urllib3").setLevel(logging.INFO) # на DEBUG пишет URL запроса вместе с токеном бота, а latest.log пересылают разработчику
     
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)

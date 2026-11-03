@@ -8,6 +8,7 @@ from typing import  Optional
 import time
 from threading import Thread
 from colorama import Fore
+import logging
 import textwrap
 from html import escape
 import shutil
@@ -411,51 +412,44 @@ class FunPayBot:
 
     
     def log_new_message(self, message: types.Message):
-        ch_header = f"Новое сообщение в чате с {message.chat_name}:"
-        logger.info(f"{ACCENT_COLOR}{ch_header.replace(message.chat_name, f'{Fore.LIGHTCYAN_EX}{message.chat_name}')}")
-        logger.info(f"{ACCENT_COLOR}│ {Fore.LIGHTWHITE_EX}{message.author}:")
-        max_width = shutil.get_terminal_size((80, 20)).columns - 40
-        longest_line_len = 0
-        text = ""
-        if message.text is not None: text = message.text
-        elif message.image_link is not None: text = f"{Fore.LIGHTMAGENTA_EX}Изображение {Fore.WHITE}({message.image_link})"
-        for raw_line in text.split("\n"):
-            if not raw_line.strip():
-                logger.info(f"{ACCENT_COLOR}│")
-                continue
-            wrapped_lines = textwrap.wrap(raw_line, width=max_width)
-            for wrapped in wrapped_lines:
-                logger.info(f"{ACCENT_COLOR}│ {Fore.WHITE}{wrapped}")
-                longest_line_len = max(longest_line_len, len(wrapped.strip()))
-        underline_len = max(len(ch_header)-1, longest_line_len+2)
-        logger.info(f"{ACCENT_COLOR}└{'─'*underline_len}")
+        from core.console import log_panel
+
+        text = message.text or ""
+        if message.text is None and message.image_link is not None:
+            text = f"{Fore.LIGHTMAGENTA_EX}Изображение {Fore.RESET}({message.image_link})"
+        log_panel(
+            logger, f"💬 Чат с {Fore.LIGHTCYAN_EX}{message.chat_name}",
+            body=f"{Fore.LIGHTWHITE_EX}{message.author}:{Fore.RESET} {text}",
+            color="bright_blue"
+        )
     
     def log_new_order(self, order: types.OrderShortcut):
-        logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
-        logger.info(f"{Fore.YELLOW}Новый заказ #{order.id}:")
-        logger.info(f" · Покупатель: {Fore.LIGHTWHITE_EX}{order.buyer_username}")
-        logger.info(f" · Товар: {Fore.LIGHTWHITE_EX}{order.description}")
-        logger.info(f" · Количество: {Fore.LIGHTWHITE_EX}{order.amount or '?'}")
-        logger.info(f" · Сумма: {Fore.LIGHTWHITE_EX}{order.price} {self.account.currency.name}")
-        logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
+        from core.console import log_panel
+        log_panel(logger, f"🛒 Новый заказ #{order.id}", [
+            ("Покупатель", order.buyer_username),
+            ("Товар", order.description),
+            ("Количество", order.amount or "?"),
+            ("Сумма", f"{order.price} {self.account.currency.name}")
+        ])
     
     def log_order_status_changed(self, order: types.OrderShortcut, status_frmtd: str = "Неизвестный"):
-        logger.info(f"{Fore.WHITE}───────────────────────────────────────")
-        logger.info(f"{Fore.WHITE}Статус заказа {Fore.LIGHTWHITE_EX}#{order.id} {Fore.WHITE}изменился:")
-        logger.info(f" · Статус: {Fore.LIGHTWHITE_EX}{status_frmtd}")
-        logger.info(f" · Покупатель: {Fore.LIGHTWHITE_EX}{order.buyer_username}")
-        logger.info(f" · Товар: {Fore.LIGHTWHITE_EX}{order.description}")
-        logger.info(f" · Количество: {Fore.LIGHTWHITE_EX}{order.amount or order.parse_amount() or 0}")
-        logger.info(f" · Сумма: {Fore.LIGHTWHITE_EX}{order.price} {self.account.currency.name}")
-        logger.info(f"{Fore.WHITE}───────────────────────────────────────")
+        from core.console import log_panel
+        log_panel(logger, f"🔄 Статус заказа #{order.id} изменился", [
+            ("Статус", status_frmtd),
+            ("Покупатель", order.buyer_username),
+            ("Товар", order.description),
+            ("Количество", order.amount or order.parse_amount() or 0),
+            ("Сумма", f"{order.price} {self.account.currency.name}")
+        ], color="grey62")
     
     def log_new_review(self, review: types.Review):
-        logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
-        logger.info(f"{Fore.YELLOW}Новый отзыв по заказу #{review.order_id}:")
-        logger.info(f" · Оценка: {Fore.LIGHTYELLOW_EX}{'★' * review.stars or 5} ({review.stars or 5})")
-        logger.info(f" · Текст: {Fore.LIGHTWHITE_EX}{review.text}")
-        logger.info(f" · Оставил: {Fore.LIGHTWHITE_EX}{review.author}")
-        logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
+        from core.console import log_panel
+        stars = review.stars or 5
+        log_panel(logger, f"⭐ Новый отзыв по заказу #{review.order_id}", [
+            ("Оценка", f"{'★' * stars} ({stars})"),
+            ("Текст", review.text),
+            ("Оставил", review.author)
+        ])
 
 
     def _event_datetime(self, latest_event_time, event_interval):
@@ -825,30 +819,29 @@ class FunPayBot:
 
 
     async def run_bot(self):
+        from core.console import log_panel
+
         account_pid = acquire_account_lock(self.account.id)
         if account_pid is not None:
-            logger.info("")
-            logger.error(f"{Fore.LIGHTRED_EX}Бот на этом аккаунте FunPay уже запущен!")
-            logger.error(f"{Fore.WHITE}Аккаунт {Fore.LIGHTWHITE_EX}{self.account.username} {Fore.WHITE}уже обслуживает другой бот"
-                         f"{f' (процесс {account_pid})' if account_pid else ''} — один аккаунт, один бот.")
-            logger.error(f"{Fore.WHITE}Закройте это окно: если оставить два бота на одном аккаунте, заказы и сообщения будут обрабатываться дважды.")
-            logger.error(f"{Fore.LIGHTBLACK_EX}Если бот на самом деле не запущен — завершите зависший процесс python и попробуйте снова.")
-            logger.info("")
+            log_panel(
+                logger, "■ Бот на этом аккаунте FunPay уже запущен",
+                body=f"Аккаунт {Fore.LIGHTWHITE_EX}{self.account.username}{Fore.RESET} уже обслуживает другой бот"
+                     f"{f' (процесс {account_pid})' if account_pid else ''} — один аккаунт, один бот.\n"
+                     f"Закройте это окно: если оставить два бота на одном аккаунте, заказы и сообщения будут обрабатываться дважды.\n"
+                     f"{Fore.LIGHTBLACK_EX}Если бот на самом деле не запущен — завершите зависший процесс python и попробуйте снова.",
+                level=logging.ERROR, color="red"
+            )
             sys.exit(1)
 
-        logger.info("")
-        logger.info(f"{Fore.YELLOW}FunPay бот запущен и активен")
-        logger.info("")
+        currency = self.account.currency.name if self.account.currency != Currency.UNKNOWN else "RUB"
+        rows = [
+            ("Никнейм", self.account.username),
+            ("ID", self.account.id),
+            ("Баланс", f"{self.account.total_balance} {currency}"),
+            ("Активные продажи", self.account.active_sales),
+            ("Активные покупки", self.account.active_purchases)
+        ]
 
-        logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
-        logger.info(f"{Fore.YELLOW}Информация об аккаунте:")
-        logger.info(f" · ID: {Fore.LIGHTWHITE_EX}{self.account.id}")
-        logger.info(f" · Никнейм: {Fore.LIGHTWHITE_EX}{self.account.username}")
-        logger.info(f" · Баланс: {Fore.LIGHTWHITE_EX}{self.account.total_balance} {self.account.currency.name if self.account.currency != Currency.UNKNOWN else 'RUB'}")
-        logger.info(f" · Активные продажи: {Fore.LIGHTWHITE_EX}{self.account.active_sales}")
-        logger.info(f" · Активные покупки: {Fore.LIGHTWHITE_EX}{self.account.active_purchases}")
-        logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
-        
         proxy = self.config["funpay"]["api"]["proxy"]
         if proxy:
             if "@" in proxy:
@@ -857,20 +850,10 @@ class FunPayBot:
             else:
                 user, password = None, None
                 ip, port = proxy.split(":")
-            
             ip = ".".join([("*" * len(nums)) if i >= 3 else nums for i, nums in enumerate(ip.split("."), start=1)])
-            port = f"{port[:3]}**"
-            user = f"{user[:3]}*****" if user else "-"
-            password = f"{password[:3]}*****" if password else "-"
+            rows.append(("Прокси", f"{ip}:{port[:3]}**" + (f" {Fore.LIGHTBLACK_EX}· юзер {Fore.RESET}{user[:3]}*****" if user else "")))
 
-            logger.info("")
-            logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
-            logger.info(f"{Fore.YELLOW}Информация о прокси:")
-            logger.info(f" · IP: {Fore.LIGHTWHITE_EX}{ip}:{port}")
-            logger.info(f" · Юзер: {Fore.LIGHTWHITE_EX}{user}")
-            logger.info(f" · Пароль: {Fore.LIGHTWHITE_EX}{password}")
-            logger.info(f"{Fore.YELLOW}───────────────────────────────────────")
-            logger.info("")
+        log_panel(logger, "👤 Аккаунт FunPay", rows, message=f"{Fore.YELLOW}FunPay бот запущен и активен")
             
         add_bot_event_handler("ON_FUNPAY_BOT_INIT", FunPayBot._on_funpay_bot_init, 0)
         add_funpay_event_handler(EventTypes.NEW_MESSAGE, FunPayBot._on_new_message, 0)

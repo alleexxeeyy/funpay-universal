@@ -10,7 +10,7 @@ import importlib
 import uuid
 import traceback
 from uuid import UUID
-from colorama import Fore
+from colorama import Fore, Style
 from dataclasses import dataclass
 from logging import getLogger
 
@@ -608,7 +608,17 @@ async def connect_modules(modules: list[Module]):
         except Exception as e:
             logger.error(f"{Fore.LIGHTRED_EX}Ошибка при подключении модуля {module.meta.name}: {Fore.WHITE}{traceback.format_exc()}")
     
-    connected_modules = [module for module in loaded_modules if module.enabled]
-    names = [f"{Fore.YELLOW}{module.meta.name} {Fore.LIGHTWHITE_EX}{module.meta.version}" for module in connected_modules]
-    if names:
-        logger.info(f'{_format_string(len(connected_modules))}{Fore.WHITE}: {f"{Fore.WHITE}, ".join(names)}')
+    _log_modules_table(modules)
+
+
+def _log_modules_table(modules: list[Module]):
+    from core.console import log_table
+
+    rows = []
+    for module in modules:
+        name = re.sub(r"\s*(?:\x1b\[[0-9;]*m)*·.*$", "", module.meta.prefix or "") or module.meta.name # имя в цвете модуля
+        status = f"{Fore.GREEN}● подключён" if module.enabled else f"{Fore.LIGHTRED_EX}■ выключился при запуске"
+        rows.append([f"{Style.BRIGHT}{name}", module.meta.version, status])
+
+    if rows:
+        log_table(logger, f"🔌 Модули · {len(rows)}", ["Модуль", "Версия", "Статус"], rows)
