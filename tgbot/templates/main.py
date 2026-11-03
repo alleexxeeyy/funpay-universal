@@ -149,11 +149,7 @@ def log_new_review_kb(chat_name: str, order_id: str):
 
 
 def sign_text(placeholder: str):
-    txt = textwrap.dedent(f"""
-        <b>🔐 Авторизация</b>
-        \n{placeholder}
-    """)
-    return txt
+    return f"<b>🔐 Авторизация</b>\n\n{placeholder}"
 
 
 def call_seller_text(username: str, chat_id: str):

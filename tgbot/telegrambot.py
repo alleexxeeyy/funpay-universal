@@ -12,6 +12,7 @@ import logging
 from settings import Settings as sett
 from core.modules import get_modules
 from core.handlers import call_bot_event
+from core.notify import get_connection
 from utils import normalize_custom_api_url
 
 from . import router as main_router
@@ -43,9 +44,10 @@ class TelegramBot:
         logging.getLogger("aiogram.dispatcher").setLevel(logging.CRITICAL)
         
         config = sett.get("config")
+        connection = get_connection() # при запуске могли переключиться на запасное подключение, если прокси не ответил
         self.token = config["telegram"]["api"]["token"]
-        self.proxy = config["telegram"]["api"]["proxy"]
-        self.custom_api_url = config["telegram"]["api"]["custom_api_url"]
+        self.proxy = connection["proxy"]
+        self.custom_api_url = connection["custom_api_url"]
 
         if self.proxy:
             session = AiohttpSession(proxy=f"http://{self.proxy}")
@@ -59,14 +61,28 @@ class TelegramBot:
             self.custom_api_url = normalize_custom_api_url(self.custom_api_url)
             self.bot.session.api = TelegramAPIServer.from_base(self.custom_api_url)
         self.dp = Dispatcher()
-
         self.me = None
+        self.loop = None
 
-        for module in get_modules():
-            for router in module.telegram_bot_routers:
-                main_router.include_router(router)
-        
+        self.attach_modules(get_modules())
         self.dp.include_router(main_router)
+
+    def attach_modules(self, modules: list):
+        for module in modules:
+            for router in module.telegram_bot_routers:
+                if router.parent_router is None:
+                    main_router.include_router(router)
+
+    async def refresh_polling(self):
+        # их ON_TELEGRAM_BOT_INIT догнал _enable_module, тут только поллинг под новые роутеры
+        self._polling_restart = asyncio.create_task(self._restart_polling())
+
+    async def _restart_polling(self):
+        # aiogram считает allowed_updates при старте поллинга — у новых роутеров могут быть свои типы апдейтов
+        try:
+            await self.dp.stop_polling()
+        except RuntimeError:
+            pass
 
 
     async def _set_main_menu(self):
@@ -118,7 +134,7 @@ class TelegramBot:
             pass
 
 
-    async def run_bot(self, from_tg=False):
+    async def run_bot(self):
         self.loop = asyncio.get_running_loop()
 
         await self._set_main_menu()
@@ -147,23 +163,12 @@ class TelegramBot:
         else:
             logger.info(started)
 
-        if from_tg:
-            await self.notify_bot_restarted()
-
+        drop_updates = True # старые апдейты сбрасываем только при запуске, а не при перезапуске поллинга
         while True:
-            await self.bot.delete_webhook(drop_pending_updates=True)
+            await self.bot.delete_webhook(drop_pending_updates=drop_updates)
+            drop_updates = False
             try: await self.dp.start_polling(self.bot, skip_updates=True, handle_signals=False)
             except: pass
-
-    async def notify_bot_restarted(self):
-        config = sett.get("config")
-        for user_id in config["telegram"]["bot"]["signed_users"]:
-            await self.bot.send_message(
-                chat_id=user_id, 
-                text="✅ Бот был <b>успешно перезагружен</b>",
-                reply_markup=templ.destroy_kb(),
-                parse_mode="HTML"
-            )
 
     async def call_seller(self, username: str, chat_id: str):
         config = sett.get("config")

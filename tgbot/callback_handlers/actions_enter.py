@@ -9,7 +9,7 @@ from .navigation import *
 from .. import templates as templ
 from .. import callback_datas as calls
 from .. import states as states
-from ..helpful import throw_float_message
+from ..helpful import throw_float_message, answer_callback
 
 
 router = Router()
@@ -441,9 +441,13 @@ async def callback_enter_logs_max_file_size(callback: CallbackQuery, state: FSMC
     )
 
 
-@router.callback_query(F.data == "enter_current_password")
-async def callback_enter_current_password(callback: CallbackQuery, state: FSMContext):
-    await state.set_state(states.SystemStates.waiting_for_current_password)
+@router.callback_query(F.data == "add_signed_user_id")
+async def callback_add_signed_user_id(callback: CallbackQuery, state: FSMContext):
+    from core.access import is_signed
+    if not is_signed(callback.from_user.id):
+        return await answer_callback(callback.bot, callback)
+
+    await state.set_state(states.SystemStates.waiting_for_signed_user_id)
 
     data = await state.get_data()
     last_page = data.get("last_page", 0)
@@ -451,6 +455,26 @@ async def callback_enter_current_password(callback: CallbackQuery, state: FSMCon
     await throw_float_message(
         state=state,
         message=callback.message,
-        text=templ.signed_users_float_text("🔒 Введите <b>текущий ключ-пароль</b> от бота:"),
-        reply_markup=templ.back_kb(calls.SignedUsersPagination(page=last_page).pack())
+        text=templ.signed_users_float_text(
+            "🆔 Введите <b>Telegram ID</b> человека, которому нужно открыть доступ:"
+            "\n<blockquote><b>(?)</b> Свой ID человек увидит, если напишет этому боту /start.</blockquote>"
+        ),
+        reply_markup=templ.back_kb(calls.SignedUsersPagination(page=last_page).pack()),
+        callback=callback
     )
+
+
+@router.callback_query(F.data == "pick_signed_user")
+async def callback_pick_signed_user(callback: CallbackQuery, state: FSMContext):
+    from core.access import is_signed
+    if not is_signed(callback.from_user.id):
+        return await answer_callback(callback.bot, callback)
+
+    await state.set_state(states.SystemStates.waiting_for_shared_user)
+    await callback.bot.send_message(
+        chat_id=callback.from_user.id,
+        text=templ.pick_user_text(),
+        reply_markup=templ.pick_user_kb(),
+        parse_mode="HTML"
+    )
+    await answer_callback(callback.bot, callback)

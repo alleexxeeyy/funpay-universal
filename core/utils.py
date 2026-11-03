@@ -157,10 +157,12 @@ def release_instance_locks():
 
 def restart(from_tg=False):
     python = sys.executable
-    args = sys.argv.copy()
+    args = [arg for arg in sys.argv if arg != "--from_tg"]
 
     if from_tg:
-        args.append("--from_tg")
+        from core import bootreport
+        if not bootreport.has_marker(): # перезапуск из ТГ без своего маркера — пусть отчёт уйдёт всем, как раньше
+            bootreport.set_marker("restart")
 
     release_instance_locks() # иначе новый процесс упрётся в локи, которые держит ещё живой старый
     logger.info("Перезапуск бота...")
@@ -218,7 +220,7 @@ def is_package_installed(requirement_string: str) -> bool:
         return False
 
 
-def install_requirements(requirements_path: str):
+def install_requirements(requirements_path: str, timeout: int = None):
     try:
         if not os.path.exists(requirements_path):
             return
@@ -241,7 +243,7 @@ def install_requirements(requirements_path: str):
             if not is_package_installed(pkg_name):
                 subprocess.check_call([
                     sys.executable, "-m", "pip", "install", "-r", requirements_path
-                ])
+                ], timeout=timeout)
                 return
     except Exception as e:
         logger.error(f"Не удалось установить зависимости из файла \"{requirements_path}\": {e}")

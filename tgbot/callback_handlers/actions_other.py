@@ -1,10 +1,11 @@
 from aiogram import F, Router
 from html import escape
-from aiogram.types import CallbackQuery, FSInputFile
+from aiogram.types import CallbackQuery, FSInputFile, BufferedInputFile
 from aiogram.fsm.context import FSMContext
 from pathlib import Path
 from collections import deque
 import shutil
+import asyncio
 import os
 
 from settings import Settings as sett
@@ -17,7 +18,7 @@ from .page import callback_module_page
 from .. import templates as templ
 from .. import callback_datas as calls
 from .. import states as states
-from ..helpful import throw_float_message, do_auth
+from ..helpful import throw_float_message, do_auth, notify, answer_callback, show_module_checks
 
 
 router = Router()
@@ -34,14 +35,20 @@ async def callback_null_answer(callback: CallbackQuery):
 
 @router.callback_query(calls.DeleteSignedUser.filter())
 async def callback_delete_signed_user(callback: CallbackQuery, callback_data: calls.DeleteSignedUser, state: FSMContext):
+    from core import access
+
+    data = await state.get_data()
+    last_page = data.get("last_page", 0)
     try:
         await state.set_state(None)
         id = callback_data.id
 
-        data = await state.get_data()
-        last_page = data.get("last_page", 0)
+        if not access.is_signed(callback.from_user.id): # у удалённого юзера могло остаться старое меню
+            return await answer_callback(callback.bot, callback)
         
         config = sett.get("config")
+        if config["telegram"]["bot"]["signed_users"] == [id]:
+            raise Exception("❌ Это последний пользователь — без него у бота не останется владельца")
         config["telegram"]["bot"]["signed_users"].remove(id)
         sett.set("config", config)
         
@@ -60,24 +67,52 @@ async def callback_delete_signed_user(callback: CallbackQuery, callback_data: ca
         )
 
 
-@router.callback_query(F.data == "change_password")
-async def callback_change_password(callback: CallbackQuery, state: FSMContext):
+@router.callback_query(calls.AccessRequest.filter())
+async def callback_access_request(callback: CallbackQuery, callback_data: calls.AccessRequest, state: FSMContext):
+    from core import access
+
+    if not access.is_signed(callback.from_user.id): # callback_data подделывается — проверяем, кто жмёт
+        return await answer_callback(callback.bot, callback)
+
+    user_id = callback_data.id
+    request = access.get_request(user_id) or {}
+    username, name = request.get("username"), request.get("name")
     await state.set_state(None)
 
-    data = await state.get_data()
-    last_page = data.get("last_page", 0)
-    new_password = data.get("new_password")
-    
-    config = sett.get("config")
-    config["telegram"]["bot"]["password"] = new_password
-    config["telegram"]["bot"]["signed_users"] = [callback.from_user.id]
-    sett.set("config", config)
-    
+    if callback_data.do == "deny":
+        return await throw_float_message(
+            state=state,
+            message=callback.message,
+            text=templ.access_request_text(user_id, username, name, "❌ Запрос отклонён"),
+            reply_markup=templ.destroy_kb(),
+            callback=callback
+        )
+
+    if callback_data.do == "cancel":
+        return await throw_float_message(
+            state=state,
+            message=callback.message,
+            text=templ.access_request_text(user_id, username, name),
+            reply_markup=templ.access_request_kb(user_id),
+            callback=callback
+        )
+
+    if access.is_signed(user_id):
+        return await throw_float_message(
+            state=state,
+            message=callback.message,
+            text=templ.access_request_text(user_id, username, name, "✅ У этого человека уже есть доступ"),
+            reply_markup=templ.destroy_kb(),
+            callback=callback
+        )
+
+    await state.set_state(states.SystemStates.waiting_for_access_confirm)
+    await state.update_data(access_user_id=user_id, access_request={"username": username, "name": name})
     await throw_float_message(
         state=state,
         message=callback.message,
-        text=templ.signed_users_float_text(f"✅ Пароль <b>успешно изменён</b>"),
-        reply_markup=templ.back_kb(calls.SignedUsersPagination(page=last_page).pack()),
+        text=templ.access_confirm_text(user_id, username, name),
+        reply_markup=templ.access_confirm_kb(user_id),
         callback=callback
     )
 
@@ -274,18 +309,13 @@ async def callback_module_import_action(callback: CallbackQuery, state: FSMConte
         fresh_note = "\n\n✅ Новые модули из архива установлены: " + ", ".join(f"<b>{n}</b>" for n in fresh)
 
     if action == "cancel":
-        text = "✖️ Импорт существующих модулей отменён." + fresh_note
-        if fresh:
-            text += "\n\n❗ Для подключения <b>необходима перезагрузка</b> — /restart"
-        await throw_float_message(
-            state=state,
-            message=callback.message,
-            text=templ.modules_float_text(text),
-            reply_markup=templ.back_kb(calls.ModulesPagination(page=last_page).pack())
-        )
         clear_module_import_dir(user_id)
         await callback.answer()
-        return
+        return await show_module_checks(
+            callback.message, state,
+            "✖️ Импорт существующих модулей отменён." + fresh_note,
+            fresh, calls.ModulesPagination(page=last_page).pack()
+        )
 
     if any(not os.path.exists(mod["source"]) for mod in collided):
         await throw_float_message(
@@ -305,20 +335,98 @@ async def callback_module_import_action(callback: CallbackQuery, state: FSMConte
         verb = {"merge": "обновлены", "replace": "переустановлены", "duplicate": "добавлены копией"}[action]
         str_installed = "\n".join(f"・ <b>{name}</b>" for name in installed)
         text = f"✅ Модули {verb}:\n<blockquote>{str_installed}</blockquote>{fresh_note}"
-        text += "\n\n❗ Для подключения <b>необходима перезагрузка</b> — /restart"
     except Exception as e:
         done = ("\n\nУспели установиться: " + ", ".join(f"<b>{n}</b>" for n in installed)) if installed else ""
         text = (str(e) if isinstance(e, ModuleImportError) else
                 f"❌ Не удалось установить модуль: <blockquote>{escape(str(e))}</blockquote>") + done
 
-    await throw_float_message(
-        state=state,
-        message=callback.message,
-        text=templ.modules_float_text(text),
-        reply_markup=templ.back_kb(calls.ModulesPagination(page=last_page).pack())
-    )
     clear_module_import_dir(user_id)
     await callback.answer()
+    await show_module_checks(callback.message, state, text, installed + fresh, calls.ModulesPagination(page=last_page).pack())
+
+
+_module_check_lock = asyncio.Lock() # два быстрых нажатия не должны откатить и тут же удалить модуль
+
+
+@router.callback_query(calls.ModuleCheckAction.filter())
+async def callback_module_check_action(callback: CallbackQuery, callback_data: calls.ModuleCheckAction, state: FSMContext):
+    from core.access import is_signed
+    from core.modules import remove_module, restore_module_backup, drop_module_backup
+
+    if not is_signed(callback.from_user.id):
+        return await answer_callback(callback.bot, callback)
+
+    async with _module_check_lock:
+        data = await state.get_data()
+        checks = data.get("module_checks") or []
+        back_cb = data.get("module_checks_back") or calls.ModulesPagination(page=0).pack()
+        token = data.get("module_checks_token")
+        if callback_data.token != token or callback_data.idx >= len(checks):
+            return await notify(callback, "Меню устарело — импортируйте модуль заново", alert=True)
+
+        check = checks[callback_data.idx]
+        do = callback_data.do
+        if do == "trace":
+            await callback.bot.send_document(
+                chat_id=callback.from_user.id,
+                document=BufferedInputFile(check["trace"].encode("utf-8"), filename=f"{check['name']}_error.txt"),
+                reply_markup=templ.destroy_kb()
+            )
+            return await answer_callback(callback.bot, callback)
+
+        if check["status"] not in ("error", "timeout"):
+            return await answer_callback(callback.bot, callback)
+
+        try:
+            if do in ("delete", "rollback"): # проверка вне бота может ошибиться — удаление и откат только со второго нажатия
+                check["confirm"] = do
+            elif do == "cancel":
+                check.pop("confirm", None)
+            elif do == "rollback_yes" and check.get("confirm") == "rollback":
+                restore_module_backup(check["name"])
+                check["status"] = "rolled_back"
+                check.pop("confirm", None)
+            elif do == "delete_yes" and check.get("confirm") == "delete":
+                remove_module(check["name"])
+                drop_module_backup(check["name"])
+                check["status"] = "deleted"
+                check.pop("confirm", None)
+            else:
+                return await answer_callback(callback.bot, callback)
+        except Exception as e:
+            check.pop("confirm", None)
+            await state.update_data(module_checks=checks)
+            return await notify(callback, str(e) if isinstance(e, ModuleImportError) else f"❌ Не получилось: {e}", alert=True)
+
+        await state.update_data(module_checks=checks)
+        await throw_float_message(
+            state=state,
+            message=callback.message,
+            text=templ.modules_float_text(templ.module_check_text(data.get("module_checks_header", ""), checks)),
+            reply_markup=templ.module_check_kb(checks, back_cb, token),
+            callback=callback
+        )
+
+
+@router.callback_query(F.data == "module_check_restart")
+async def callback_module_check_restart(callback: CallbackQuery, state: FSMContext):
+    from core.utils import restart
+    from core.bootreport import set_marker
+    from core.access import is_signed
+
+    if not is_signed(callback.from_user.id):
+        return await answer_callback(callback.bot, callback)
+
+    await state.set_state(None)
+    mess = await throw_float_message(
+        state=state,
+        message=callback.message,
+        text="🔄️ <b>Перезагружаю бота</b>, подождите...",
+        reply_markup=templ.destroy_kb(),
+        callback=callback
+    )
+    set_marker("restart", callback.message.chat.id, mess.message_id if mess else callback.message.message_id)
+    restart(from_tg=True)
 
 
 @router.callback_query(F.data == "reload_module")
@@ -719,6 +827,7 @@ async def callback_install_update(callback: CallbackQuery, state: FSMContext):
 
         from updater import download_update, install_update, latest_release
         from core.utils import restart
+        from core.bootreport import set_marker
 
         bytes = download_update(latest_release)
         if not bytes:
@@ -732,7 +841,7 @@ async def callback_install_update(callback: CallbackQuery, state: FSMContext):
                 callback=callback
             )
 
-            await throw_float_message(
+            mess = await throw_float_message(
                 state=state,
                 message=mess,
                 text="🔄️ <b>Перезагружаю бота</b>, подождите...",
@@ -741,6 +850,7 @@ async def callback_install_update(callback: CallbackQuery, state: FSMContext):
                 send=True
             )
             
+            set_marker("update", callback.message.chat.id, mess.message_id if mess else None)
             restart(from_tg=True)
     except Exception as e:
         await throw_float_message(
@@ -750,3 +860,47 @@ async def callback_install_update(callback: CallbackQuery, state: FSMContext):
             reply_markup=templ.destroy_kb(),
             callback=callback
         )
+
+
+@router.callback_query(calls.BootErrorFile.filter())
+async def callback_boot_error_file(callback: CallbackQuery, callback_data: calls.BootErrorFile):
+    from core import bootreport
+
+    if callback.from_user.id not in sett.get("config")["telegram"]["bot"]["signed_users"]:
+        return await answer_callback(callback.bot, callback)
+
+    errors = bootreport.get_errors()
+    if callback_data.boot != bootreport.boot_id or callback_data.idx >= len(errors):
+        return await notify(callback, "Этот отчёт от прошлого запуска бота — ошибки в нём уже неактуальны", alert=True)
+
+    error = errors[callback_data.idx]
+    content = f"Модуль: {error['module']}\nЭтап: {error['stage']}\n\n{error['trace']}"
+    await callback.bot.send_document(
+        chat_id=callback.from_user.id,
+        document=BufferedInputFile(content.encode("utf-8"), filename=f"{error['module']}_error.txt"),
+        reply_markup=templ.destroy_kb()
+    )
+    await answer_callback(callback.bot, callback)
+
+
+@router.callback_query(calls.BootModuleDisable.filter())
+async def callback_boot_module_disable(callback: CallbackQuery, callback_data: calls.BootModuleDisable):
+    from core import bootreport
+    from core.modules import get_modules, disable_module, set_module_disabled
+
+    if callback.from_user.id not in sett.get("config")["telegram"]["bot"]["signed_users"]:
+        return await answer_callback(callback.bot, callback)
+
+    errors = bootreport.get_errors()
+    if callback_data.boot != bootreport.boot_id or callback_data.idx >= len(errors):
+        return await notify(callback, "Этот отчёт от прошлого запуска бота — ошибки в нём уже неактуальны", alert=True)
+
+    name = errors[callback_data.idx]["module"]
+    module = next((m for m in get_modules() if m._dir_name == name), None)
+    if not module:
+        return await notify(callback, f"Модуль {name} не загружен", alert=True)
+
+    if module.enabled:
+        await disable_module(module.uuid)
+    set_module_disabled(name, True)
+    await notify(callback, f"🔴 Модуль {name} выключен и не будет включаться при запуске. Включить обратно можно на его странице в «Модулях»", alert=True)

@@ -2,6 +2,7 @@ import os
 import sys
 import asyncio
 import traceback
+from threading import Thread
 from colorama import Fore, init as init_colorama
 from logging import getLogger
 
@@ -12,15 +13,18 @@ from core.utils import (
     install_requirements, 
     patch_requests, 
     init_main_loop, 
-    run_async_in_thread, 
     acquire_instance_lock
 )
-from core.modules import (
-    load_modules, 
-    set_modules, 
-    connect_modules
-)
+from core.modules import get_modules
 from core.handlers import call_bot_event
+from core import bootreport
+from core.startup import (
+    diagnose,
+    enter_setup_mode,
+    start_modules,
+    start_telegram_bot,
+    start_funpay_bot
+)
 from updater import (
     check_for_updates, 
     check_new_releases_task
@@ -75,16 +79,6 @@ async def clear_logs_task():
         await asyncio.sleep(30)
 
 
-async def start_telegram_bot(from_tg=False):
-    from tgbot.telegrambot import TelegramBot
-    run_async_in_thread(TelegramBot().run_bot, (from_tg,))
-
-
-async def start_funpay_bot():
-    from fpbot.funpaybot import FunPayBot
-    await FunPayBot().run_bot()
-
-
 def show_panel(title: str, body: str, color: str):
     try:
         from core.console import print_panel
@@ -106,11 +100,10 @@ if __name__ == "__main__":
         sys.exit(1)
 
     try:
-        from_tg = "--from_tg" in sys.argv
-
         install_requirements("requirements.txt") # установка недостающих зависимостей, если таковые есть
         patch_requests()
         setup_logger()
+        bootreport.start_capture()
         
         set_title(f"FunPay Universal v{VERSION} by @friedfluoride")
         from core.console import print_panel
@@ -126,22 +119,25 @@ if __name__ == "__main__":
         )
         
         check_for_updates()
-        configure_config()
+        configure_config() # в консоли — только токен Telegram, остальное настраивается в самом ТГ-боте
 
-        modules = load_modules()
-        set_modules(modules)
-        asyncio.run(connect_modules(modules))
-        
-        main_loop.run_until_complete(start_telegram_bot(from_tg))
-        main_loop.run_until_complete(start_funpay_bot())
+        problem = diagnose()
+        if problem: # FunPay не подключается — поднимаем один ТГ-бот, чинить будем там
+            main_loop.run_until_complete(start_telegram_bot())
+            enter_setup_mode(problem)
+        else:
+            start_modules()
+            main_loop.run_until_complete(start_telegram_bot())
+            main_loop.run_until_complete(start_funpay_bot())
+            asyncio.run(call_bot_event("ON_INIT"))
+            Thread(target=bootreport.send_report, args=(get_modules(),), daemon=True).start()
 
         main_loop.create_task(clear_logs_task())
         main_loop.create_task(check_new_releases_task())
-
-        asyncio.run(call_bot_event("ON_INIT"))
-
+        
         main_loop.run_forever()
     except Exception as e:
+        trace = traceback.format_exc()
         traceback.print_exc()
         show_panel(
             f"{Fore.LIGHTRED_EX}■ Бот словил непредвиденную ошибку и был выключен",
@@ -149,5 +145,6 @@ if __name__ == "__main__":
             f"{Fore.LIGHTWHITE_EX}https://devfried.com/docs/faq/ {Fore.LIGHTBLACK_EX}(CTRL + Клик ЛКМ)",
             "red"
         )
+        bootreport.notify_crash(trace)
     except KeyboardInterrupt:
         show_panel(f"{Fore.YELLOW}Работа бота остановлена", f"{Fore.LIGHTBLACK_EX}Вы нажали Ctrl + C", "yellow")

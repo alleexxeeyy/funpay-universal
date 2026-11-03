@@ -267,10 +267,10 @@ NC='\033[0m'
 BOLD='\033[1m'
 
 is_configured() {
+  # в консоли нужен только токен — FunPay и доступы настраиваются в самом Telegram боте
   [[ -f "$CONFIG" ]] || return 1
   token=$(python3 -c "import json; c=json.load(open('$CONFIG')); print(c['telegram']['api']['token'])" 2>/dev/null)
-  password=$(python3 -c "import json; c=json.load(open('$CONFIG')); print(c['telegram']['bot']['password'])" 2>/dev/null)
-  [[ -n "$token" && -n "$password" ]]
+  [[ -n "$token" ]]
 }
 
 case "$1" in
@@ -462,8 +462,7 @@ CONFIGURED=false
 
 if [[ -f "$CONFIG_FILE" ]]; then
   TOKEN=$(python3 -c "import json; c=json.load(open('$CONFIG_FILE')); print(c['telegram']['api']['token'])" 2>/dev/null || echo "")
-  PASSWORD=$(python3 -c "import json; c=json.load(open('$CONFIG_FILE')); print(c['telegram']['bot']['password'])" 2>/dev/null || echo "")
-  if [[ -n "$TOKEN" && -n "$PASSWORD" ]]; then
+  if [[ -n "$TOKEN" ]]; then
     CONFIGURED=true
   fi
 fi

@@ -9,6 +9,8 @@ import rarfile
 import importlib
 import uuid
 import traceback
+import subprocess
+import threading
 from uuid import UUID
 from colorama import Fore, Style
 from dataclasses import dataclass
@@ -19,16 +21,22 @@ from core.handlers import (
     register_funpay_event_handlers,
     remove_bot_event_handlers,
     remove_funpay_event_handlers,
-    call_bot_event
+    call_bot_event,
+    catch_up_init_events
 )
+from data import Data as data, SYSTEM_DATA, DISABLED_MODULES
 from core.configs import TEMP_DIR
 from core.utils import install_requirements
+from core import bootreport
 
 
 logger = getLogger(f"universal.modules")
 
 MODULES_DIR = "modules"
 MODULES_TEMP_DIR = os.path.join(TEMP_DIR, "modules")
+MODULES_BACKUP_DIR = os.path.join(TEMP_DIR, "modules_backup")
+MODULE_CHECK_TIMEOUT = 60
+REQUIREMENTS_TIMEOUT = 300
 MODULE_EXTENSIONS = (".zip", ".rar")
 MAX_MODULE_SIZE = 50 * 1024 * 1024
 MAX_UNPACKED_SIZE = 300 * 1024 * 1024
@@ -111,6 +119,9 @@ async def _enable_module(module: Module) -> bool:
     handlers = module.bot_event_handlers.get("ON_MODULE_ENABLED", [])
     for handler in handlers:
         await call_bot_event("ON_MODULE_ENABLED", [module], handler)
+
+    if module.enabled: # мог выключиться сам на проверке лицензии
+        await catch_up_init_events(module.bot_event_handlers)
 
 
 async def enable_module(module_uuid: UUID) -> bool:
@@ -260,10 +271,12 @@ def load_modules() -> list[Module]:
             modules.append(_import_module_object(stem))
             seen_stems.add(stem)
         except:
+            trace = traceback.format_exc()
             logger.error(
                 f"{Fore.LIGHTRED_EX}Ошибка при загрузке модуля {name}: "
-                f"{Fore.WHITE}{traceback.format_exc()}"
+                f"{Fore.WHITE}{trace}"
             )
+            bootreport.add_error(stem, "load", trace)
 
     return modules
 
@@ -575,12 +588,143 @@ def install_staged_module(mod: dict, action: str) -> str:
         name = _free_module_name(name)
         return _place_py(source, name, True) if is_py else _place_folder_replace(source, name)
 
+    if module_name_exists(name):
+        # бэкап последней рабочей версии не перетираем — иначе откат вернул бы прошлую сломанную
+        if not has_module_backup(name):
+            backup_module(name, with_data=action != "merge")
+    else:
+        drop_module_backup(name)
+        set_module_disabled(name, False)
+
     if is_py:
         return _place_py(source, name, action != "merge")
 
     if action == "merge":
         return _place_folder_merge(source, name)
     return _place_folder_replace(source, name)
+
+
+def _module_paths(name: str) -> list[str]:
+    paths = (os.path.join(MODULES_DIR, name), os.path.join(MODULES_DIR, f"{name}.py"))
+    return [path for path in paths if os.path.exists(path)]
+
+
+def backup_module(name: str, with_data: bool = True):
+    # при слиянии данные модуля не трогаются — их не копируем, чтобы откат не вернул устаревшие
+    ignore = ("__pycache__",) if with_data else ("__pycache__", *MODULE_DATA_DIRS)
+    dest = os.path.join(MODULES_BACKUP_DIR, name)
+    _rmtree(dest)
+    os.makedirs(dest, exist_ok=True)
+    for path in _module_paths(name):
+        target = os.path.join(dest, os.path.basename(path))
+        if os.path.isdir(path):
+            shutil.copytree(path, target, ignore=shutil.ignore_patterns(*ignore))
+        else:
+            shutil.copy2(path, target)
+
+
+def has_module_backup(name: str) -> bool:
+    return os.path.isdir(os.path.join(MODULES_BACKUP_DIR, name))
+
+
+def drop_module_backup(name: str):
+    _rmtree(os.path.join(MODULES_BACKUP_DIR, name))
+
+
+def remove_module(name: str):
+    _rmtree(os.path.join(MODULES_DIR, name))
+    py = os.path.join(MODULES_DIR, f"{name}.py")
+    if os.path.isfile(py):
+        os.remove(py)
+    set_module_disabled(name, False)
+
+
+def restore_module_backup(name: str):
+    backup = os.path.join(MODULES_BACKUP_DIR, name)
+    if not os.path.isdir(backup):
+        raise ModuleImportError(f"❌ Прежняя версия модуля <b>{name}</b> не сохранилась — установите её заново")
+    # текущую версию сначала отодвигаем целиком: если что-то пойдёт не так, модуль не останется без файлов
+    aside = os.path.join(MODULES_BACKUP_DIR, f".{name}.rollback")
+    _rmtree(aside)
+    os.makedirs(aside, exist_ok=True)
+    try:
+        for path in _module_paths(name):
+            shutil.move(path, os.path.join(aside, os.path.basename(path)))
+    except Exception:
+        for item in os.listdir(aside):
+            shutil.move(os.path.join(aside, item), os.path.join(MODULES_DIR, item))
+        raise ModuleImportError(f"❌ Не удалось откатить модуль <b>{name}</b> — файлы заняты или нет прав на запись")
+
+    for item in os.listdir(backup):
+        target = os.path.join(MODULES_DIR, item)
+        shutil.move(os.path.join(backup, item), target)
+        current = os.path.join(aside, item)
+        if os.path.isdir(target) and os.path.isdir(current):
+            for data_dir in MODULE_DATA_DIRS: # данные, накопленные живым ботом, сохраняем
+                if not os.path.exists(os.path.join(target, data_dir)) and os.path.exists(os.path.join(current, data_dir)):
+                    shutil.move(os.path.join(current, data_dir), os.path.join(target, data_dir))
+    _rmtree(aside)
+    _rmtree(backup)
+
+
+# импортируем в отдельном процессе: ошибку видно сразу, а живой бот не задет кодом нового модуля
+_CHECK_SCRIPT = (
+    "import os, sys, importlib, traceback\n"
+    "sys.path.insert(0, os.getcwd())\n"
+    "name = sys.argv[1]\n"
+    "try:\n"
+    "    module = importlib.import_module(f'modules.{name}')\n"
+    "    for field in ('PREFIX', 'VERSION', 'NAME', 'DESCRIPTION', 'AUTHORS', 'LINKS'):\n"
+    "        if not hasattr(module, field):\n"
+    "            raise AttributeError(f\"module 'modules.{name}' has no attribute '{field}'\")\n"
+    "except BaseException:\n"
+    "    traceback.print_exc()\n"
+    "    sys.stderr.flush()\n"
+    "    os._exit(1)\n"
+    "os._exit(0)\n"
+)
+
+
+def check_module_import(name: str, timeout: int = MODULE_CHECK_TIMEOUT) -> tuple[str, str]:
+    requirements = os.path.join(MODULES_DIR, name, "requirements.txt")
+    if os.path.isfile(requirements):
+        install_requirements(requirements, timeout=REQUIREMENTS_TIMEOUT) # без сети pip иначе висит бесконечно
+
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", _CHECK_SCRIPT, name],
+            cwd=os.getcwd(),
+            capture_output=True,
+            stdin=subprocess.DEVNULL, # input() в модуле не должен ждать консоль бота
+            timeout=timeout,
+            env=dict(os.environ, PYTHONIOENCODING="utf-8")
+        )
+    except subprocess.TimeoutExpired:
+        return "timeout", ""
+    except Exception as e:
+        logger.error(f"Не удалось проверить модуль {name}: {e}")
+        return "timeout", ""
+
+    if result.returncode == 0:
+        return "ok", ""
+    output = result.stderr.decode("utf-8", "replace")
+    start = output.rfind("Traceback (most recent call last):")
+    return "error", (output[start:] if start != -1 else output[-4000:]).strip()
+
+
+def check_installed_modules(names: list[str]) -> list[dict]:
+    results = []
+    for name in names:
+        status, trace = check_module_import(name)
+        if status == "ok": # при таймауте бэкап держим — после перезагрузки откат ещё может понадобиться
+            drop_module_backup(name)
+        results.append({
+            "name": name,
+            "status": status,
+            "trace": trace,
+            "has_backup": has_module_backup(name)
+        })
+    return results
 
 
 def _format_string(count: int):
@@ -593,6 +737,24 @@ def _format_string(count: int):
         return f"Подключено {Fore.LIGHTWHITE_EX}{count} модулей"
 
 
+_disabled_lock = threading.Lock()
+
+
+def get_disabled_modules() -> list[str]:
+    return list(data.get("disabled_modules", SYSTEM_DATA) or [])
+
+
+def set_module_disabled(name: str, disabled: bool):
+    # только по воле юзера: самовыключение плагина по лицензии сюда не пишется
+    with _disabled_lock:
+        names = get_disabled_modules()
+        if disabled == (name in names):
+            return
+        names = names + [name] if disabled else [n for n in names if n != name]
+        os.makedirs(os.path.dirname(DISABLED_MODULES.path), exist_ok=True)
+        data.set("disabled_modules", names, SYSTEM_DATA)
+
+
 async def connect_modules(modules: list[Module]):
     """
     Подключает загруженные модули.
@@ -602,23 +764,37 @@ async def connect_modules(modules: list[Module]):
     """
     global loaded_modules
 
+    disabled = get_disabled_modules()
     for module in modules:
+        if module._dir_name in disabled:
+            logger.info(f"Модуль {Fore.LIGHTWHITE_EX}{module.meta.name} {Fore.WHITE}выключен в настройках — не подключаю")
+            continue
         try:
             await _enable_module(module)
         except Exception as e:
-            logger.error(f"{Fore.LIGHTRED_EX}Ошибка при подключении модуля {module.meta.name}: {Fore.WHITE}{traceback.format_exc()}")
+            trace = traceback.format_exc()
+            logger.error(f"{Fore.LIGHTRED_EX}Ошибка при подключении модуля {module.meta.name}: {Fore.WHITE}{trace}")
+            bootreport.add_error(module._dir_name, "start", trace)
     
-    _log_modules_table(modules)
+    _log_modules_table(modules, disabled)
 
 
-def _log_modules_table(modules: list[Module]):
+def _log_modules_table(modules: list[Module], disabled: list[str]):
     from core.console import log_table
 
     rows = []
     for module in modules:
         name = re.sub(r"\s*(?:\x1b\[[0-9;]*m)*·.*$", "", module.meta.prefix or "") or module.meta.name # имя в цвете модуля
-        status = f"{Fore.GREEN}● подключён" if module.enabled else f"{Fore.LIGHTRED_EX}■ выключился при запуске"
+        if module.enabled:
+            status = f"{Fore.GREEN}● подключён"
+        elif module._dir_name in disabled:
+            status = f"{Fore.LIGHTBLACK_EX}○ выключен вами"
+        else:
+            status = f"{Fore.LIGHTRED_EX}■ выключился при запуске"
         rows.append([f"{Style.BRIGHT}{name}", module.meta.version, status])
+    for error in bootreport.get_errors():
+        if error["stage"] == "load":
+            rows.append([f"{Style.BRIGHT}{error['module']}", "—", f"{Fore.LIGHTRED_EX}■ ошибка загрузки"])
 
     if rows:
         log_table(logger, f"🔌 Модули · {len(rows)}", ["Модуль", "Версия", "Статус"], rows)

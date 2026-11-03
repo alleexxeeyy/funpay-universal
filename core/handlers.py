@@ -1,10 +1,29 @@
+import asyncio
+import threading
+import traceback
 from colorama import Fore
 from logging import getLogger
 
 from FunPayAPI.updater.events import EventTypes
+from core import bootreport
 
 
 logger = getLogger("universal.handlers")
+
+INIT_EVENTS = ("ON_TELEGRAM_BOT_INIT", "ON_FUNPAY_BOT_INIT", "ON_INIT")
+INIT_HOOK_TIMEOUT = 60
+_fired_init_events: dict[str, tuple] = {}
+_called_init_handlers: set = set()
+_init_lock = threading.Lock()
+
+
+def _claim_init_call(event: str, handler) -> bool:
+    # общий вызов хука и догонялка включённого модуля могут идти одновременно из разных лупов — хук вызывается один раз
+    with _init_lock:
+        if (event, handler) in _called_init_handlers:
+            return False
+        _called_init_handlers.add((event, handler))
+        return True
 
 _bot_event_handlers: dict[str, list[callable]] = {
     "ON_MODULE_CONNECTED": [],
@@ -173,6 +192,9 @@ async def call_bot_event(event: str, args: list = [], func = None):
     """
     if not func: 
         handlers = get_bot_event_handlers().get(event, [])
+        if event in INIT_EVENTS:
+            _fired_init_events[event] = (args, asyncio.get_running_loop())
+            handlers = [handler for handler in handlers if _claim_init_call(event, handler)]
     else:
         handlers = [func]
     for handler in handlers:
@@ -180,6 +202,32 @@ async def call_bot_event(event: str, args: list = [], func = None):
             await handler(*args)
         except Exception as e:
             logger.error(f"{Fore.LIGHTRED_EX}Ошибка при обработке хендлера «{handler.__module__}.{handler.__qualname__}» для ивента бота «{event}»: {Fore.WHITE}{e}")
+            module = bootreport.module_of(handler)
+            if module:
+                bootreport.add_error(module, "start", traceback.format_exc())
+
+
+async def catch_up_init_events(handlers: dict):
+    # модуль включили уже после запуска бота — догоняем init-хуки, которые он пропустил, по одному разу
+    for event in INIT_EVENTS:
+        if event not in _fired_init_events:
+            continue
+        args, loop = _fired_init_events[event]
+        for handler in handlers.get(event, []):
+            if not _claim_init_call(event, handler):
+                continue
+            coro = call_bot_event(event, args, handler)
+            try:
+                if loop.is_running() and loop is not asyncio.get_running_loop():
+                    # хук ТГ-бота работает с его aiohttp-сессией — только в его лупе
+                    await asyncio.wait_for(asyncio.wrap_future(asyncio.run_coroutine_threadsafe(coro, loop)), INIT_HOOK_TIMEOUT)
+                elif loop.is_running():
+                    await asyncio.wait_for(coro, INIT_HOOK_TIMEOUT)
+                else:
+                    # ON_INIT при запуске идёт в своём asyncio.run — так и догоняем, чтобы не занять луп ТГ-бота
+                    await asyncio.wait_for(asyncio.to_thread(asyncio.run, coro), INIT_HOOK_TIMEOUT)
+            except asyncio.TimeoutError:
+                logger.error(f"{Fore.LIGHTRED_EX}Хук «{handler.__module__}.{handler.__qualname__}» для ивента «{event}» не завершился за {INIT_HOOK_TIMEOUT} сек")
 
 
 def _modules_funpay_handlers() -> set:

@@ -27,6 +27,29 @@ CACHED_ORDERS = DataFile(
 )
 DATA = [INITIALIZED_USERS, CATEGORIES_RAISE_TIME, CACHED_ORDERS]
 
+# служебные файлы — не попадают в экспорт конфигов
+BOOT_MARKER = DataFile(
+    name="boot_marker",
+    path="bot_data/boot_marker.json",
+    default={}
+)
+OWNER_LINK = DataFile(
+    name="owner_link",
+    path="bot_data/owner_link.json",
+    default={}
+)
+ACCESS_REQUESTS = DataFile(
+    name="access_requests",
+    path="bot_data/access_requests.json",
+    default={}
+)
+DISABLED_MODULES = DataFile(
+    name="disabled_modules",
+    path="bot_data/disabled_modules.json",
+    default=[]
+)
+SYSTEM_DATA = [BOOT_MARKER, OWNER_LINK, ACCESS_REQUESTS, DISABLED_MODULES]
+
 
 def get_json(path: str, default: dict | list) -> dict:
     """

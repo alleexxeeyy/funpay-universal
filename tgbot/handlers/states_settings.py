@@ -29,7 +29,7 @@ from core.modules import (
 from .. import templates as templ
 from .. import states
 from .. import callback_datas as calls
-from ..helpful import throw_float_message
+from ..helpful import throw_float_message, show_module_checks
 
 from utils import (
     is_golden_key_valid,
@@ -61,7 +61,7 @@ async def handler_waiting_for_golden_key(message: types.Message, state: FSMConte
         await throw_float_message(
             state=state,
             message=message,
-            text=templ.auth_float_text(f"✅ <b>Golden Key</b> был успешно изменён на <b>{message.text.strip()}</b>"),
+            text=templ.auth_float_text("✅ <b>Golden Key</b> успешно изменён"),
             reply_markup=templ.back_kb(calls.MenuNavigation(to="auth").pack())
         )
     except Exception as e:
@@ -518,17 +518,9 @@ async def handler_waiting_for_module_file(message: types.Message, state: FSMCont
                     f"✅ Успешно импортировано <b>{len(installed)} модулей</b> из <code>{file_name}</code>:"
                     f"\n\n<blockquote>{str_installed}</blockquote>"
                 )
-            await throw_float_message(
-                state=state,
-                message=message,
-                text=templ.modules_float_text(
-                    f"{result}"
-                    f"\n\n❗ Для подключения <b>необходима перезагрузка</b> — /restart"
-                ),
-                reply_markup=templ.back_kb(calls.ModulesPagination(page=last_page).pack())
-            )
             clear_module_import_dir(user_id)
             clear_temp_dir()
+            await show_module_checks(message, state, result, installed, calls.ModulesPagination(page=last_page).pack())
             return
 
         fresh_installed = [install_staged_module(m, "replace") for m in fresh]

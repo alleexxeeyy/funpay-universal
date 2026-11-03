@@ -1,9 +1,14 @@
 import re
 import sys
+import time
+import queue
+import logging
 import pytz
 import requests
 import string
-import requests
+from html import escape
+from threading import Thread
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from urllib.parse import urlparse
 from datetime import datetime, timedelta, timezone
 from collections import Counter
@@ -11,6 +16,7 @@ from colorama import Fore
 from logging import getLogger
 
 from FunPayAPI.account import Account
+from FunPayAPI.common.exceptions import UnauthorizedError, RequestFailedError
 from settings import Settings as sett
 from data import Data as data
 
@@ -175,42 +181,6 @@ def is_custom_api_url_working(cust_api_url: str) -> bool:
         return False
 
 
-def is_tg_bot_exists() -> bool:
-    try:
-        config = sett.get("config")
-        token = config["telegram"]["api"]["token"]
-        proxy = config["telegram"]["api"]["proxy"]
-        custom_api_url = config["telegram"]["api"]["custom_api_url"]
-
-        if custom_api_url:
-            custom_api_url = normalize_custom_api_url(custom_api_url)
-
-        tg_bot_api_url = (
-            custom_api_url
-            if custom_api_url
-            else "https://api.telegram.org"
-        )
-
-        if proxy:
-            proxies = {
-                "http": f"http://{proxy}",
-                "https": f"http://{proxy}",
-            }
-        else:
-            proxies = None
-
-        response = requests.get(
-            f"{tg_bot_api_url}/bot{token}/getMe",
-            proxies=proxies,
-            timeout=30
-        )
-
-        data = response.json()
-        return data.get("ok", False) is True and data.get("result", {}).get("is_bot", False) is True
-    except:
-        return False
-    
-
 def is_password_valid(password: str) -> bool:
     if len(password) < 6 or len(password) > 64:
         return False
@@ -225,264 +195,312 @@ def is_password_valid(password: str) -> bool:
     return True
 
 
-def configure_config():
-    config = sett.get("config")
+TG_RETRY_DELAYS = (10, 30, 60, 120, 300)
+NOT_CONFIGURED_EXIT_DELAY = 60
+_console_queue: queue.Queue | None = None
 
-    needs_setup = (
-        not config["funpay"]["api"]["golden_key"] or
-        not config["telegram"]["api"]["token"] or
-        not config["telegram"]["bot"]["password"]
+
+def normalize_proxy(proxy: str) -> str:
+    proxy = (proxy or "").strip()
+    if proxy.count(":") == 3 and "@" not in proxy:
+        ip, port, user, passwd = proxy.split(":")
+        proxy = f"{user}:{passwd}@{ip}:{port}"
+    return proxy
+
+
+def mask_proxy(proxy: str) -> str:
+    if not proxy:
+        return ""
+    address = proxy.split("@")[-1]
+    ip, _, port = address.partition(":")
+    parts = ip.split(".")
+    return ".".join(parts[:2] + ["*"] * len(parts[2:])) + (f":{port}" if port else "")
+
+
+def probe_telegram(token: str, proxy: str = "", custom_api_url: str = "", timeout: int = 15) -> tuple[str, str | None]:
+    from core.notify import api_base, proxies
+
+    try:
+        response = requests.get(
+            f"{api_base(custom_api_url)}/bot{token}/getMe",
+            proxies=proxies(proxy),
+            timeout=(5, timeout)
+        )
+        result = response.json()
+    except Exception:
+        return "network", None
+
+    if result.get("ok") and result.get("result", {}).get("is_bot"):
+        return "ok", result["result"].get("username")
+    if result.get("error_code") == 401:
+        return "unauthorized", None
+    return "network", None
+
+
+def connect_telegram(token: str) -> tuple[str, str | None, tuple | None]:
+    api = sett.get("config")["telegram"]["api"]
+    configured = (api["proxy"], api["custom_api_url"])
+
+    candidates = []
+    for candidate in (configured, ("", configured[1]), (configured[0], ""), ("", "")):
+        if candidate not in candidates:
+            candidates.append(candidate)
+
+    unauthorized = False
+    for proxy, custom_api_url in candidates:
+        status, username = probe_telegram(token, proxy, custom_api_url)
+        if status == "ok":
+            return status, username, (proxy, custom_api_url)
+        # 401 мог отдать и кривой прокси или воркер — токен считаем мёртвым, только если ни одно подключение не прошло
+        unauthorized = unauthorized or status == "unauthorized"
+    return ("unauthorized" if unauthorized else "network"), None, None
+
+
+def _describe_fallback(configured: tuple, connection: tuple) -> str:
+    lost = []
+    if configured[0] and not connection[0]:
+        lost.append("прокси для Telegram")
+    if configured[1] and not connection[1]:
+        lost.append("кастомный URL Telegram API")
+    return (
+        f"Не отвечает {' и '.join(lost)} — бот подключился к Telegram без них. "
+        f"Замените их в настройках, иначе бот может потерять связь с Telegram"
     )
 
-    if needs_setup and not sys.stdin.isatty():
-        print(
-            f"\n{Fore.YELLOW}⚠️  Бот не настроен!"
-            f"\n{Fore.WHITE}Подключитесь к серверу и выполните команду:"
-            f"\n\n   {Fore.CYAN}fpuniversal setup"
-            f"\n\n{Fore.WHITE}Это запустит интерактивную настройку прямо в терминале.\n"
+
+def _exit_not_configured(reason: str):
+    from core.console import print_panel
+    print_panel(
+        f"{Fore.LIGHTRED_EX}■ {reason}",
+        f"Если бот стоит на сервере — подключитесь к нему и выполните: {Fore.CYAN}fpuniversal setup{Fore.RESET}\n"
+        f"Если на компьютере — запустите бота заново в окне консоли.",
+        color="red", width=72
+    )
+    time.sleep(NOT_CONFIGURED_EXIT_DELAY) # иначе systemd перезапускает бота каждые 5 секунд
+    sys.exit(1)
+
+
+def _console_reader() -> queue.Queue:
+    # ввод в отдельном потоке — автоповтор подключения не ждёт, пока юзер что-то напечатает
+    global _console_queue
+    if _console_queue is None:
+        _console_queue = queue.Queue()
+
+        def read():
+            while True:
+                try:
+                    _console_queue.put(input())
+                except Exception as e: # EOF и пр. — пробрасываем в того, кто ждёт ввода, иначе он повиснет
+                    _console_queue.put(e)
+                    return
+
+        Thread(target=read, daemon=True).start()
+    return _console_queue
+
+
+def _read_console(timeout: float = None) -> str | None:
+    print(f"  {Fore.LIGHTYELLOW_EX}→ {Fore.LIGHTWHITE_EX}", end="", flush=True)
+    if _console_queue is None and timeout is None:
+        return input().strip()
+    try:
+        line = _console_reader().get(timeout=timeout)
+    except queue.Empty:
+        print()
+        return None
+    if isinstance(line, BaseException):
+        raise line
+    return line.strip()
+
+
+def _ask_token() -> str:
+    from core.console import print_panel, print_line
+
+    while True:
+        print_panel(
+            f"{Fore.CYAN}🔑 Введите токен Telegram бота",
+            f"Бота нужно создать у @BotFather (https://t.me/BotFather).\n"
+            f"Всё остальное — аккаунт FunPay, прокси, доступы — настраивается дальше в самом Telegram боте.\n\n"
+            f"{Fore.LIGHTBLACK_EX}Пример: {Fore.RESET}7257913369:AAG2KjLL3-zvvfSQFSVhaTb4w7tR2iXsJXM",
+            color="yellow", width=72
         )
-        sys.exit(0)
-    
-    while not config["funpay"]["api"]["golden_key"]:
-        while not config["funpay"]["api"]["golden_key"]:
-            print(
-                f"\n{Fore.LIGHTYELLOW_EX}┌────┤ Введите {Fore.YELLOW}Golden Key {Fore.LIGHTYELLOW_EX}├──────────────────────┐{Fore.WHITE}"
-                f"\n\n  Авторизуйтесь в свой аккаунт на FunPay, а после скопируйте golden_key с помощью расширения Cookie-Editor"
-                f"\n  (ЛКМ на расширение → Export → Header String)"
-                f"\n\n  {Fore.LIGHTWHITE_EX}· Пример: {Fore.WHITE}blkrlwv7epmhx21bzqwp3x17bf2yhgre"
-            )
-            golden_key = input(f"  {Fore.WHITE}→ {Fore.LIGHTWHITE_EX}").strip()
-            
-            if is_golden_key_valid(golden_key):
-                config["funpay"]["api"]["golden_key"] = golden_key
-                sett.set("config", config)
-                print(f"\n{Fore.GREEN}Golden Key успешно сохранён в конфиг.")
-                break
-            else:
-                print(
-                    f"\n{Fore.LIGHTRED_EX}Похоже, что вы ввели некорректный Golden Key. "
-                    f"Убедитесь, что он соответствует формату и попробуйте ещё раз."
-                )
+        token = _read_console()
 
-        while not config["funpay"]["api"]["user_agent"]:
-            print(
-                f"\n{Fore.LIGHTYELLOW_EX}┌────┤ Введите {Fore.LIGHTMAGENTA_EX}Юзер-агент {Fore.LIGHTYELLOW_EX}├──────────────────────┐{Fore.WHITE}"
-                f"\n\n  Его можно скопировать на сайте https://whatmyuseragent.com"
-                f"\n  {Fore.LIGHTWHITE_EX}Или пропустите эту настройку, нажав Enter"
-                f"\n\n  {Fore.LIGHTWHITE_EX}· Пример: {Fore.WHITE}Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36..."
-            )
-            user_agent = input(f"  {Fore.WHITE}→ {Fore.LIGHTWHITE_EX}").strip()
-            
-            if not user_agent:
-                print(f"\n{Fore.WHITE}Вы пропустили ввод Юзер-агента.")
-                break
-            if is_user_agent_valid(user_agent):
-                config["funpay"]["api"]["user_agent"] = user_agent
-                sett.set("config", config)
-                print(f"\n{Fore.GREEN}Юзер-агент успешно сохранён в конфиг.")
-            else:
-                print(
-                    f"\n{Fore.LIGHTRED_EX}Похоже, что вы ввели некорректный Юзер-агент. "
-                    f"Убедитесь, что в нём нет русских символов и попробуйте ещё раз."
-                )
-        
-        while not config["funpay"]["api"]["proxy"]:
-            print(
-                f"\n{Fore.LIGHTYELLOW_EX}┌────┤ Введите {Fore.LIGHTBLUE_EX}HTTP прокси {Fore.LIGHTYELLOW_EX}для FunPay ├──────────────────────┐{Fore.WHITE}"
-                f"\n\n  Формат: user:password@ip:port, ip:port:user:password или ip:port"
-                f"\n  {Fore.LIGHTWHITE_EX}Или пропустите эту настройку, нажав Enter"
-                f"\n\n  {Fore.LIGHTWHITE_EX}· Пример: {Fore.WHITE}DRjcQTm3Yc:m8GnUN8Q9L@46.161.30.187:8000"
-            )
-            proxy = input(f"  {Fore.WHITE}→ {Fore.LIGHTWHITE_EX}").strip()
-
-            if proxy.count(":") == 3:
-                ip, port, user, passwd = proxy.split(":")
-                proxy = f"{user}:{passwd}@{ip}:{port}"
-                
-            if not proxy:
-                print(f"\n{Fore.WHITE}Вы пропустили ввод прокси.")
-                break
-            if is_proxy_valid(proxy):
-                config["funpay"]["api"]["proxy"] = proxy
-                sett.set("config", config)
-                print(f"\n{Fore.GREEN}Прокси успешно сохранён в конфиг.")
-            else:
-                print(
-                    f"\n{Fore.LIGHTRED_EX}Похоже, что вы ввели некорректный прокси. "
-                    f"Убедитесь, что он соответствует формату и попробуйте ещё раз."
-                )
-
-    while not config["telegram"]["api"]["token"]:
-        while not config["telegram"]["api"]["token"]:
-            print(
-                f"\n{Fore.LIGHTYELLOW_EX}┌────┤ Введите {Fore.CYAN}Токен Telegram бота {Fore.LIGHTYELLOW_EX}├──────────────────────┐{Fore.WHITE}"
-                f"\n\n  {Fore.WHITE}Бота нужно создать у @BotFather (https://t.me/BotFather)"
-                f"\n\n  {Fore.LIGHTWHITE_EX}· Пример: {Fore.WHITE}7257913369:AAG2KjLL3-zvvfSQFSVhaTb4w7tR2iXsJXM"
-            )
-            token = input(f"  {Fore.WHITE}→ {Fore.LIGHTWHITE_EX}").strip()
-            
-            if is_token_valid(token):
-                config["telegram"]["api"]["token"] = token
-                sett.set("config", config)
-                print(f"\n{Fore.GREEN}Токен Telegram бота успешно сохранён в конфиг.")
-            else:
-                print(
-                    f"\n{Fore.LIGHTRED_EX}Похоже, что вы ввели некорректный токен. "
-                    f"Убедитесь, что он соответствует формату и попробуйте ещё раз."
-                )
-
-        while not config["telegram"]["api"]["custom_api_url"]:
-            print(
-                f"\n{Fore.LIGHTYELLOW_EX}┌────┤ "
-                f"Введите {Fore.LIGHTGREEN_EX}Кастомный URL Telegram API "
-                f"{Fore.LIGHTYELLOW_EX}(опционально) ├──────┐{Fore.WHITE}"
-                f"\n\n  Если Telegram заблокирован, можно указать URL Cloudflare Worker-прокси"
-                f"\n  (или другого reverse-proxy) вместо api.telegram.org"
-                f"\n  {Fore.LIGHTWHITE_EX}Или пропустите эту настройку, нажав Enter"
-                f"\n\n  {Fore.LIGHTWHITE_EX}· Пример: {Fore.WHITE}"
-                f"https://tg-proxy.ваш-поддомен.workers.dev"
-            )
-            cust_api_url = input(f"  {Fore.WHITE}→ {Fore.LIGHTWHITE_EX}").strip()
-
-            if not cust_api_url:
-                print(f"\n{Fore.WHITE}Вы пропустили ввод кастомного URL.")
-                break
-
-            cust_api_url = normalize_custom_api_url(cust_api_url)
-            if not is_url_valid(cust_api_url):
-                print(
-                    f"\n{Fore.LIGHTRED_EX}Похоже, что вы ввели некорректный URL. "
-                    f"Убедитесь, что он верный и попробуйте ещё раз."
-                )
-                continue
-
-            print(f"\n{Fore.WHITE}Проверяю URL, это займёт до 30 секунд...")
-            if not is_custom_api_url_working(cust_api_url):
-                print(
-                    f"\n{Fore.LIGHTRED_EX}URL не ответил на проверочный запрос. "
-                    f"Либо он указан неверно, либо сервер недоступен, либо неверен токен бота."
-                    f"\n{Fore.WHITE}  Если сохранить такой URL, бот не сможет связаться с Telegram."
-                    f"\n  {Fore.LIGHTWHITE_EX}Введите y, чтобы сохранить всё равно, или Enter, чтобы ввести другой"
-                )
-                if input(f"  {Fore.WHITE}→ {Fore.LIGHTWHITE_EX}").strip().lower() not in ("y", "yes", "д", "да"):
-                    continue
-
-            config["telegram"]["api"]["custom_api_url"] = cust_api_url
+        if is_token_valid(token):
+            config = sett.get("config")
+            config["telegram"]["api"]["token"] = token
             sett.set("config", config)
-            print(f"\n{Fore.GREEN}Кастомный URL успешно сохранён в конфиг.")
+            print_line(f"{Fore.YELLOW}Токен Telegram бота сохранён в конфиг")
+            return token
+        print_line(f"{Fore.LIGHTRED_EX}Похоже, вы ввели некорректный токен — проверьте формат и попробуйте ещё раз", logging.ERROR)
 
-        while not config["telegram"]["api"]["proxy"]:
-            print(
-                f"\n{Fore.LIGHTYELLOW_EX}┌────┤ Введите {Fore.LIGHTBLUE_EX}HTTP прокси {Fore.LIGHTYELLOW_EX}для Telegram ├──────────────────────┐{Fore.WHITE}"
-                f"\n\n  Формат: user:password@ip:port, ip:port:user:password или ip:port"
-                f"\n  {Fore.LIGHTWHITE_EX}Или пропустите эту настройку, нажав Enter"
-                f"\n\n  {Fore.LIGHTWHITE_EX}· Пример: {Fore.WHITE}DRjcQTm3Yc:m8GnUN8Q9L@46.161.30.187:8000"
+
+def _apply_console_connection(text: str):
+    if not text:
+        return
+
+    from core.console import print_line
+
+    config = sett.get("config")
+    proxy = normalize_proxy(text)
+    if is_proxy_valid(proxy):
+        config["telegram"]["api"]["proxy"] = proxy
+        sett.set("config", config)
+        print_line(f"{Fore.YELLOW}Прокси для Telegram сохранён в конфиг, проверяю подключение...")
+        return
+
+    custom_api_url = normalize_custom_api_url(text)
+    if is_url_valid(custom_api_url) and "." in urlparse(custom_api_url).netloc:
+        config["telegram"]["api"]["custom_api_url"] = custom_api_url
+        sett.set("config", config)
+        print_line(f"{Fore.YELLOW}Кастомный URL Telegram API сохранён в конфиг, проверяю подключение...")
+        return
+
+    print_line(f"{Fore.LIGHTRED_EX}Это не похоже ни на прокси (user:pass@ip:port), ни на URL — проверяю подключение как есть...", logging.WARNING)
+
+
+def configure_telegram() -> str:
+    from core import notify, bootreport
+    from core.console import print_line
+
+    tty = sys.stdin.isatty()
+    attempt = 0
+
+    while True:
+        config = sett.get("config")
+        token = config["telegram"]["api"]["token"]
+        if not token:
+            if not tty:
+                _exit_not_configured("Бот не настроен: не указан токен Telegram бота.")
+            token = _ask_token()
+
+        status, username, connection = connect_telegram(token)
+
+        if status == "ok":
+            api = sett.get("config")["telegram"]["api"]
+            configured = (api["proxy"], api["custom_api_url"])
+            notify.set_connection(*connection)
+            if connection != configured:
+                note = _describe_fallback(configured, connection)
+                logger.warning(f"{Fore.LIGHTYELLOW_EX}{note}")
+                bootreport.add_note(note)
+            logger.info(f"{Fore.LIGHTYELLOW_EX}Telegram бот @{username} успешно подключён.")
+            return username
+
+        if status == "unauthorized":
+            print_line(
+                f"{Fore.LIGHTRED_EX}Telegram не принял токен бота — скорее всего, его отозвали или пересоздали в @BotFather",
+                logging.ERROR
             )
-            proxy = input(f"  {Fore.WHITE}→ {Fore.LIGHTWHITE_EX}").strip()
+            if not tty:
+                _exit_not_configured("Укажите новый токен Telegram бота.")
+            _ask_token() # старый токен не стираем, пока не введён новый
+            attempt = 0
+            continue
 
-            if proxy.count(":") == 3:
-                ip, port, user, passwd = proxy.split(":")
-                proxy = f"{user}:{passwd}@{ip}:{port}"
-
-            if not proxy:
-                print(f"\n{Fore.WHITE}Вы пропустили ввод прокси.")
-                break
-            if is_proxy_valid(proxy):
-                config["telegram"]["api"]["proxy"] = proxy
-                sett.set("config", config)
-                print(f"\n{Fore.GREEN}Прокси успешно сохранён в конфиг.")
-            else:
-                print(
-                    f"\n{Fore.LIGHTRED_EX}Похоже, что вы ввели некорректный прокси. "
-                    f"Убедитесь, что он соответствует формату и попробуйте ещё раз."
-                )
-
-    while not config["telegram"]["bot"]["password"]:
-        print(
-            f"\n{Fore.LIGHTYELLOW_EX}┌────┤ Придумайте {Fore.YELLOW}Пароль для Telegram бота {Fore.LIGHTYELLOW_EX}├──────────────────────┐{Fore.WHITE}"
-            f"\n\n  Бот будет запрашивать его при каждой новой попытке взаимодействия чужого пользователя"
-            f"\n\n  {Fore.LIGHTWHITE_EX}· Важно: {Fore.WHITE}Пароль должен быть сложным, длиной не менее 6 и не более 64 символов"
+        delay = TG_RETRY_DELAYS[min(attempt, len(TG_RETRY_DELAYS) - 1)]
+        attempt += 1
+        print_line(
+            f"{Fore.LIGHTRED_EX}Не удалось подключиться к Telegram{Fore.RESET} (попытка {attempt}) — повторю через {delay} сек. "
+            f"{Fore.LIGHTBLACK_EX}Если вы в России — Telegram нужно подключать через прокси или URL Telegram API (Cloudflare Worker)",
+            logging.WARNING
         )
-        password = input(f"  {Fore.WHITE}→ {Fore.LIGHTWHITE_EX}").strip()
-
-        if is_password_valid(password):
-            config["telegram"]["bot"]["password"] = password
-            sett.set("config", config)
-            print(f"\n{Fore.GREEN}Пароль успешно сохранён в конфиг.")
+        if tty:
+            print_line(f"{Fore.LIGHTWHITE_EX}Можно не ждать: введите прокси для Telegram (user:pass@ip:port) или URL Telegram API и нажмите Enter")
+            text = _read_console(timeout=delay)
+            if text is not None:
+                _apply_console_connection(text)
         else:
-            print(
-                f"\n{Fore.LIGHTRED_EX}Ваш пароль не подходит. "
-                f"Убедитесь, что он соответствует формату и не является лёгким и попробуйте ещё раз."
-            )
+            time.sleep(delay)
 
-    logger.info("")
-    
-    if config["funpay"]["api"]["proxy"] and not is_proxy_working(config["funpay"]["api"]["proxy"]):
-        print(
-            f"{Fore.LIGHTRED_EX}\nПохоже, что прокси для FunPay аккаунта не работает. "
-            f"Пожалуйста, проверьте его и введите снова."
-        )
-        config["funpay"]["api"]["golden_key"] = ""
-        config["funpay"]["api"]["user_agent"] = ""
-        config["funpay"]["api"]["proxy"] = ""
-        sett.set("config", config)
-        return configure_config()
-    elif config["funpay"]["api"]["proxy"]:
-        logger.info(f"{Fore.LIGHTYELLOW_EX}FunPay прокси успешно работает.")
 
-    if not is_fp_account_working():
-        print(
-            f"{Fore.LIGHTRED_EX}\nНе удалось подключиться к вашему FunPay аккаунту. "
-            f"Пожалуйста, убедитесь, что у вас указан верный Golden Key и введите его снова."
-        )
-        config["funpay"]["api"]["golden_key"] = ""
-        config["funpay"]["api"]["user_agent"] = ""
-        config["funpay"]["api"]["proxy"] = ""
-        sett.set("config", config)
-        return configure_config()
-    else:
-        logger.info(f"{Fore.LIGHTYELLOW_EX}FunPay аккаунт успешно авторизован.")
+def print_owner_link(bot_username: str):
+    from core.access import get_signed_users, get_owner_link, is_legacy_password_login
 
-    if is_fp_account_banned():
-        print(
-            f"{Fore.LIGHTRED_EX}\nВаш FunPay аккаунт забанен! "
-            f"Увы, я не могу запустить бота на заблокированном аккаунте..."
-        )
-        config["funpay"]["api"]["golden_key"] = ""
-        config["funpay"]["api"]["user_agent"] = ""
-        config["funpay"]["api"]["proxy"] = ""
-        sett.set("config", config)
-        return configure_config()
+    if get_signed_users():
+        return
 
-    if config["telegram"]["api"]["proxy"] and not is_proxy_working(
-        config["telegram"]["api"]["proxy"], 
-        "https://api.telegram.org/"
-    ):
-        print(
-            f"{Fore.LIGHTRED_EX}\nПохоже, что прокси для Telegram бота не работает. "
-            f"Пожалуйста, проверьте его и введите снова."
-        )
-        config["telegram"]["api"]["token"] = ""
-        config["telegram"]["api"]["proxy"] = ""
-        sett.set("config", config)
-        return configure_config()
-    elif config["telegram"]["api"]["proxy"]:
-        logger.info(f"{Fore.LIGHTYELLOW_EX}Telegram прокси успешно работает.")
+    from core.console import print_panel
 
-    if not is_tg_bot_exists():
-        print(
-            f"{Fore.LIGHTRED_EX}\nНе удалось подключиться к вашему Telegram боту. "
-            f"Если вы находитесь на территории России, вам нужно подключить прокси к Telegram боту или использовать VPN, в виду блокировок со стороны РКН."
-        )
-        config["telegram"]["api"]["token"] = ""
-        config["telegram"]["api"]["proxy"] = ""
-        config["telegram"]["api"]["custom_api_url"] = ""
-        sett.set("config", config)
-        return configure_config()
-    else:
-        logger.info(f"{Fore.LIGHTYELLOW_EX}Telegram бот успешно работает.")
+    link = get_owner_link(bot_username)
+    body = (
+        f"Перейдите по ссылке ниже и нажмите «Запустить» — бот запомнит вас как владельца.\n"
+        f"{Fore.LIGHTBLACK_EX}Ссылка одноразовая. Дальше вся настройка — прямо в Telegram боте."
+    )
+    if is_legacy_password_login():
+        body += f"\n{Fore.LIGHTBLACK_EX}Или войдите в бота со своим старым паролем — сработает один раз."
+    # печатаем мимо логгера: latest.log пересылают разработчику, а по ссылке можно стать владельцем
+    print_panel(f"{Fore.CYAN}🔗 Откройте Telegram бота", body, color="bright_cyan", width=80)
+    print(f"\n  {Fore.LIGHTWHITE_EX}{link}{Fore.RESET}\n") # вне рамки: перенос внутри неё ломает копирование ссылки
 
-    logger.info("")
+
+def configure_config():
+    bot_username = configure_telegram()
+    print_owner_link(bot_username)
+    return bot_username
+
+
+DIAGNOSE_TIMEOUT = 60
+
+
+def is_proxy_alive(proxy: str, url: str = "https://funpay.com", timeout: int = 15) -> bool:
+    try:
+        requests.get(url, proxies={"http": f"http://{proxy}", "https": f"http://{proxy}"}, timeout=(10, timeout))
+        return True # любой ответ сайта — значит прокси жив, даже если сам FunPay отдал 5xx
+    except Exception:
+        return False
+
+
+def _fp_account(api: dict) -> Account:
+    proxy = {"https": f"http://{api['proxy']}", "http": f"http://{api['proxy']}"} if api["proxy"] else None
+    return Account(
+        golden_key=api["golden_key"],
+        user_agent=api["user_agent"],
+        requests_timeout=api["requests_timeout"],
+        proxy=proxy
+    )
+
+
+def diagnose_funpay() -> dict | None:
+    api = sett.get("config")["funpay"]["api"]
+
+    if not api["golden_key"]:
+        return {"code": "no_golden_key", "text": "Не указан golden_key аккаунта FunPay", "transient": False}
+
+    if api["proxy"] and not is_proxy_alive(api["proxy"]):
+        return {"code": "proxy", "text": "Прокси для FunPay не отвечает", "transient": True}
+
+    # FunPayAPI сам повторяет запросы на 429 — ограничиваем общее время проверки
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(lambda: _fp_account(api).get())
+    executor.shutdown(wait=False)
+    try:
+        account = future.result(timeout=DIAGNOSE_TIMEOUT)
+    except FutureTimeout:
+        return {"code": "server", "text": f"FunPay не ответил за {DIAGNOSE_TIMEOUT} сек", "transient": True}
+    except UnauthorizedError as e:
+        if getattr(e, "status_code", None) == 403: # 403 FunPayAPI тоже считает «не авторизован», но так бывает и при блокировке IP
+            text = "FunPay отклонил доступ (403) — скорее всего, golden_key устарел. Если он свежий — смените прокси или IP"
+        else:
+            text = "FunPay не принял golden_key — скорее всего, он устарел. Скопируйте свежий из браузера, где вы вошли в аккаунт"
+        return {"code": "golden_key", "text": text, "transient": False}
+    except RequestFailedError as e:
+        return {"code": "server", "text": f"FunPay временно не отвечает (ошибка {e.status_code})", "transient": True}
+    except Exception as e:
+        reason = str(e).strip()
+        if api["proxy"]: # в тексте ошибки бывает адрес прокси вместе с логином и паролем
+            reason = reason.replace(api["proxy"], mask_proxy(api["proxy"])).replace(api["proxy"].split("@")[0], "***")
+        reason = escape(reason[:200]) or type(e).__name__
+        return {"code": "network", "text": f"Не удалось подключиться к FunPay: {reason}", "transient": True}
+
+    try:
+        banned = account.get_user(account.id).banned
+    except AttributeError: # так FunPayAPI ведёт себя на заблокированном аккаунте
+        banned = True
+    except Exception:
+        banned = False
+    if banned:
+        return {"code": "banned", "text": "Аккаунт FunPay заблокирован — на нём бот работать не может", "transient": False}
+    return None
 
 
 def get_stats():

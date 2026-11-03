@@ -160,7 +160,7 @@ async def callback_switch_message_enabled(callback: CallbackQuery, state: FSMCon
 
 @router.callback_query(F.data == "switch_module_enabled")
 async def callback_switch_module_enabled(callback: CallbackQuery, state: FSMContext):
-    from core.modules import get_module_by_uuid, disable_module, enable_module
+    from core.modules import get_module_by_uuid, disable_module, enable_module, set_module_disabled
     try:
         data = await state.get_data()
         last_page = data.get("last_page", 0)
@@ -173,7 +173,12 @@ async def callback_switch_module_enabled(callback: CallbackQuery, state: FSMCont
         if not module:
             raise Exception("❌ Модуль с этим UUID не был найден, повторите процесс с самого начала")
 
-        await disable_module(module_uuid) if module.enabled else await enable_module(module_uuid)
+        if module.enabled: # запоминаем только волю юзера — самовыключение по лицензии сюда не попадает
+            await disable_module(module_uuid)
+            set_module_disabled(module._dir_name, True)
+        else:
+            set_module_disabled(module._dir_name, False)
+            await enable_module(module_uuid)
         return await callback_module_page(
             callback, calls.ModulePage(uuid=module_uuid), state
         )
