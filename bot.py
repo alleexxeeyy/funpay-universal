@@ -121,6 +121,7 @@ if __name__ == "__main__":
         check_for_updates()
         configure_config() # в консоли — только токен Telegram, остальное настраивается в самом ТГ-боте
 
+        logger.info(f"{Fore.LIGHTYELLOW_EX}Проверяю подключение к FunPay...")
         problem = diagnose()
         if problem: # FunPay не подключается — поднимаем один ТГ-бот, чинить будем там
             main_loop.run_until_complete(start_telegram_bot())

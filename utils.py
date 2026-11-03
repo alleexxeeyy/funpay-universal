@@ -8,7 +8,6 @@ import requests
 import string
 from html import escape
 from threading import Thread
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from urllib.parse import urlparse
 from datetime import datetime, timedelta, timezone
 from collections import Counter
@@ -384,6 +383,8 @@ def configure_telegram() -> str:
                 logger.warning(f"{Fore.LIGHTYELLOW_EX}{note}")
                 bootreport.add_note(note)
             logger.info(f"{Fore.LIGHTYELLOW_EX}Telegram бот @{username} успешно подключён.")
+            if not logging.getLogger().handlers: # `setup` из install.sh зовёт без логгера — иначе юзер не увидит итог
+                print_line(f"{Fore.LIGHTYELLOW_EX}Telegram бот @{username} успешно подключён")
             return username
 
         if status == "unauthorized":
@@ -442,9 +443,34 @@ def configure_config():
 DIAGNOSE_TIMEOUT = 60
 
 
+class FutureTimeout(Exception):
+    pass
+
+
+def _run_with_timeout(func, timeout: float):
+    # daemon-поток, а не ThreadPoolExecutor: зависший запрос не должен держать выход из бота по Ctrl+C
+    result = {}
+
+    def target():
+        try:
+            result["value"] = func()
+        except BaseException as e:
+            result["error"] = e
+
+    thread = Thread(target=target, daemon=True)
+    thread.start()
+    thread.join(timeout)
+    if thread.is_alive():
+        raise FutureTimeout()
+    if "error" in result:
+        raise result["error"]
+    return result.get("value")
+
+
 def is_proxy_alive(proxy: str, url: str = "https://funpay.com", timeout: int = 15) -> bool:
-    try:
-        requests.get(url, proxies={"http": f"http://{proxy}", "https": f"http://{proxy}"}, timeout=(10, timeout))
+    from core.utils import ORIGINAL_SESSION_REQUEST
+    try: # мимо patch_requests: на 429/503 он повторяет запросы минутами, а тут любой ответ = прокси жив
+        ORIGINAL_SESSION_REQUEST(requests.Session(), "GET", url, proxies={"http": f"http://{proxy}", "https": f"http://{proxy}"}, timeout=(10, timeout))
         return True # любой ответ сайта — значит прокси жив, даже если сам FunPay отдал 5xx
     except Exception:
         return False
@@ -469,12 +495,16 @@ def diagnose_funpay() -> dict | None:
     if api["proxy"] and not is_proxy_alive(api["proxy"]):
         return {"code": "proxy", "text": "Прокси для FunPay не отвечает", "transient": True}
 
-    # FunPayAPI сам повторяет запросы на 429 — ограничиваем общее время проверки
-    executor = ThreadPoolExecutor(max_workers=1)
-    future = executor.submit(lambda: _fp_account(api).get())
-    executor.shutdown(wait=False)
+    def check():
+        account = _fp_account(api).get()
+        try:
+            return account.get_user(account.id).banned
+        except AttributeError: # так FunPayAPI ведёт себя на заблокированном аккаунте
+            return True
+
+    # FunPayAPI сам повторяет запросы на 429 без ограничения — и вход, и проверка бана под одним таймаутом
     try:
-        account = future.result(timeout=DIAGNOSE_TIMEOUT)
+        banned = _run_with_timeout(check, DIAGNOSE_TIMEOUT)
     except FutureTimeout:
         return {"code": "server", "text": f"FunPay не ответил за {DIAGNOSE_TIMEOUT} сек", "transient": True}
     except UnauthorizedError as e:
@@ -487,17 +517,15 @@ def diagnose_funpay() -> dict | None:
         return {"code": "server", "text": f"FunPay временно не отвечает (ошибка {e.status_code})", "transient": True}
     except Exception as e:
         reason = str(e).strip()
-        if api["proxy"]: # в тексте ошибки бывает адрес прокси вместе с логином и паролем
-            reason = reason.replace(api["proxy"], mask_proxy(api["proxy"])).replace(api["proxy"].split("@")[0], "***")
+        if api["proxy"]: # в тексте ошибки бывает адрес прокси, иногда вместе с логином и паролем
+            host = api["proxy"].split("@")[-1].split(":")[0]
+            reason = reason.replace(api["proxy"], mask_proxy(api["proxy"]))
+            if "@" in api["proxy"]:
+                reason = reason.replace(api["proxy"].split("@")[0], "***")
+            reason = reason.replace(host, mask_proxy(host))
         reason = escape(reason[:200]) or type(e).__name__
         return {"code": "network", "text": f"Не удалось подключиться к FunPay: {reason}", "transient": True}
 
-    try:
-        banned = account.get_user(account.id).banned
-    except AttributeError: # так FunPayAPI ведёт себя на заблокированном аккаунте
-        banned = True
-    except Exception:
-        banned = False
     if banned:
         return {"code": "banned", "text": "Аккаунт FunPay заблокирован — на нём бот работать не может", "transient": False}
     return None

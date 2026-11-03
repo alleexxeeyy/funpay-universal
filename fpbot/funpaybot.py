@@ -837,7 +837,9 @@ class FunPayBot:
                 f"На аккаунте FunPay <b>{escape(self.account.username)}</b> уже работает другой бот"
                 f"{f' (процесс {account_pid})' if account_pid else ''} — один аккаунт, один бот. "
                 f"Закройте лишнюю копию и перезапустите этого бота"
-            ))
+            ), throttle_key="account_locked") # systemd перезапускает бота — не шлём одно и то же каждые несколько секунд
+            if not sys.stdin.isatty():
+                time.sleep(60)
             sys.exit(1)
 
         currency = self.account.currency.name if self.account.currency != Currency.UNKNOWN else "RUB"

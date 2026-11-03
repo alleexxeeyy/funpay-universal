@@ -1,4 +1,5 @@
 import os
+import importlib
 import re
 import sys
 import ctypes
@@ -244,9 +245,13 @@ def install_requirements(requirements_path: str, timeout: int = None):
                 subprocess.check_call([
                     sys.executable, "-m", "pip", "install", "-r", requirements_path
                 ], timeout=timeout)
+                importlib.invalidate_caches() # иначе только что поставленный пакет может не найтись в этом же процессе
                 return
     except Exception as e:
         logger.error(f"Не удалось установить зависимости из файла \"{requirements_path}\": {e}")
+
+
+ORIGINAL_SESSION_REQUEST = requests.Session.request # без повторов на 429/5xx — для коротких проверок
 
 
 def patch_requests():
@@ -281,6 +286,7 @@ def patch_requests():
             logger.debug(f"{url} — {err}. Пробую отправить запрос снова через {delay} сек.")
             delay += random.uniform(0.2, 0.8)  # небольшой джиттер
             time.sleep(delay)
+        return resp # попытки кончились — отдаём последний ответ, а не None
 
     requests.Session.request = _request  # type: ignore
 
