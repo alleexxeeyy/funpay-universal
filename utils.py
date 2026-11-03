@@ -197,7 +197,6 @@ def is_password_valid(password: str) -> bool:
 TG_RETRY_DELAYS = (10, 30, 60, 120, 300)
 NOT_CONFIGURED_EXIT_DELAY = 60
 _console_queue: queue.Queue | None = None
-CONSOLE_PROMPT = f"  {Fore.LIGHTYELLOW_EX}→ {Fore.LIGHTWHITE_EX}"
 
 
 def normalize_proxy(proxy: str) -> str:
@@ -305,7 +304,7 @@ def _read_console(timeout: float = None) -> str | None:
     from core.console import show_prompt, hide_prompt
 
     if _console_queue is None and timeout is None:
-        show_prompt(CONSOLE_PROMPT)
+        show_prompt()
         try:
             return input().strip()
         finally:
@@ -313,7 +312,7 @@ def _read_console(timeout: float = None) -> str | None:
     try:
         line = _console_reader().get_nowait() # ввели, пока бот подключался: строка уже на экране, приглашение не нужно
     except queue.Empty:
-        show_prompt(CONSOLE_PROMPT)
+        show_prompt()
         try:
             line = _console_reader().get(timeout=timeout)
         except queue.Empty:
@@ -371,7 +370,7 @@ def _apply_console_connection(text: str):
 
 def configure_telegram() -> str:
     from core import notify, bootreport
-    from core.console import print_line, show_prompt, hide_prompt
+    from core.console import print_line, print_panel, show_prompt, hide_prompt
 
     tty = sys.stdin.isatty()
     attempt = 0
@@ -419,11 +418,15 @@ def configure_telegram() -> str:
             logging.WARNING
         )
         if tty:
-            print_line(f"{Fore.LIGHTWHITE_EX}Можно не ждать: введите прокси для Telegram (user:pass@ip:port) или URL Telegram API и нажмите Enter")
+            print_panel(
+                "✎ Можно не ждать",
+                "Введите прокси для Telegram (user:pass@ip:port)\nили URL Telegram API и нажмите Enter",
+                color="yellow"
+            )
             text = _read_console(timeout=delay)
             if text is not None:
                 _apply_console_connection(text)
-                show_prompt(CONSOLE_PROMPT) # пока проверяем введённое, можно ввести другое — и лог не встанет поверх набора
+                show_prompt() # пока проверяем введённое, можно ввести другое — и лог не встанет поверх набора
         else:
             time.sleep(delay)
 
