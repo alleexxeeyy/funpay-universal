@@ -63,18 +63,23 @@ class MsgOrder:
     date: str
 
 
-def msg_order(order: "OrderShortcut") -> MsgOrder:
+def msg_order(order: "OrderShortcut | Order") -> MsgOrder:
     if not order:
         return None
+    title =getattr(order, "description", None) or getattr(order, "title", None)
+    price = getattr(order, "price", None)
+    if price is None:
+        price = getattr(order, "sum", None)
+    date = getattr(order, "date", None)
     cur = order.currency.name if order.currency else ""
     return MsgOrder(
         id=str(order.id or "-"),
-        title=order.description or "-",
+        title=title or "-",
         amount=order.amount or "-",
-        price=f"{order.price} {cur}" if cur else str(order.price),
+        price=f"{price} {cur}" if cur else str(price),
         buyer=order.buyer_username or "-",
         status=order.status.name if order.status else "-",
-        date=order.date.strftime("%d.%m.%Y %H:%M") if order.date else "-",
+        date=date.strftime("%d.%m.%Y %H:%M") if date else "-",
     )
 
 
