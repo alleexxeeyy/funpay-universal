@@ -1518,7 +1518,12 @@ class Account:
                 games_options = games_options.find_all(lambda x: x.name == "option" and x.get("value"))
                 for game_option in games_options:
                     game_name = game_option.text
-                    sections_list = json.loads(game_option.get("data-data"))
+                    sections_raw = game_option.get("data-options") or game_option.get("data-data")
+                    if not sections_raw:
+                        continue
+                    sections_list = json.loads(sections_raw)
+                    if isinstance(sections_list, dict):
+                        sections_list = sections_list.items()
                     for key, section_name in sections_list:
                         section_type, section_id = key.split("-")
                         section_type = types.SubCategoryTypes.COMMON if section_type == "lot" else types.SubCategoryTypes.CURRENCY
